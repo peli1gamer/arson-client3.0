@@ -33,7 +33,7 @@ public final class ArsonClient implements ClientModInitializer {
                 net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "main")
         );
 
-        openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping(
                 "key.arson.open_menu",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
@@ -42,11 +42,11 @@ public final class ArsonClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.consumeClick()) {
-                Screen current = client.screen;
+                Screen current = client.gui.getCurrentScreen();
                 if (current instanceof ArsonScreen) {
-                    client.setScreen(null);
+                    client.gui.setScreen(null);
                 } else {
-                    client.setScreen(new ArsonScreen(current));
+                    client.gui.setScreen(new ArsonScreen(current));
                 }
             }
 
