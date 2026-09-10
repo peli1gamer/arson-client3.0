@@ -42,7 +42,7 @@ public final class ArsonClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.consumeClick()) {
-                Screen current = client.gui.getCurrentScreen();
+                Screen current = client.gui.screen();
                 if (current instanceof ArsonScreen) {
                     client.gui.setScreen(null);
                 } else {
