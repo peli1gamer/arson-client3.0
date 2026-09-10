@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "arson",
+  "version": "${version}",
+  "name": "Arson Client",
+  "description": "Arson Client V3 — modular Fabric client foundation.",
+  "authors": ["peli1gamer"],
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "io.arson.client.ArsonClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
