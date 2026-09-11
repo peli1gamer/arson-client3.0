@@ -22,6 +22,8 @@ public final class ModuleManager {
         register(new ClientInfoModule());
         register(new SprintModule());
         register(new PerformanceModule());
+        register(new ContainerESPModule());
+        register(new EntityESPModule());
     }
 
     public Module get(String id) { return modules.get(id); }
