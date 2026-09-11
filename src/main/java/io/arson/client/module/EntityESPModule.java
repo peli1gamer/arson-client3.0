@@ -1,11 +1,12 @@
 package io.arson.client.module;
 
+import io.arson.client.render.EntityScanConfig;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 
 /** Entity visualization configuration consumed by the shared render stage. */
-public final class EntityESPModule extends VisualModule {
+public final class EntityESPModule extends VisualModule implements EntityScanConfig {
     private final BooleanSetting players = setting(new BooleanSetting("players", "Players", true));
     private final BooleanSetting mobs = setting(new BooleanSetting("mobs", "Mobs", true));
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
