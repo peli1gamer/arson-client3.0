@@ -1,7 +1,12 @@
 package io.arson.client;
 
+import com.arson.client.render.StorageOverlay;
+import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
+import io.arson.client.module.ContainerESPModule;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.StorageRenderStage;
+import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -44,6 +49,11 @@ public final class ArsonClient implements ClientModInitializer {
         ));
 
         worldRenderBridge = new WorldRenderBridge();
+        StorageRenderProfile storageProfile = new StorageRenderProfile();
+        StorageOverlay storageOverlay = new StorageOverlay(storageProfile);
+        ContainerESPModule containerESP = (ContainerESPModule) moduleManager.get("container-esp");
+        worldRenderBridge.register(new StorageRenderStage(
+                Minecraft.getInstance(), storageOverlay, new StorageScanner(), containerESP));
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
