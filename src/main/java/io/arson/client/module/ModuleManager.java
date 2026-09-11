@@ -25,6 +25,7 @@ public final class ModuleManager {
         register(new ContainerESPModule());
         register(new EntityESPModule());
         register(new HudModule());
+        register(new CombatInfoModule());
     }
 
     public Module get(String id) { return modules.get(id); }
