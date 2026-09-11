@@ -3,6 +3,7 @@ package io.arson.client.ui;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.Module;
 import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.Setting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -12,8 +13,15 @@ import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class ArsonScreen extends Screen {
+    private static final int[] COLOR_PRESETS = {
+            0xD6FFFFFF, 0xD6FF5555, 0xD6FFAA00, 0xD6FFFF55,
+            0xD655FF55, 0xD655FFFF, 0xD655AAFF, 0xD6AA55FF,
+            0xD6FF55FF, 0xD6AAAAAA
+    };
+
     private final Screen parent;
     private Module.Category selectedCategory = Module.Category.RENDER;
     private final List<Button> contentButtons = new ArrayList<>();
@@ -81,6 +89,14 @@ public final class ArsonScreen extends Screen {
                     this.addRenderableWidget(settingButton);
                     contentButtons.add(settingButton);
                     y += 21;
+                } else if (setting instanceof ColorSetting color) {
+                    Button settingButton = Button.builder(settingLabel(color), button -> {
+                        color.set(nextColor(color.get()));
+                        button.setMessage(settingLabel(color));
+                    }).bounds(x + 14, y, 351, 18).build();
+                    this.addRenderableWidget(settingButton);
+                    contentButtons.add(settingButton);
+                    y += 21;
                 }
             }
             y += 6;
@@ -89,6 +105,13 @@ public final class ArsonScreen extends Screen {
 
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
                 .bounds(right - 100, panelY + 330, 100, 20).build());
+    }
+
+    private static int nextColor(int current) {
+        for (int i = 0; i < COLOR_PRESETS.length; i++) {
+            if (COLOR_PRESETS[i] == current) return COLOR_PRESETS[(i + 1) % COLOR_PRESETS.length];
+        }
+        return COLOR_PRESETS[0];
     }
 
     private static Component moduleLabel(Module module) {
@@ -100,7 +123,11 @@ public final class ArsonScreen extends Screen {
     }
 
     private static Component settingLabel(DoubleSetting setting) {
-        return Component.literal("  " + setting.name() + ": " + String.format(java.util.Locale.ROOT, "%.1f", setting.get()));
+        return Component.literal("  " + setting.name() + ": " + String.format(Locale.ROOT, "%.2f", setting.get()));
+    }
+
+    private static Component settingLabel(ColorSetting setting) {
+        return Component.literal("  " + setting.name() + ": #" + String.format(Locale.ROOT, "%08X", setting.get()));
     }
 
     @Override
