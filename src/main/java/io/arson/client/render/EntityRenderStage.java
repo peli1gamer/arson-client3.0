@@ -34,7 +34,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         }
 
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= 2 || gameTime < lastScanTick) {
+        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, module);
             lastScanTick = gameTime;
         }
