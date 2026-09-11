@@ -5,6 +5,7 @@ import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ContainerESPModule;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.HudRenderer;
 import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
@@ -12,10 +13,12 @@ import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
@@ -38,7 +41,7 @@ public final class ArsonClient implements ClientModInitializer {
         moduleManager.registerDefaults();
 
         KeyMapping.Category category = KeyMapping.Category.register(
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "main")
+                Identifier.fromNamespaceAndPath(MOD_ID, "main")
         );
 
         openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping(
@@ -47,6 +50,11 @@ public final class ArsonClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
                 category
         ));
+
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath(MOD_ID, "hud"),
+                HudRenderer::render
+        );
 
         worldRenderBridge = new WorldRenderBridge();
         StorageRenderProfile storageProfile = new StorageRenderProfile();
