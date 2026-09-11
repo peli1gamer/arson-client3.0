@@ -55,6 +55,10 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
                     cachedTargets, (float) module.lineWidth());
         }
+        if (module.showHealth()) {
+            renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
+                    cachedTargets);
+        }
     }
 
     private static void renderFills(PoseStack matrices, MultiBufferSource consumers,
@@ -134,6 +138,44 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, rgba, lineWidth);
             line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, rgba, lineWidth);
             line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, rgba, lineWidth);
+        }
+    }
+
+    /** Renders a compact vertical health bar just to the left of living entity bounds. */
+    private static void renderHealthBars(PoseStack matrices, MultiBufferSource consumers,
+                                         double cameraX, double cameraY, double cameraZ,
+                                         List<EntityTarget> targets) {
+        PoseStack.Pose pose = matrices.last();
+        VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
+
+        for (EntityTarget target : targets) {
+            if (target.maxHealth() <= 0.0f) continue;
+
+            float healthRatio = Math.max(0.0f, Math.min(1.0f, target.health() / target.maxHealth()));
+            if (healthRatio <= 0.0f) continue;
+
+            float minX = (float) (target.minX() - cameraX - 0.08);
+            float maxX = minX + 0.035f;
+            float minY = (float) (target.minY() - cameraY);
+            float maxY = (float) (target.maxY() - cameraY);
+            float minZ = (float) (target.minZ() - cameraZ);
+            float maxZ = minZ + 0.035f;
+            float filledMaxY = minY + (maxY - minY) * healthRatio;
+
+            // Dark backing makes the bar readable against most entity/world colors.
+            float[] background = new float[]{0.03f, 0.03f, 0.03f, 0.75f};
+            quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, minY, maxZ + 0.01f, background);
+            quad(buffer, pose, minX - 0.01f, maxY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f, background);
+            quad(buffer, pose, minX - 0.01f, minY, minZ, minX - 0.01f, maxY, maxZ + 0.01f, background);
+            quad(buffer, pose, maxX + 0.01f, minY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f, background);
+
+            float red = 1.0f - healthRatio;
+            float green = healthRatio;
+            float[] healthColor = new float[]{red, green, 0.08f, 0.95f};
+            quad(buffer, pose, minX, minY, minZ, maxX, minY, maxZ, healthColor);
+            quad(buffer, pose, minX, filledMaxY, minZ, maxX, filledMaxY, maxZ, healthColor);
+            quad(buffer, pose, minX, minY, minZ, minX, filledMaxY, maxZ, healthColor);
+            quad(buffer, pose, maxX, minY, minZ, maxX, filledMaxY, maxZ, healthColor);
         }
     }
 
