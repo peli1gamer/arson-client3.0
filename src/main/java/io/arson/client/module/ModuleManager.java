@@ -20,7 +20,7 @@ public final class ModuleManager {
 
     public void registerDefaults() {
         register(new ClientInfoModule());
-        register(new ToggleSprintModule());
+        register(new SprintModule());
         register(new PerformanceModule());
     }
 
@@ -38,22 +38,19 @@ public final class ModuleManager {
         }
     }
 
-    private static final class ToggleSprintModule extends Module {
+    private static final class SprintModule extends Module {
         private final BooleanSetting forwardOnly = setting(
                 new BooleanSetting("forward-only", "Forward Only", true));
 
-        private ToggleSprintModule() {
-            super("toggle-sprint", "Toggle Sprint", Category.MOVEMENT);
+        private SprintModule() {
+            super("sprint", "Sprint", Category.MOVEMENT);
         }
 
         @Override
         protected void onTick(Minecraft client) {
             if (client.player == null) return;
-            if (forwardOnly.enabled()) {
-                if (client.options.keyUp.isDown()) client.player.setSprinting(true);
-            } else if (client.player.zza > 0.0F) {
-                client.player.setSprinting(true);
-            }
+            if (forwardOnly.enabled() && !client.options.keyUp.isDown()) return;
+            client.player.setSprinting(true);
         }
     }
 
