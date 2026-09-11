@@ -3,7 +3,6 @@ package io.arson.client.render;
 import io.arson.client.module.EntityTracerModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -30,7 +29,7 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
 
         long gameTime = client.level.getGameTime();
         if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
-            cachedTargets = scanner.scan(client, new EntityESPModuleView(module));
+            cachedTargets = scanner.scan(client, module);
             lastScanTick = gameTime;
         }
 
@@ -65,20 +64,5 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
                     .setNormal(pose, nx, ny, nz)
                     .setLineWidth(width);
         }
-    }
-
-    /** Adapter exposing tracer filters through the existing scanner without duplicating entity discovery. */
-    private static final class EntityESPModuleView extends io.arson.client.module.EntityESPModule {
-        private final EntityTracerModule source;
-
-        private EntityESPModuleView(EntityTracerModule source) {
-            this.source = source;
-        }
-
-        @Override public boolean showPlayers() { return source.showPlayers(); }
-        @Override public boolean showMobs() { return source.showMobs(); }
-        @Override public boolean showAnimals() { return source.showAnimals(); }
-        @Override public boolean showItems() { return source.showItems(); }
-        @Override public double range() { return source.range(); }
     }
 }
