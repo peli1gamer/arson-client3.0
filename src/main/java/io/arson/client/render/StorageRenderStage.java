@@ -52,11 +52,16 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         List<RenderBox> boxes = overlay.build(camera.x, camera.y, camera.z, cachedTargets);
         lastVisibleCount = boxes.size();
 
-        if (!module.outline() || boxes.isEmpty()) {
+        if (boxes.isEmpty()) {
             return;
         }
 
-        renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+        if (module.fill()) {
+            renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+        }
+        if (module.outline()) {
+            renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+        }
     }
 
     private void syncProfile() {
@@ -79,6 +84,57 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
 
     private static RenderColor fromArgb(int argb) {
         return new RenderColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, (argb >>> 24) & 0xFF);
+    }
+
+    private static void renderFills(PoseStack matrices, MultiBufferSource consumers,
+                                    double cameraX, double cameraY, double cameraZ,
+                                    List<RenderBox> boxes) {
+        PoseStack.Pose pose = matrices.last();
+        VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
+
+        for (RenderBox box : boxes) {
+            int argb = box.color().argb();
+            float alpha = (((argb >>> 24) & 0xFF) / 255.0f) * 0.35f;
+            float red = ((argb >>> 16) & 0xFF) / 255.0f;
+            float green = ((argb >>> 8) & 0xFF) / 255.0f;
+            float blue = (argb & 0xFF) / 255.0f;
+
+            float minX = (float) (box.minX() - cameraX);
+            float minY = (float) (box.minY() - cameraY);
+            float minZ = (float) (box.minZ() - cameraZ);
+            float maxX = (float) (box.maxX() - cameraX);
+            float maxY = (float) (box.maxY() - cameraY);
+            float maxZ = (float) (box.maxZ() - cameraZ);
+
+            quad(buffer, pose, minX, minY, minZ, maxX, minY, maxZ, red, green, blue, alpha);
+            quad(buffer, pose, minX, maxY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
+            quad(buffer, pose, minX, minY, minZ, maxX, maxY, minZ, red, green, blue, alpha);
+            quad(buffer, pose, minX, minY, maxZ, maxX, maxY, maxZ, red, green, blue, alpha);
+            quad(buffer, pose, minX, minY, minZ, minX, maxY, maxZ, red, green, blue, alpha);
+            quad(buffer, pose, maxX, minY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
+        }
+    }
+
+    private static void quad(VertexConsumer buffer, PoseStack.Pose pose,
+                             float x1, float y1, float z1, float x2, float y2, float z2,
+                             float red, float green, float blue, float alpha) {
+        // Axis-aligned rectangle corners. debugFilledBox accepts raw colored vertices.
+        if (x1 == x2) {
+            buffer.addVertex(pose, x1, y1, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x1, y2, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x1, y2, z2).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x1, y1, z2).setColor(red, green, blue, alpha);
+        } else if (y1 == y2) {
+            buffer.addVertex(pose, x1, y1, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x2, y1, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x2, y1, z2).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x1, y1, z2).setColor(red, green, blue, alpha);
+        } else {
+            buffer.addVertex(pose, x1, y1, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x2, y1, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x2, y2, z1).setColor(red, green, blue, alpha);
+            buffer.addVertex(pose, x1, y2, z1).setColor(red, green, blue, alpha);
+        }
     }
 
     private static void renderOutlines(PoseStack matrices, MultiBufferSource consumers,
