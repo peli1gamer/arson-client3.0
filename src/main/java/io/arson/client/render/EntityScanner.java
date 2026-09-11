@@ -14,11 +14,6 @@ import java.util.List;
 
 /** Discovers nearby entities for the shared ESP pipeline. */
 public final class EntityScanner {
-    private static final RenderColor PLAYER_COLOR = new RenderColor(85, 170, 255, 210);
-    private static final RenderColor MOB_COLOR = new RenderColor(255, 85, 85, 210);
-    private static final RenderColor ANIMAL_COLOR = new RenderColor(85, 255, 120, 210);
-    private static final RenderColor ITEM_COLOR = new RenderColor(255, 220, 70, 210);
-
     public List<EntityTarget> scan(Minecraft client, EntityESPModule module) {
         if (client.level == null || client.player == null || !module.enabled()) {
             return List.of();
@@ -40,20 +35,20 @@ public final class EntityScanner {
             RenderColor color;
             if (entity instanceof Player) {
                 if (!module.showPlayers()) continue;
-                type = EntityType.PLAYERS;
-                color = PLAYER_COLOR;
+                type = EntityType.PLAYER;
+                color = fromArgb(module.playerColor());
             } else if (entity instanceof Animal) {
                 if (!module.showAnimals()) continue;
-                type = EntityType.ANIMALS;
-                color = ANIMAL_COLOR;
+                type = EntityType.ANIMAL;
+                color = fromArgb(module.animalColor());
             } else if (entity instanceof Mob) {
                 if (!module.showMobs()) continue;
-                type = EntityType.MOBS;
-                color = MOB_COLOR;
+                type = EntityType.MOB;
+                color = fromArgb(module.mobColor());
             } else if (entity instanceof ItemEntity) {
                 if (!module.showItems()) continue;
-                type = EntityType.ITEMS;
-                color = ITEM_COLOR;
+                type = EntityType.ITEM;
+                color = fromArgb(module.itemColor());
             } else {
                 continue;
             }
@@ -72,5 +67,13 @@ public final class EntityScanner {
         }
 
         return List.copyOf(result);
+    }
+
+    private static RenderColor fromArgb(int argb) {
+        return new RenderColor(
+                (argb >> 16) & 0xFF,
+                (argb >> 8) & 0xFF,
+                argb & 0xFF,
+                (argb >>> 24) & 0xFF);
     }
 }
