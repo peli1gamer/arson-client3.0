@@ -4,7 +4,10 @@ import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ContainerESPModule;
+import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.EntityRenderStage;
+import io.arson.client.render.EntityScanner;
 import io.arson.client.render.HudRenderer;
 import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
@@ -57,33 +60,39 @@ public final class ArsonClient implements ClientModInitializer {
         );
 
         worldRenderBridge = new WorldRenderBridge();
+        Minecraft client = Minecraft.getInstance();
+
         StorageRenderProfile storageProfile = new StorageRenderProfile();
         StorageOverlay storageOverlay = new StorageOverlay(storageProfile);
         ContainerESPModule containerESP = (ContainerESPModule) moduleManager.get("container-esp");
         worldRenderBridge.register(new StorageRenderStage(
-                Minecraft.getInstance(), storageOverlay, new StorageScanner(), containerESP));
+                client, storageOverlay, new StorageScanner(), containerESP));
+
+        EntityESPModule entityESP = (EntityESPModule) moduleManager.get("entity-esp");
+        worldRenderBridge.register(new EntityRenderStage(
+                client, new EntityScanner(), entityESP));
+
         worldRenderBridge.attach();
 
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+        ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             while (openMenuKey.consumeClick()) {
-                Screen current = client.gui.screen();
+                Screen current = clientTick.gui.screen();
                 if (current instanceof ArsonScreen) {
-                    client.gui.setScreen(null);
+                    clientTick.gui.setScreen(null);
                 } else {
-                    client.gui.setScreen(new ArsonScreen(current));
+                    clientTick.gui.setScreen(new ArsonScreen(current));
                 }
             }
 
-            moduleManager.tick(client);
+            moduleManager.tick(clientTick);
         });
 
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player != null && client.level != null && client.level.getGameTime() % 200 == 0) {
-                ConfigManager.save(client, moduleManager);
+        ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
+            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) {
+                ConfigManager.save(clientTick, moduleManager);
             }
         });
 
-        Minecraft client = Minecraft.getInstance();
         ConfigManager.load(client, moduleManager);
 
         Component startup = Component.literal("Arson V3 initialized");
