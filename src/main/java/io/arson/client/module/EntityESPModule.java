@@ -10,6 +10,8 @@ public final class EntityESPModule extends VisualModule {
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
     private final BooleanSetting items = setting(new BooleanSetting("items", "Dropped Items", false));
     private final BooleanSetting showHealth = setting(new BooleanSetting("health", "Health", false));
+    private final BooleanSetting fill = setting(new BooleanSetting("fill", "Fill", true));
+    private final BooleanSetting outline = setting(new BooleanSetting("outline", "Outline", true));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
 
     public EntityESPModule() {
@@ -21,5 +23,7 @@ public final class EntityESPModule extends VisualModule {
     public boolean showAnimals() { return animals.enabled(); }
     public boolean showItems() { return items.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
+    public boolean fill() { return fill.enabled(); }
+    public boolean outline() { return outline.enabled(); }
     public double range() { return range.get(); }
 }
