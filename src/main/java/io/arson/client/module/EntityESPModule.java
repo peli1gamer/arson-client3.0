@@ -20,6 +20,7 @@ public final class EntityESPModule extends VisualModule {
     private final DoubleSetting fillAlpha = setting(new DoubleSetting("fill-alpha", "Fill Alpha", 0.30, 0.05, 1.0, 0.05));
     private final DoubleSetting lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 1.0, 4.0, 1.0));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
+    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 2.0, 1.0, 10.0, 1.0));
 
     public EntityESPModule() {
         super("entity-esp", "Entity ESP");
@@ -39,4 +40,5 @@ public final class EntityESPModule extends VisualModule {
     public double fillAlpha() { return fillAlpha.get(); }
     public double lineWidth() { return lineWidth.get(); }
     public double range() { return range.get(); }
+    public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 }
