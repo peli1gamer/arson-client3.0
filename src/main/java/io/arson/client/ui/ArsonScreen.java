@@ -2,6 +2,9 @@ package io.arson.client.ui;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.Module;
+import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.DoubleSetting;
+import io.arson.client.settings.Setting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,37 +20,65 @@ public final class ArsonScreen extends Screen {
 
     @Override
     protected void init() {
-        int panelX = Math.max(20, this.width / 2 - 210);
-        int panelY = Math.max(20, this.height / 2 - 130);
+        int panelX = Math.max(20, this.width / 2 - 260);
+        int panelY = Math.max(20, this.height / 2 - 170);
         int buttonX = panelX + 20;
-        int y = panelY + 48;
+        int y = panelY + 52;
 
         for (Module module : ArsonClient.getInstance().modules().all()) {
             Module current = module;
-            this.addRenderableWidget(Button.builder(
-                    Component.literal(current.name() + (current.enabled() ? "  [ON]" : "  [OFF]")),
-                    button -> {
-                        current.toggle();
-                        button.setMessage(Component.literal(current.name() + (current.enabled() ? "  [ON]" : "  [OFF]")));
-                    }
-            ).bounds(buttonX, y, 170, 20).build());
-            y += 26;
+            this.addRenderableWidget(Button.builder(moduleLabel(current), button -> {
+                current.toggle();
+                button.setMessage(moduleLabel(current));
+            }).bounds(buttonX, y, 220, 20).build());
+            y += 24;
+
+            for (Setting<?> setting : current.settings()) {
+                if (setting instanceof BooleanSetting bool) {
+                    this.addRenderableWidget(Button.builder(settingLabel(bool), button -> {
+                        bool.set(!bool.enabled());
+                        button.setMessage(settingLabel(bool));
+                    }).bounds(buttonX + 14, y, 206, 18).build());
+                    y += 21;
+                } else if (setting instanceof DoubleSetting number) {
+                    this.addRenderableWidget(Button.builder(settingLabel(number), button -> {
+                        double next = number.get() + number.step();
+                        if (next > number.max()) next = number.min();
+                        number.set(next);
+                        button.setMessage(settingLabel(number));
+                    }).bounds(buttonX + 14, y, 206, 18).build());
+                    y += 21;
+                }
+            }
+            y += 5;
+            if (y > panelY + 285) break;
         }
 
         this.addRenderableWidget(Button.builder(Component.literal("Close"), button -> onClose())
-                .bounds(buttonX, panelY + 180, 170, 20).build());
+                .bounds(panelX + 280, panelY + 250, 210, 20).build());
+    }
+
+    private static Component moduleLabel(Module module) {
+        return Component.literal(module.name() + "  [" + (module.enabled() ? "ON" : "OFF") + "]  " + module.category().displayName());
+    }
+
+    private static Component settingLabel(BooleanSetting setting) {
+        return Component.literal(setting.name() + ": " + (setting.enabled() ? "ON" : "OFF"));
+    }
+
+    private static Component settingLabel(DoubleSetting setting) {
+        return Component.literal(setting.name() + ": " + String.format(java.util.Locale.ROOT, "%.1f", setting.get()));
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-
-        int panelX = Math.max(20, this.width / 2 - 210);
-        int panelY = Math.max(20, this.height / 2 - 130);
-        graphics.fill(panelX, panelY, panelX + 420, panelY + 220, 0xE0101014);
-        graphics.outline(panelX, panelY, 420, 220, 0xFF4C4C56);
+        int panelX = Math.max(20, this.width / 2 - 260);
+        int panelY = Math.max(20, this.height / 2 - 170);
+        graphics.fill(panelX, panelY, panelX + 520, panelY + 300, 0xE0101014);
+        graphics.outline(panelX, panelY, 520, 300, 0xFF4C4C56);
         graphics.text(this.font, "Arson Client V3", panelX + 20, panelY + 18, 0xFFFFFFFF, true);
-        graphics.text(this.font, "Modules", panelX + 20, panelY + 34, 0xFFAAAAAA, false);
+        graphics.text(this.font, "Modules / Settings", panelX + 20, panelY + 34, 0xFFAAAAAA, false);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     @Override
