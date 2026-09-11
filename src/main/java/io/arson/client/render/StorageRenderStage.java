@@ -10,28 +10,29 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
     private final Minecraft client;
     private final StorageOverlay overlay;
     private final StorageScanner scanner;
-    private final StorageRenderProfile profile;
+    private int lastVisibleCount;
 
-    public StorageRenderStage(Minecraft client, StorageOverlay overlay,
-                              StorageScanner scanner, StorageRenderProfile profile) {
+    public StorageRenderStage(Minecraft client, StorageOverlay overlay, StorageScanner scanner) {
         this.client = client;
         this.overlay = overlay;
         this.scanner = scanner;
-        this.profile = profile;
     }
 
     @Override
     public void render(WorldRenderContext context) {
-        if (client.level == null || client.player == null) return;
+        if (client.level == null || client.player == null) {
+            lastVisibleCount = 0;
+            return;
+        }
 
         List<StorageOverlay.StorageTarget> targets = scanner.scan(client, overlay.range());
         double cameraX = context.camera().position().x();
         double cameraY = context.camera().position().y();
         double cameraZ = context.camera().position().z();
-        List<RenderBox> boxes = overlay.build(cameraX, cameraY, cameraZ, targets);
+        lastVisibleCount = overlay.build(cameraX, cameraY, cameraZ, targets).size();
+    }
 
-        // Geometry is intentionally produced here but not drawn yet. The next renderer
-        // stage consumes these commands, keeping detection and Minecraft drawing separate.
-        profile.lastVisibleCount(boxes.size());
+    public int lastVisibleCount() {
+        return lastVisibleCount;
     }
 }
