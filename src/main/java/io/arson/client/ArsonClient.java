@@ -1,5 +1,6 @@
 package io.arson.client;
 
+import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -53,8 +54,16 @@ public final class ArsonClient implements ClientModInitializer {
             moduleManager.tick(client);
         });
 
-        Component startup = Component.literal("Arson V3 initialized");
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player != null && client.level != null && client.level.getGameTime() % 200 == 0) {
+                ConfigManager.save(client, moduleManager);
+            }
+        });
+
         Minecraft client = Minecraft.getInstance();
+        ConfigManager.load(client, moduleManager);
+
+        Component startup = Component.literal("Arson V3 initialized");
         if (client.player != null) {
             client.player.displayClientMessage(startup, true);
         }
