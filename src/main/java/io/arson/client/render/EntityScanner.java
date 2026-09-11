@@ -1,7 +1,6 @@
 package io.arson.client.render;
 
 import com.arson.client.render.RenderColor;
-import io.arson.client.module.EntityESPModule;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
@@ -12,9 +11,9 @@ import net.minecraft.world.entity.player.Player;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Discovers nearby entities for the shared ESP pipeline. */
+/** Discovers nearby entities for the shared visualization pipeline. */
 public final class EntityScanner {
-    public List<EntityTarget> scan(Minecraft client, EntityESPModule module) {
+    public List<EntityTarget> scan(Minecraft client, EntityScanConfig module) {
         if (client.level == null || client.player == null || !module.enabled()) {
             return List.of();
         }
