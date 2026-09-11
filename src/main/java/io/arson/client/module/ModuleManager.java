@@ -1,5 +1,7 @@
 package io.arson.client.module;
 
+import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.DoubleSetting;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
@@ -18,25 +20,51 @@ public final class ModuleManager {
 
     public void registerDefaults() {
         register(new ClientInfoModule());
+        register(new ToggleSprintModule());
+        register(new PerformanceModule());
     }
 
-    public Module get(String id) {
-        return modules.get(id);
-    }
-
-    public Collection<Module> all() {
-        return new ArrayList<>(modules.values());
-    }
+    public Module get(String id) { return modules.get(id); }
+    public Collection<Module> all() { return new ArrayList<>(modules.values()); }
 
     public void tick(Minecraft client) {
-        for (Module module : modules.values()) {
-            module.tick(client);
-        }
+        for (Module module : modules.values()) module.tick(client);
     }
 
     private static final class ClientInfoModule extends Module {
         private ClientInfoModule() {
             super("client-info", "Client Info", Category.MISC);
+            setting(new BooleanSetting("show-version", "Show Version", true));
         }
+    }
+
+    private static final class ToggleSprintModule extends Module {
+        private final BooleanSetting forwardOnly = setting(
+                new BooleanSetting("forward-only", "Forward Only", true));
+
+        private ToggleSprintModule() {
+            super("toggle-sprint", "Toggle Sprint", Category.MOVEMENT);
+        }
+
+        @Override
+        protected void onTick(Minecraft client) {
+            if (client.player == null) return;
+            if (forwardOnly.enabled()) {
+                if (client.options.keyUp.isDown()) client.player.setSprinting(true);
+            } else if (client.player.zza > 0.0F) {
+                client.player.setSprinting(true);
+            }
+        }
+    }
+
+    private static final class PerformanceModule extends Module {
+        private final DoubleSetting tickBudget = setting(
+                new DoubleSetting("tick-budget", "Logic Budget", 1.0, 0.1, 5.0, 0.1));
+
+        private PerformanceModule() {
+            super("performance", "Performance", Category.MISC);
+        }
+
+        public double tickBudget() { return tickBudget.get(); }
     }
 }
