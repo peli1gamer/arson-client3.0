@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.Setting;
 import net.minecraft.client.Minecraft;
@@ -46,6 +47,7 @@ public final class ConfigManager {
                     try {
                         if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
                         else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
+                        else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
                     } catch (RuntimeException ignored) {
                         // Keep the declared default when an individual value is invalid.
                     }
