@@ -1,10 +1,10 @@
 # Arson Client V3
 
-A modular Fabric client foundation for Minecraft 26.2.
+A modular Fabric client foundation for Minecraft 1.21.11.
 
 ## Current foundation
 
-- Fabric 26.2 / Java 25
+- Fabric 1.21.11 / Java 21 target
 - Central module registry
 - Module categories
 - Enable/disable lifecycle
@@ -12,6 +12,29 @@ A modular Fabric client foundation for Minecraft 26.2.
 - Client menu that works from the title screen and in-game
 - Clean separation between client entrypoint, modules, and UI
 - Configuration-friendly structure for future settings
+- Renderer-agnostic render command pipeline
+- Per-storage-type render profiles and colors
+- Configurable storage overlay range
+
+## Render architecture
+
+The render layer is split into three stages:
+
+1. **Discovery** finds relevant world objects/entities.
+2. **Render commands** convert discovered objects into lightweight `RenderBox` data.
+3. **Drawing** consumes those commands from the Minecraft/Fabric render lifecycle.
+
+This keeps world scanning separate from drawing and makes visual modules easier to test and extend.
+
+Storage profiles currently support:
+
+- Chest
+- Barrel
+- Shulker
+- Ender Chest
+- Other storage
+
+Each category has an independent enabled state and color.
 
 ## Development direction
 
@@ -30,14 +53,12 @@ Planned areas include:
 - Addon/API layer
 - Performance profiling and diagnostics
 
-The project prioritizes predictable behavior, low overhead, compatibility, and isolated module failures. It does not implement anti-cheat evasion or detection-bypass mechanisms.
+The project prioritizes predictable behavior, low overhead, compatibility, and isolated module failures.
 
 ## Build
 
-Use Java 25 and a current Gradle installation, then run:
+Use Java 21 with a current Gradle installation, then run:
 
 ```text
 gradle build
 ```
-
-Fabric's current 26.2 documentation recommends Loom 1.17, Gradle 9.5.1, and Java 25 for this target.
