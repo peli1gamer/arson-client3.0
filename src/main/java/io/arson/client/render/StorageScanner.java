@@ -1,5 +1,7 @@
 package io.arson.client.render;
 
+import com.arson.client.render.StorageOverlay;
+import com.arson.client.render.StorageType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
@@ -24,26 +26,15 @@ public final class StorageScanner {
         for (BlockPos pos : BlockPos.betweenClosed(
                 origin.offset(-radius, -radius, -radius),
                 origin.offset(radius, radius, radius))) {
-            if (origin.distSqr(pos) > range * range) {
-                continue;
-            }
+            if (origin.distSqr(pos) > range * range) continue;
 
             BlockEntity entity = client.level.getBlockEntity(pos);
             StorageType type = classify(entity);
-            if (type == null) {
-                continue;
-            }
+            if (type == null) continue;
 
-            double width = 1.0;
-            double height = 1.0;
-            double depth = 1.0;
-            if (entity instanceof ChestBlockEntity chest && chest.getBlockState().is(Blocks.CHEST)) {
-                width = 1.0;
-                height = 0.875;
-                depth = 1.0;
-            }
+            double height = entity instanceof ChestBlockEntity ? 0.875 : 1.0;
             targets.add(new StorageOverlay.StorageTarget(
-                    type, pos.getX(), pos.getY(), pos.getZ(), width, height, depth));
+                    type, pos.getX(), pos.getY(), pos.getZ(), 1.0, height, 1.0));
         }
         return targets;
     }
