@@ -1,5 +1,7 @@
 package io.arson.client.render;
 
+import com.arson.client.render.RenderBox;
+import com.arson.client.render.StorageOverlay;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 
@@ -29,7 +31,8 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         double cameraX = context.camera().position().x();
         double cameraY = context.camera().position().y();
         double cameraZ = context.camera().position().z();
-        lastVisibleCount = overlay.build(cameraX, cameraY, cameraZ, targets).size();
+        List<RenderBox> boxes = overlay.build(cameraX, cameraY, cameraZ, targets);
+        lastVisibleCount = boxes.size();
     }
 
     public int lastVisibleCount() {
