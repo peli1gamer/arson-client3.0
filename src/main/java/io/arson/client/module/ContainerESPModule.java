@@ -12,6 +12,8 @@ public final class ContainerESPModule extends VisualModule {
     private final BooleanSetting enderChests = setting(new BooleanSetting("ender-chests", "Ender Chests", true));
     private final BooleanSetting otherStorage = setting(new BooleanSetting("other-storage", "Other Storage", false));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
+    private final BooleanSetting outline = setting(new BooleanSetting("outline", "Outline", true));
+    private final BooleanSetting fill = setting(new BooleanSetting("fill", "Fill", false));
 
     private final ColorSetting chestColor = setting(new ColorSetting("chest-color", "Chest Color", 0xD8F2B84B));
     private final ColorSetting barrelColor = setting(new ColorSetting("barrel-color", "Barrel Color", 0xD89B6B43));
@@ -29,6 +31,8 @@ public final class ContainerESPModule extends VisualModule {
     public boolean showEnderChests() { return enderChests.enabled(); }
     public boolean showOtherStorage() { return otherStorage.enabled(); }
     public double range() { return range.get(); }
+    public boolean outline() { return outline.enabled(); }
+    public boolean fill() { return fill.enabled(); }
     public int chestColor() { return chestColor.get(); }
     public int barrelColor() { return barrelColor.get(); }
     public int shulkerColor() { return shulkerColor.get(); }
