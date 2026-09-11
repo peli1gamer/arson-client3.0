@@ -1,9 +1,10 @@
 package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 
-/** Entity visualization configuration. The render implementation can consume these values without tick polling. */
+/** Entity visualization configuration consumed by the shared render stage. */
 public final class EntityESPModule extends VisualModule {
     private final BooleanSetting players = setting(new BooleanSetting("players", "Players", true));
     private final BooleanSetting mobs = setting(new BooleanSetting("mobs", "Mobs", true));
@@ -12,6 +13,12 @@ public final class EntityESPModule extends VisualModule {
     private final BooleanSetting showHealth = setting(new BooleanSetting("health", "Health", false));
     private final BooleanSetting fill = setting(new BooleanSetting("fill", "Fill", true));
     private final BooleanSetting outline = setting(new BooleanSetting("outline", "Outline", true));
+    private final ColorSetting playerColor = setting(new ColorSetting("player-color", "Player Color", 0xD655AAFF));
+    private final ColorSetting mobColor = setting(new ColorSetting("mob-color", "Mob Color", 0xD6FF5555));
+    private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
+    private final ColorSetting itemColor = setting(new ColorSetting("item-color", "Item Color", 0xD6FFDC46));
+    private final DoubleSetting fillAlpha = setting(new DoubleSetting("fill-alpha", "Fill Alpha", 0.30, 0.05, 1.0, 0.05));
+    private final DoubleSetting lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 1.0, 4.0, 1.0));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
 
     public EntityESPModule() {
@@ -25,5 +32,11 @@ public final class EntityESPModule extends VisualModule {
     public boolean showHealth() { return showHealth.enabled(); }
     public boolean fill() { return fill.enabled(); }
     public boolean outline() { return outline.enabled(); }
+    public int playerColor() { return playerColor.get(); }
+    public int mobColor() { return mobColor.get(); }
+    public int animalColor() { return animalColor.get(); }
+    public int itemColor() { return itemColor.get(); }
+    public double fillAlpha() { return fillAlpha.get(); }
+    public double lineWidth() { return lineWidth.get(); }
     public double range() { return range.get(); }
 }
