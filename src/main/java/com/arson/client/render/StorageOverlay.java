@@ -15,6 +15,10 @@ public final class StorageOverlay {
         this.profile = profile;
     }
 
+    public StorageRenderProfile profile() {
+        return profile;
+    }
+
     public double range() {
         return range;
     }
