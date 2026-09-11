@@ -11,10 +11,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import java.util.List;
 
-/**
- * Shared world-render stage for entity ESP. Scanning is throttled to avoid doing entity discovery
- * for every render frame; drawing remains on the render stage.
- */
+/** Shared world-render stage for entity ESP. */
 public final class EntityRenderStage implements WorldRenderBridge.WorldRenderStage {
     private final Minecraft client;
     private final EntityScanner scanner;
@@ -51,21 +48,23 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         lastVisibleCount = cachedTargets.size();
 
         if (module.fill()) {
-            renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
+            renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
+                    cachedTargets, module.fillAlpha());
         }
         if (module.outline()) {
-            renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
+            renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
+                    cachedTargets, (float) module.lineWidth());
         }
     }
 
     private static void renderFills(PoseStack matrices, MultiBufferSource consumers,
                                     double cameraX, double cameraY, double cameraZ,
-                                    List<EntityTarget> targets) {
+                                    List<EntityTarget> targets, double fillAlpha) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
 
         for (EntityTarget target : targets) {
-            float[] rgba = rgba(target.color(), 0.30f);
+            float[] rgba = rgba(target.color(), (float) fillAlpha);
             float minX = (float) (target.minX() - cameraX);
             float minY = (float) (target.minY() - cameraY);
             float minZ = (float) (target.minZ() - cameraZ);
@@ -110,7 +109,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
     private static void renderOutlines(PoseStack matrices, MultiBufferSource consumers,
                                        double cameraX, double cameraY, double cameraZ,
-                                       List<EntityTarget> targets) {
+                                       List<EntityTarget> targets, float lineWidth) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.lines());
 
@@ -123,24 +122,24 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             float maxY = (float) (target.maxY() - cameraY);
             float maxZ = (float) (target.maxZ() - cameraZ);
 
-            line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, rgba);
-            line(buffer, pose, maxX, minY, minZ, maxX, minY, maxZ, rgba);
-            line(buffer, pose, maxX, minY, maxZ, minX, minY, maxZ, rgba);
-            line(buffer, pose, minX, minY, maxZ, minX, minY, minZ, rgba);
-            line(buffer, pose, minX, maxY, minZ, maxX, maxY, minZ, rgba);
-            line(buffer, pose, maxX, maxY, minZ, maxX, maxY, maxZ, rgba);
-            line(buffer, pose, maxX, maxY, maxZ, minX, maxY, maxZ, rgba);
-            line(buffer, pose, minX, maxY, maxZ, minX, maxY, minZ, rgba);
-            line(buffer, pose, minX, minY, minZ, minX, maxY, minZ, rgba);
-            line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, rgba);
-            line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, rgba);
-            line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, rgba);
+            line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, rgba, lineWidth);
+            line(buffer, pose, maxX, minY, minZ, maxX, minY, maxZ, rgba, lineWidth);
+            line(buffer, pose, maxX, minY, maxZ, minX, minY, maxZ, rgba, lineWidth);
+            line(buffer, pose, minX, minY, maxZ, minX, minY, minZ, rgba, lineWidth);
+            line(buffer, pose, minX, maxY, minZ, maxX, maxY, minZ, rgba, lineWidth);
+            line(buffer, pose, maxX, maxY, minZ, maxX, maxY, maxZ, rgba, lineWidth);
+            line(buffer, pose, maxX, maxY, maxZ, minX, maxY, maxZ, rgba, lineWidth);
+            line(buffer, pose, minX, maxY, maxZ, minX, maxY, minZ, rgba, lineWidth);
+            line(buffer, pose, minX, minY, minZ, minX, maxY, minZ, rgba, lineWidth);
+            line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, rgba, lineWidth);
+            line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, rgba, lineWidth);
+            line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, rgba, lineWidth);
         }
     }
 
     private static void line(VertexConsumer buffer, PoseStack.Pose pose,
                              float x1, float y1, float z1, float x2, float y2, float z2,
-                             float[] rgba) {
+                             float[] rgba, float lineWidth) {
         float dx = x2 - x1;
         float dy = y2 - y1;
         float dz = z2 - z1;
@@ -153,11 +152,11 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         buffer.addVertex(pose, x1, y1, z1)
                 .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
                 .setNormal(pose, dx, dy, dz)
-                .setLineWidth(1.0f);
+                .setLineWidth(lineWidth);
         buffer.addVertex(pose, x2, y2, z2)
                 .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
                 .setNormal(pose, dx, dy, dz)
-                .setLineWidth(1.0f);
+                .setLineWidth(lineWidth);
     }
 
     private static float[] rgba(RenderColor color, float alphaMultiplier) {
