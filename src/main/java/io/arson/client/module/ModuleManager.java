@@ -24,6 +24,7 @@ public final class ModuleManager {
         register(new PerformanceModule());
         register(new ContainerESPModule());
         register(new EntityESPModule());
+        register(new HudModule());
     }
 
     public Module get(String id) { return modules.get(id); }
@@ -41,12 +42,9 @@ public final class ModuleManager {
     }
 
     private static final class SprintModule extends Module {
-        private final BooleanSetting forwardOnly = setting(
-                new BooleanSetting("forward-only", "Forward Only", true));
+        private final BooleanSetting forwardOnly = setting(new BooleanSetting("forward-only", "Forward Only", true));
 
-        private SprintModule() {
-            super("sprint", "Sprint", Category.MOVEMENT);
-        }
+        private SprintModule() { super("sprint", "Sprint", Category.MOVEMENT); }
 
         @Override
         protected void onTick(Minecraft client) {
@@ -57,13 +55,9 @@ public final class ModuleManager {
     }
 
     private static final class PerformanceModule extends Module {
-        private final DoubleSetting tickBudget = setting(
-                new DoubleSetting("tick-budget", "Logic Budget", 1.0, 0.1, 5.0, 0.1));
+        private final DoubleSetting tickBudget = setting(new DoubleSetting("tick-budget", "Logic Budget", 1.0, 0.1, 5.0, 0.1));
 
-        private PerformanceModule() {
-            super("performance", "Performance", Category.MISC);
-        }
-
+        private PerformanceModule() { super("performance", "Performance", Category.MISC); }
         public double tickBudget() { return tickBudget.get(); }
     }
 }
