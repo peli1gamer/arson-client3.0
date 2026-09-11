@@ -2,6 +2,7 @@ package io.arson.client;
 
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -19,6 +20,7 @@ public final class ArsonClient implements ClientModInitializer {
     private static ArsonClient instance;
     private ModuleManager moduleManager;
     private KeyMapping openMenuKey;
+    private WorldRenderBridge worldRenderBridge;
 
     public static ArsonClient getInstance() {
         return instance;
@@ -40,6 +42,9 @@ public final class ArsonClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
                 category
         ));
+
+        worldRenderBridge = new WorldRenderBridge();
+        worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.consumeClick()) {
@@ -71,5 +76,9 @@ public final class ArsonClient implements ClientModInitializer {
 
     public ModuleManager modules() {
         return moduleManager;
+    }
+
+    public WorldRenderBridge worldRenderBridge() {
+        return worldRenderBridge;
     }
 }
