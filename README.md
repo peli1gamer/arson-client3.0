@@ -10,11 +10,16 @@ A modular Fabric client foundation for Minecraft 1.21.11.
 - Enable/disable lifecycle
 - Right Shift menu keybind
 - Client menu that works from the title screen and in-game
-- Clean separation between client entrypoint, modules, and UI
+- Category-based ClickGUI with scrolling settings panels
+- Boolean, numeric, and color settings
 - Configuration-friendly structure for future settings
 - Renderer-agnostic render command pipeline
 - Per-storage-type render profiles and colors
 - Configurable storage overlay range
+- Entity ESP filtering, range, fill, outline, and per-category colors
+- HUD rendering pipeline
+- Combat information HUD foundation
+- GitHub Actions Java 21 build
 
 ## Render architecture
 
@@ -36,20 +41,20 @@ Storage profiles currently support:
 
 Each category has an independent enabled state and color.
 
+Entity ESP currently supports separate Player, Mob, Animal, and Item filters/colors plus range, fill, outline, fill alpha, and outline width settings.
+
 ## Development direction
 
 The V3 architecture is intentionally modular. New systems should live behind focused managers/modules instead of growing one monolithic client class.
 
 Planned areas include:
 
-- Click GUI and themes
-- Per-module settings
-- HUD framework
-- Render utilities
+- More ClickGUI themes and layout controls
+- Render utilities and additional visual modules
 - Storage/entity information overlays
 - Player/world utilities
 - Combat and movement modules where appropriate
-- Config persistence
+- Config persistence expansion
 - Addon/API layer
 - Performance profiling and diagnostics
 
@@ -62,3 +67,5 @@ Use Java 21 with a current Gradle installation, then run:
 ```text
 gradle build
 ```
+
+GitHub Actions also runs the Java 21 build automatically on pushes and pull requests.
