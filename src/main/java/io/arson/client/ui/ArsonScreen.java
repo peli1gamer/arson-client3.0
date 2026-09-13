@@ -21,10 +21,15 @@ public final class ArsonScreen extends Screen {
             0xD655FF55, 0xD655FFFF, 0xD655AAFF, 0xD6AA55FF,
             0xD6FF55FF, 0xD6AAAAAA
     };
+    private static final int CONTENT_TOP = 58;
+    private static final int CONTENT_BOTTOM = 320;
+    private static final int SCROLL_STEP = 24;
 
     private final Screen parent;
     private Module.Category selectedCategory = Module.Category.RENDER;
     private final List<Button> contentButtons = new ArrayList<>();
+    private int scrollOffset;
+    private int maxScroll;
 
     public ArsonScreen(Screen parent) {
         super(Component.literal("Arson Client V3"));
@@ -49,6 +54,7 @@ public final class ArsonScreen extends Screen {
             Module.Category current = category;
             Button button = Button.builder(Component.literal(category.displayName()), b -> {
                 selectedCategory = current;
+                scrollOffset = 0;
                 rebuild();
             }).bounds(categoryX, categoryY, 105, 20).build();
             this.addRenderableWidget(button);
@@ -56,8 +62,9 @@ public final class ArsonScreen extends Screen {
         }
 
         int x = panelX + 145;
-        int y = panelY + 58;
+        int y = panelY + CONTENT_TOP - scrollOffset;
         int right = panelX + 530;
+        int contentHeight = 0;
 
         for (Module module : ArsonClient.getInstance().modules().all()) {
             if (module.category() != selectedCategory) continue;
@@ -66,45 +73,52 @@ public final class ArsonScreen extends Screen {
                 current.toggle();
                 button.setMessage(moduleLabel(current));
             }).bounds(x, y, 365, 21).build();
-            this.addRenderableWidget(moduleButton);
-            contentButtons.add(moduleButton);
+            addContentWidget(moduleButton, y, panelY);
             y += 25;
+            contentHeight += 25;
 
             for (Setting<?> setting : current.settings()) {
+                Button settingButton = null;
                 if (setting instanceof BooleanSetting bool) {
-                    Button settingButton = Button.builder(settingLabel(bool), button -> {
+                    settingButton = Button.builder(settingLabel(bool), button -> {
                         bool.set(!bool.enabled());
                         button.setMessage(settingLabel(bool));
                     }).bounds(x + 14, y, 351, 18).build();
-                    this.addRenderableWidget(settingButton);
-                    contentButtons.add(settingButton);
-                    y += 21;
                 } else if (setting instanceof DoubleSetting number) {
-                    Button settingButton = Button.builder(settingLabel(number), button -> {
+                    settingButton = Button.builder(settingLabel(number), button -> {
                         double next = number.get() + number.step();
                         if (next > number.max()) next = number.min();
                         number.set(next);
                         button.setMessage(settingLabel(number));
                     }).bounds(x + 14, y, 351, 18).build();
-                    this.addRenderableWidget(settingButton);
-                    contentButtons.add(settingButton);
-                    y += 21;
                 } else if (setting instanceof ColorSetting color) {
-                    Button settingButton = Button.builder(settingLabel(color), button -> {
+                    settingButton = Button.builder(settingLabel(color), button -> {
                         color.set(nextColor(color.get()));
                         button.setMessage(settingLabel(color));
                     }).bounds(x + 14, y, 351, 18).build();
-                    this.addRenderableWidget(settingButton);
-                    contentButtons.add(settingButton);
+                }
+                if (settingButton != null) {
+                    addContentWidget(settingButton, y, panelY);
                     y += 21;
+                    contentHeight += 21;
                 }
             }
             y += 6;
-            if (y > panelY + 305) break;
+            contentHeight += 6;
         }
+
+        maxScroll = Math.max(0, contentHeight - (CONTENT_BOTTOM - CONTENT_TOP));
+        if (scrollOffset > maxScroll) scrollOffset = maxScroll;
 
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
                 .bounds(right - 100, panelY + 330, 100, 20).build());
+    }
+
+    private void addContentWidget(Button button, int y, int panelY) {
+        if (y >= panelY + CONTENT_TOP && y <= panelY + CONTENT_BOTTOM - 18) {
+            this.addRenderableWidget(button);
+            contentButtons.add(button);
+        }
     }
 
     private static int nextColor(int current) {
@@ -131,6 +145,20 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        int panelX = Math.max(20, this.width / 2 - 280);
+        int panelY = Math.max(20, this.height / 2 - 180);
+        if (mouseX >= panelX + 140 && mouseX <= panelX + 535 && mouseY >= panelY + CONTENT_TOP && mouseY <= panelY + CONTENT_BOTTOM) {
+            int direction = verticalAmount > 0 ? -1 : 1;
+            int next = scrollOffset + direction * SCROLL_STEP;
+            scrollOffset = Math.max(0, Math.min(maxScroll, next));
+            rebuild();
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         int panelX = Math.max(20, this.width / 2 - 280);
         int panelY = Math.max(20, this.height / 2 - 180);
@@ -139,6 +167,9 @@ public final class ArsonScreen extends Screen {
         graphics.text(this.font, "Arson Client V3", panelX + 18, panelY + 18, 0xFFFFFFFF, true);
         graphics.text(this.font, "Modules / Settings", panelX + 18, panelY + 34, 0xFFAAAAAA, false);
         graphics.text(this.font, selectedCategory.displayName(), panelX + 145, panelY + 40, 0xFFFFFFFF, true);
+        if (maxScroll > 0) {
+            graphics.text(this.font, "Scroll", panelX + 485, panelY + 40, 0xFFAAAAAA, false);
+        }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
