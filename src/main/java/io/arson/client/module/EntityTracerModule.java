@@ -15,6 +15,7 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     private final ColorSetting mobColor = setting(new ColorSetting("mob-color", "Mob Color", 0xD6FF5555));
     private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
     private final ColorSetting itemColor = setting(new ColorSetting("item-color", "Item Color", 0xD6FFDC46));
+    private final DoubleSetting alpha = setting(new DoubleSetting("alpha", "Alpha", 1.0, 0.05, 1.0, 0.05));
     private final DoubleSetting lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 1.0, 4.0, 1.0));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 2.0, 1.0, 10.0, 1.0));
@@ -32,6 +33,7 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     public int mobColor() { return mobColor.get(); }
     public int animalColor() { return animalColor.get(); }
     public int itemColor() { return itemColor.get(); }
+    public double alpha() { return alpha.get(); }
     public double lineWidth() { return lineWidth.get(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
