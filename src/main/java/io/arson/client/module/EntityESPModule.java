@@ -1,6 +1,7 @@
 package io.arson.client.module;
 
 import io.arson.client.render.EntityScanConfig;
+import io.arson.client.render.RenderStyle;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
@@ -39,4 +40,9 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public double lineWidth() { return super.lineWidth(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
+
+    public RenderStyle playerStyle() { return renderStyle(playerColor.get()); }
+    public RenderStyle mobStyle() { return renderStyle(mobColor.get()); }
+    public RenderStyle animalStyle() { return renderStyle(animalColor.get()); }
+    public RenderStyle itemStyle() { return renderStyle(itemColor.get()); }
 }
