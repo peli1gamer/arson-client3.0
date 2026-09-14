@@ -1,7 +1,6 @@
 package io.arson.client.render;
 
 import com.arson.client.render.RenderBox;
-import com.arson.client.render.RenderColor;
 import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
@@ -46,7 +45,13 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         }
 
         var camera = context.worldState().cameraRenderState.pos;
-        List<RenderBox> boxes = overlay.build(camera.x, camera.y, camera.z, cachedTargets);
+        List<RenderBox> boxes = overlay.build(camera.x, camera.y, camera.z, cachedTargets, type -> switch (type) {
+            case CHEST -> module.chestStyle();
+            case BARREL -> module.barrelStyle();
+            case SHULKER -> module.shulkerStyle();
+            case ENDER_CHEST -> module.enderChestStyle();
+            case OTHER -> module.otherStorageStyle();
+        });
         lastVisibleCount = boxes.size();
         if (boxes.isEmpty()) return;
 
@@ -67,15 +72,6 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         profile.enabled(StorageType.SHULKER, module.showShulkers());
         profile.enabled(StorageType.ENDER_CHEST, module.showEnderChests());
         profile.enabled(StorageType.OTHER, module.showOtherStorage());
-        profile.color(StorageType.CHEST, fromArgb(module.chestColor()));
-        profile.color(StorageType.BARREL, fromArgb(module.barrelColor()));
-        profile.color(StorageType.SHULKER, fromArgb(module.shulkerColor()));
-        profile.color(StorageType.ENDER_CHEST, fromArgb(module.enderChestColor()));
-        profile.color(StorageType.OTHER, fromArgb(module.otherStorageColor()));
-    }
-
-    private static RenderColor fromArgb(int argb) {
-        return new RenderColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, (argb >>> 24) & 0xFF);
     }
 
     public int lastVisibleCount() {
