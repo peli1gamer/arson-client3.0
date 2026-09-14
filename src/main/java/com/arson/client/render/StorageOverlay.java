@@ -2,6 +2,7 @@ package com.arson.client.render;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Builds lightweight render commands from already-discovered storage positions.
@@ -32,6 +33,13 @@ public final class StorageOverlay {
 
     public List<RenderBox> build(double cameraX, double cameraY, double cameraZ,
                                  List<StorageTarget> targets) {
+        return build(cameraX, cameraY, cameraZ, targets,
+                type -> new RenderStyle(profile.color(type), true, true, 0.25f, 1.0f, 1.0f));
+    }
+
+    public List<RenderBox> build(double cameraX, double cameraY, double cameraZ,
+                                 List<StorageTarget> targets,
+                                 Function<StorageType, RenderStyle> styleProvider) {
         List<RenderBox> boxes = new ArrayList<>();
         double rangeSquared = range * range;
 
@@ -46,12 +54,16 @@ public final class StorageOverlay {
                 continue;
             }
 
+            RenderStyle style = styleProvider.apply(target.type());
+            if (style == null) {
+                continue;
+            }
             boxes.add(new RenderBox(
                     target.x(), target.y(), target.z(),
                     target.x() + target.width(),
                     target.y() + target.height(),
                     target.z() + target.depth(),
-                    profile.color(target.type())));
+                    style));
         }
         return boxes;
     }
