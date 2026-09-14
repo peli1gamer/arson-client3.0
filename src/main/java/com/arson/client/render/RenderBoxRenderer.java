@@ -14,27 +14,27 @@ public final class RenderBoxRenderer {
 
     public static void fill(PoseStack matrices, MultiBufferSource consumers,
                             double cameraX, double cameraY, double cameraZ,
-                            List<RenderBox> boxes, float alpha) {
+                            List<RenderBox> boxes) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
         for (RenderBox box : boxes) {
             RenderStyle style = box.style();
-            float[] color = RenderStyleUtil.rgba(style, false, alpha);
             if (!style.filled()) continue;
-            drawFaces(buffer, pose, box, cameraX, cameraY, cameraZ, color);
+            drawFaces(buffer, pose, box, cameraX, cameraY, cameraZ,
+                    RenderStyleUtil.rgba(style, false));
         }
     }
 
     public static void outline(PoseStack matrices, MultiBufferSource consumers,
                                double cameraX, double cameraY, double cameraZ,
-                               List<RenderBox> boxes, float alpha, float lineWidth) {
+                               List<RenderBox> boxes) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.lines());
         for (RenderBox box : boxes) {
             RenderStyle style = box.style();
             if (!style.outline()) continue;
-            float[] color = RenderStyleUtil.rgba(style, true, alpha);
-            float width = Math.max(0.5f, Math.min(8.0f, lineWidth > 0.0f ? lineWidth : style.lineWidth()));
+            float[] color = RenderStyleUtil.rgba(style, true);
+            float width = Math.max(0.5f, Math.min(8.0f, style.lineWidth()));
             float minX = (float) (box.minX() - cameraX), minY = (float) (box.minY() - cameraY), minZ = (float) (box.minZ() - cameraZ);
             float maxX = (float) (box.maxX() - cameraX), maxY = (float) (box.maxY() - cameraY), maxZ = (float) (box.maxZ() - cameraZ);
             line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, color, width);
