@@ -5,8 +5,10 @@ import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ContainerESPModule;
 import io.arson.client.module.EntityESPModule;
+import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.EntityInfoStage;
 import io.arson.client.render.EntityRenderStage;
 import io.arson.client.render.EntityScanner;
 import io.arson.client.render.EntityTracerStage;
@@ -73,6 +75,9 @@ public final class ArsonClient implements ClientModInitializer {
         EntityScanner entityScanner = new EntityScanner();
         EntityESPModule entityESP = (EntityESPModule) moduleManager.get("entity-esp");
         worldRenderBridge.register(new EntityRenderStage(client, entityScanner, entityESP));
+
+        EntityInfoModule entityInfo = (EntityInfoModule) moduleManager.get("entity-info");
+        worldRenderBridge.register(new EntityInfoStage(client, entityScanner, entityInfo));
 
         EntityTracerModule entityTracers = (EntityTracerModule) moduleManager.get("entity-tracers");
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, entityTracers));
