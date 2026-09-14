@@ -1,5 +1,7 @@
 package io.arson.client.module;
 
+import com.arson.client.render.RenderColor;
+import io.arson.client.render.RenderStyle;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
@@ -23,4 +25,16 @@ public abstract class VisualModule extends Module {
     public double opacity() { return opacity.get(); }
     public boolean filled() { return filled.enabled(); }
     public boolean outline() { return outline.enabled(); }
+
+    /** Shared presentation object for render stages using the common visual settings. */
+    public RenderStyle renderStyle() {
+        int argb = color.get();
+        RenderColor renderColor = new RenderColor(
+                (argb >>> 16) & 0xFF,
+                (argb >>> 8) & 0xFF,
+                argb & 0xFF,
+                (argb >>> 24) & 0xFF);
+        return new RenderStyle(renderColor, filled.enabled(), outline.enabled(),
+                (float) opacity.get(), 1.0f, 1.0f);
+    }
 }
