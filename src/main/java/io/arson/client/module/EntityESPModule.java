@@ -19,7 +19,8 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
     private final ColorSetting itemColor = setting(new ColorSetting("item-color", "Item Color", 0xD6FFDC46));
     private final DoubleSetting fillAlpha = setting(new DoubleSetting("fill-alpha", "Fill Alpha", 0.30, 0.05, 1.0, 0.05));
-    private final DoubleSetting lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 1.0, 4.0, 1.0));
+    private final DoubleSetting outlineAlpha = setting(new DoubleSetting("outline-alpha", "Outline Alpha", 1.0, 0.05, 1.0, 0.05));
+    private final DoubleSetting lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 0.5, 4.0, 0.5));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 2.0, 1.0, 10.0, 1.0));
 
@@ -39,6 +40,7 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public int animalColor() { return animalColor.get(); }
     public int itemColor() { return itemColor.get(); }
     public double fillAlpha() { return fillAlpha.get(); }
+    public double outlineAlpha() { return outlineAlpha.get(); }
     public double lineWidth() { return lineWidth.get(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
