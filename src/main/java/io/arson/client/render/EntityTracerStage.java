@@ -38,32 +38,18 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
         if (cachedTargets.isEmpty()) return;
 
         var camera = context.worldState().cameraRenderState.pos;
-        PoseStack.Pose pose = context.matrices().last();
         VertexConsumer buffer = context.consumers().getBuffer(RenderTypes.lines());
         float width = (float) module.lineWidth();
 
         for (EntityTarget target : cachedTargets) {
             RenderStyle style = RenderStyleUtil.of(target.color(), false, true,
                     0.0f, (float) module.alpha(), width);
-            float[] rgba = RenderStyleUtil.rgba(style, true);
 
-            float x = (float) (target.centerX() - camera.x);
-            float y = (float) (target.centerY() - camera.y);
-            float z = (float) (target.centerZ() - camera.z);
-            float length = (float) Math.sqrt(x * x + y * y + z * z);
-            if (length < 0.001f) continue;
-            float nx = x / length;
-            float ny = y / length;
-            float nz = z / length;
-
-            buffer.addVertex(pose, 0.0f, 0.0f, 0.0f)
-                    .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
-                    .setNormal(pose, nx, ny, nz)
-                    .setLineWidth(style.lineWidth());
-            buffer.addVertex(pose, x, y, z)
-                    .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
-                    .setNormal(pose, nx, ny, nz)
-                    .setLineWidth(style.lineWidth());
+            double x = target.centerX() - camera.x;
+            double y = target.centerY() - camera.y;
+            double z = target.centerZ() - camera.z;
+            RenderLineRenderer.line(context.matrices(), buffer,
+                    0.0, 0.0, 0.0, x, y, z, style);
         }
     }
 }
