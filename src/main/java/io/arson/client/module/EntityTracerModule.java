@@ -1,6 +1,9 @@
 package io.arson.client.module;
 
+import com.arson.client.render.RenderColor;
+import com.arson.client.render.RenderStyle;
 import io.arson.client.render.EntityScanConfig;
+import io.arson.client.render.EntityTarget;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
@@ -37,4 +40,11 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     public double lineWidth() { return lineWidth.get(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
+
+    /** Snapshot the tracer appearance so the render stage only consumes immutable style data. */
+    public RenderStyle styleFor(EntityTarget target) {
+        RenderColor color = target.color();
+        return new RenderStyle(color, false, true, 0.0f,
+                alpha.get().floatValue(), lineWidth.get().floatValue());
+    }
 }
