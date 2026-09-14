@@ -42,7 +42,7 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
         float r = ((argb >>> 16) & 0xFF) / 255.0f;
         float g = ((argb >>> 8) & 0xFF) / 255.0f;
         float b = (argb & 0xFF) / 255.0f;
-        float a = ((argb >>> 24) & 0xFF) / 255.0f;
+        float a = (((argb >>> 24) & 0xFF) / 255.0f) * (float) module.alpha();
         float width = (float) module.lineWidth();
 
         for (EntityTarget target : cachedTargets) {
