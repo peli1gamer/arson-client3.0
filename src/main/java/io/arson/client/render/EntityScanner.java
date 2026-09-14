@@ -28,7 +28,8 @@ public final class EntityScanner {
             double dx = entity.getX() - client.player.getX();
             double dy = entity.getY() - client.player.getY();
             double dz = entity.getZ() - client.player.getZ();
-            if (dx * dx + dy * dy + dz * dz > maxDistanceSq) continue;
+            double distanceSq = dx * dx + dy * dy + dz * dz;
+            if (distanceSq > maxDistanceSq) continue;
 
             EntityType type;
             RenderColor color;
@@ -62,7 +63,8 @@ public final class EntityScanner {
                     type,
                     box.minX, box.minY, box.minZ,
                     box.maxX, box.maxY, box.maxZ,
-                    health, maxHealth, color));
+                    health, maxHealth, color,
+                    entity.getName().getString(), Math.sqrt(distanceSq)));
         }
 
         return List.copyOf(result);
