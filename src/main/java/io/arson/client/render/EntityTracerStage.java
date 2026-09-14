@@ -1,5 +1,7 @@
 package io.arson.client.render;
 
+import com.arson.client.render.RenderStyle;
+import com.arson.client.render.RenderStyleUtil;
 import io.arson.client.module.EntityTracerModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
@@ -38,14 +40,13 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
         var camera = context.worldState().cameraRenderState.pos;
         PoseStack.Pose pose = context.matrices().last();
         VertexConsumer buffer = context.consumers().getBuffer(RenderTypes.lines());
-        int argb = module.color();
-        float r = ((argb >>> 16) & 0xFF) / 255.0f;
-        float g = ((argb >>> 8) & 0xFF) / 255.0f;
-        float b = (argb & 0xFF) / 255.0f;
-        float a = (((argb >>> 24) & 0xFF) / 255.0f) * (float) module.alpha();
         float width = (float) module.lineWidth();
 
         for (EntityTarget target : cachedTargets) {
+            RenderStyle style = RenderStyleUtil.of(target.color(), false, true,
+                    0.0f, (float) module.alpha(), width);
+            float[] rgba = RenderStyleUtil.rgba(style, true);
+
             float x = (float) (target.centerX() - camera.x);
             float y = (float) (target.centerY() - camera.y);
             float z = (float) (target.centerZ() - camera.z);
@@ -56,13 +57,13 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
             float nz = z / length;
 
             buffer.addVertex(pose, 0.0f, 0.0f, 0.0f)
-                    .setColor(r, g, b, a)
+                    .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
                     .setNormal(pose, nx, ny, nz)
-                    .setLineWidth(width);
+                    .setLineWidth(style.lineWidth());
             buffer.addVertex(pose, x, y, z)
-                    .setColor(r, g, b, a)
+                    .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
                     .setNormal(pose, nx, ny, nz)
-                    .setLineWidth(width);
+                    .setLineWidth(style.lineWidth());
         }
     }
 }
