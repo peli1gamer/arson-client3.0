@@ -53,7 +53,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         }
         if (module.outline()) {
             renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
-                    cachedTargets, (float) module.lineWidth());
+                    cachedTargets, (float) module.outlineAlpha(), (float) module.lineWidth());
         }
         if (module.showHealth()) {
             renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
@@ -113,12 +113,12 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
     private static void renderOutlines(PoseStack matrices, MultiBufferSource consumers,
                                        double cameraX, double cameraY, double cameraZ,
-                                       List<EntityTarget> targets, float lineWidth) {
+                                       List<EntityTarget> targets, float outlineAlpha, float lineWidth) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.lines());
 
         for (EntityTarget target : targets) {
-            float[] rgba = rgba(target.color(), 1.0f);
+            float[] rgba = rgba(target.color(), outlineAlpha);
             float minX = (float) (target.minX() - cameraX);
             float minY = (float) (target.minY() - cameraY);
             float minZ = (float) (target.minZ() - cameraZ);
@@ -162,7 +162,6 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             float maxZ = minZ + 0.035f;
             float filledMaxY = minY + (maxY - minY) * healthRatio;
 
-            // Dark backing makes the bar readable against most entity/world colors.
             float[] background = new float[]{0.03f, 0.03f, 0.03f, 0.75f};
             quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, minY, maxZ + 0.01f, background);
             quad(buffer, pose, minX - 0.01f, maxY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f, background);
