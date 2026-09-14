@@ -27,6 +27,7 @@ public final class ModuleManager {
         register(new EntityTracerModule());
         register(new HudModule());
         register(new CombatInfoModule());
+        register(new PlayerInfoModule());
     }
 
     public Module get(String id) { return modules.get(id); }
