@@ -1,5 +1,6 @@
 package io.arson.client.module;
 
+import io.arson.client.render.RenderStyle;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
@@ -39,4 +40,10 @@ public final class ContainerESPModule extends VisualModule {
     public int shulkerColor() { return shulkerColor.get(); }
     public int enderChestColor() { return enderChestColor.get(); }
     public int otherStorageColor() { return otherStorageColor.get(); }
+
+    public RenderStyle chestStyle() { return renderStyle(chestColor.get()); }
+    public RenderStyle barrelStyle() { return renderStyle(barrelColor.get()); }
+    public RenderStyle shulkerStyle() { return renderStyle(shulkerColor.get()); }
+    public RenderStyle enderChestStyle() { return renderStyle(enderChestColor.get()); }
+    public RenderStyle otherStorageStyle() { return renderStyle(otherStorageColor.get()); }
 }
