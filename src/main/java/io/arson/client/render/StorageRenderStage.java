@@ -2,6 +2,8 @@ package io.arson.client.render;
 
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderColor;
+import com.arson.client.render.RenderStyle;
+import com.arson.client.render.RenderStyleUtil;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
 import io.arson.client.module.ContainerESPModule;
@@ -51,10 +53,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         var camera = context.worldState().cameraRenderState.pos;
         List<RenderBox> boxes = overlay.build(camera.x, camera.y, camera.z, cachedTargets);
         lastVisibleCount = boxes.size();
-
-        if (boxes.isEmpty()) {
-            return;
-        }
+        if (boxes.isEmpty()) return;
 
         if (module.fill()) {
             renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
@@ -65,7 +64,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
     }
 
     private void syncProfile() {
-        StorageRenderProfile profile = overlayProfile();
+        StorageRenderProfile profile = overlay.profile();
         profile.enabled(StorageType.CHEST, module.showChests());
         profile.enabled(StorageType.BARREL, module.showBarrels());
         profile.enabled(StorageType.SHULKER, module.showShulkers());
@@ -78,10 +77,6 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         profile.color(StorageType.OTHER, fromArgb(module.otherStorageColor()));
     }
 
-    private StorageRenderProfile overlayProfile() {
-        return overlay.profile();
-    }
-
     private static RenderColor fromArgb(int argb) {
         return new RenderColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, (argb >>> 24) & 0xFF);
     }
@@ -91,49 +86,10 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                                     List<RenderBox> boxes) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
-
         for (RenderBox box : boxes) {
-            int argb = box.color().argb();
-            float alpha = (((argb >>> 24) & 0xFF) / 255.0f) * 0.35f;
-            float red = ((argb >>> 16) & 0xFF) / 255.0f;
-            float green = ((argb >>> 8) & 0xFF) / 255.0f;
-            float blue = (argb & 0xFF) / 255.0f;
-
-            float minX = (float) (box.minX() - cameraX);
-            float minY = (float) (box.minY() - cameraY);
-            float minZ = (float) (box.minZ() - cameraZ);
-            float maxX = (float) (box.maxX() - cameraX);
-            float maxY = (float) (box.maxY() - cameraY);
-            float maxZ = (float) (box.maxZ() - cameraZ);
-
-            quad(buffer, pose, minX, minY, minZ, maxX, minY, maxZ, red, green, blue, alpha);
-            quad(buffer, pose, minX, maxY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
-            quad(buffer, pose, minX, minY, minZ, maxX, maxY, minZ, red, green, blue, alpha);
-            quad(buffer, pose, minX, minY, maxZ, maxX, maxY, maxZ, red, green, blue, alpha);
-            quad(buffer, pose, minX, minY, minZ, minX, maxY, maxZ, red, green, blue, alpha);
-            quad(buffer, pose, maxX, minY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
-        }
-    }
-
-    private static void quad(VertexConsumer buffer, PoseStack.Pose pose,
-                             float x1, float y1, float z1, float x2, float y2, float z2,
-                             float red, float green, float blue, float alpha) {
-        // Axis-aligned rectangle corners. debugFilledBox accepts raw colored vertices.
-        if (x1 == x2) {
-            buffer.addVertex(pose, x1, y1, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x1, y2, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x1, y2, z2).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x1, y1, z2).setColor(red, green, blue, alpha);
-        } else if (y1 == y2) {
-            buffer.addVertex(pose, x1, y1, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x2, y1, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x2, y1, z2).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x1, y1, z2).setColor(red, green, blue, alpha);
-        } else {
-            buffer.addVertex(pose, x1, y1, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x2, y1, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x2, y2, z1).setColor(red, green, blue, alpha);
-            buffer.addVertex(pose, x1, y2, z1).setColor(red, green, blue, alpha);
+            RenderStyle style = RenderStyleUtil.of(box.color(), true, false, 0.35f, 1.0f, 1.0f);
+            float[] c = RenderStyleUtil.rgba(style, false);
+            drawBoxFaces(buffer, pose, box, cameraX, cameraY, cameraZ, c);
         }
     }
 
@@ -142,59 +98,64 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                                        List<RenderBox> boxes) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.lines());
-
         for (RenderBox box : boxes) {
-            int argb = box.color().argb();
-            float alpha = ((argb >>> 24) & 0xFF) / 255.0f;
-            float red = ((argb >>> 16) & 0xFF) / 255.0f;
-            float green = ((argb >>> 8) & 0xFF) / 255.0f;
-            float blue = (argb & 0xFF) / 255.0f;
-
-            float minX = (float) (box.minX() - cameraX);
-            float minY = (float) (box.minY() - cameraY);
-            float minZ = (float) (box.minZ() - cameraZ);
-            float maxX = (float) (box.maxX() - cameraX);
-            float maxY = (float) (box.maxY() - cameraY);
-            float maxZ = (float) (box.maxZ() - cameraZ);
-
-            line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, red, green, blue, alpha);
-            line(buffer, pose, maxX, minY, minZ, maxX, minY, maxZ, red, green, blue, alpha);
-            line(buffer, pose, maxX, minY, maxZ, minX, minY, maxZ, red, green, blue, alpha);
-            line(buffer, pose, minX, minY, maxZ, minX, minY, minZ, red, green, blue, alpha);
-            line(buffer, pose, minX, maxY, minZ, maxX, maxY, minZ, red, green, blue, alpha);
-            line(buffer, pose, maxX, maxY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
-            line(buffer, pose, maxX, maxY, maxZ, minX, maxY, maxZ, red, green, blue, alpha);
-            line(buffer, pose, minX, maxY, maxZ, minX, maxY, minZ, red, green, blue, alpha);
-            line(buffer, pose, minX, minY, minZ, minX, maxY, minZ, red, green, blue, alpha);
-            line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, red, green, blue, alpha);
-            line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, red, green, blue, alpha);
-            line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, red, green, blue, alpha);
+            RenderStyle style = RenderStyleUtil.of(box.color(), false, true, 0.35f, 1.0f, 1.0f);
+            float[] c = RenderStyleUtil.rgba(style, true);
+            float minX = (float) (box.minX() - cameraX), minY = (float) (box.minY() - cameraY), minZ = (float) (box.minZ() - cameraZ);
+            float maxX = (float) (box.maxX() - cameraX), maxY = (float) (box.maxY() - cameraY), maxZ = (float) (box.maxZ() - cameraZ);
+            line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, c);
+            line(buffer, pose, maxX, minY, minZ, maxX, minY, maxZ, c);
+            line(buffer, pose, maxX, minY, maxZ, minX, minY, maxZ, c);
+            line(buffer, pose, minX, minY, maxZ, minX, minY, minZ, c);
+            line(buffer, pose, minX, maxY, minZ, maxX, maxY, minZ, c);
+            line(buffer, pose, maxX, maxY, minZ, maxX, maxY, maxZ, c);
+            line(buffer, pose, maxX, maxY, maxZ, minX, maxY, maxZ, c);
+            line(buffer, pose, minX, maxY, maxZ, minX, maxY, minZ, c);
+            line(buffer, pose, minX, minY, minZ, minX, maxY, minZ, c);
+            line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, c);
+            line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, c);
+            line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, c);
         }
     }
 
+    private static void drawBoxFaces(VertexConsumer buffer, PoseStack.Pose pose, RenderBox box,
+                                     double cameraX, double cameraY, double cameraZ, float[] c) {
+        float minX = (float) (box.minX() - cameraX), minY = (float) (box.minY() - cameraY), minZ = (float) (box.minZ() - cameraZ);
+        float maxX = (float) (box.maxX() - cameraX), maxY = (float) (box.maxY() - cameraY), maxZ = (float) (box.maxZ() - cameraZ);
+        quad(buffer, pose, minX, minY, minZ, maxX, minY, maxZ, c);
+        quad(buffer, pose, minX, maxY, minZ, maxX, maxY, maxZ, c);
+        quad(buffer, pose, minX, minY, minZ, maxX, maxY, minZ, c);
+        quad(buffer, pose, minX, minY, maxZ, maxX, maxY, maxZ, c);
+        quad(buffer, pose, minX, minY, minZ, minX, maxY, maxZ, c);
+        quad(buffer, pose, maxX, minY, minZ, maxX, maxY, maxZ, c);
+    }
+
+    private static void quad(VertexConsumer buffer, PoseStack.Pose pose,
+                             float x1, float y1, float z1, float x2, float y2, float z2, float[] c) {
+        if (x1 == x2) {
+            vertex(buffer, pose, x1, y1, z1, c); vertex(buffer, pose, x1, y2, z1, c);
+            vertex(buffer, pose, x1, y2, z2, c); vertex(buffer, pose, x1, y1, z2, c);
+        } else if (y1 == y2) {
+            vertex(buffer, pose, x1, y1, z1, c); vertex(buffer, pose, x2, y1, z1, c);
+            vertex(buffer, pose, x2, y1, z2, c); vertex(buffer, pose, x1, y1, z2, c);
+        } else {
+            vertex(buffer, pose, x1, y1, z1, c); vertex(buffer, pose, x2, y1, z1, c);
+            vertex(buffer, pose, x2, y2, z1, c); vertex(buffer, pose, x1, y2, z1, c);
+        }
+    }
+
+    private static void vertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z, float[] c) {
+        buffer.addVertex(pose, x, y, z).setColor(c[0], c[1], c[2], c[3]);
+    }
+
     private static void line(VertexConsumer buffer, PoseStack.Pose pose,
-                             float x1, float y1, float z1, float x2, float y2, float z2,
-                             float red, float green, float blue, float alpha) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float dz = z2 - z1;
+                             float x1, float y1, float z1, float x2, float y2, float z2, float[] c) {
+        float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
         float length = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (length < 1.0e-5f) return;
-        dx /= length;
-        dy /= length;
-        dz /= length;
-
-        buffer.addVertex(pose, x1, y1, z1)
-                .setColor(red, green, blue, alpha)
-                .setNormal(pose, dx, dy, dz)
-                .setLineWidth(1.0f);
-        buffer.addVertex(pose, x2, y2, z2)
-                .setColor(red, green, blue, alpha)
-                .setNormal(pose, dx, dy, dz)
-                .setLineWidth(1.0f);
+        buffer.addVertex(pose, x1, y1, z1).setColor(c[0], c[1], c[2], c[3]).setLineWidth(1.0f);
+        buffer.addVertex(pose, x2, y2, z2).setColor(c[0], c[1], c[2], c[3]).setLineWidth(1.0f);
     }
 
-    public int lastVisibleCount() {
-        return lastVisibleCount;
-    }
+    public int lastVisibleCount() { return lastVisibleCount; }
 }
