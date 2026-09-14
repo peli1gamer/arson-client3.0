@@ -2,6 +2,7 @@ package io.arson.client.render;
 
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
+import com.arson.client.render.RenderStyle;
 import io.arson.client.module.EntityESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
@@ -50,8 +51,9 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         lastVisibleCount = cachedTargets.size();
         List<RenderBox> boxes = new ArrayList<>(cachedTargets.size());
         for (EntityTarget target : cachedTargets) {
+            RenderStyle style = styleFor(target.type());
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
-                    target.maxX(), target.maxY(), target.maxZ(), target.color()));
+                    target.maxX(), target.maxY(), target.maxZ(), style));
         }
 
         if (module.fill()) {
@@ -65,6 +67,15 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         if (module.showHealth()) {
             renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
         }
+    }
+
+    private RenderStyle styleFor(EntityType type) {
+        return switch (type) {
+            case PLAYER -> module.playerStyle();
+            case MOB -> module.mobStyle();
+            case ANIMAL -> module.animalStyle();
+            case ITEM -> module.itemStyle();
+        };
     }
 
     /** Renders a compact vertical health bar just to the left of living entity bounds. */
