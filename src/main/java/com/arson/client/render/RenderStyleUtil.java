@@ -11,12 +11,6 @@ public final class RenderStyleUtil {
     }
 
     public static float[] rgba(RenderStyle style, boolean outline) {
-        RenderColor color = outline ? style.outlineColor() : style.fillColor();
-        return new float[]{
-                color.red() / 255.0f,
-                color.green() / 255.0f,
-                color.blue() / 255.0f,
-                color.alpha() / 255.0f
-        };
+        return outline ? style.outlineRgba() : style.fillRgba();
     }
 }
