@@ -1,6 +1,7 @@
 package io.arson.client.render;
 
-import com.arson.client.render.RenderColor;
+import com.arson.client.render.RenderStyle;
+import com.arson.client.render.RenderStyleUtil;
 import io.arson.client.module.EntityESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
@@ -49,7 +50,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
         if (module.fill()) {
             renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
-                    cachedTargets, module.fillAlpha());
+                    cachedTargets, (float) module.fillAlpha(), (float) module.lineWidth());
         }
         if (module.outline()) {
             renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
@@ -63,12 +64,13 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
     private static void renderFills(PoseStack matrices, MultiBufferSource consumers,
                                     double cameraX, double cameraY, double cameraZ,
-                                    List<EntityTarget> targets, double fillAlpha) {
+                                    List<EntityTarget> targets, float fillAlpha, float lineWidth) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
 
         for (EntityTarget target : targets) {
-            float[] rgba = rgba(target.color(), (float) fillAlpha);
+            RenderStyle style = RenderStyleUtil.of(target.color(), true, false, fillAlpha, 1.0f, lineWidth);
+            float[] rgba = RenderStyleUtil.rgba(style, false);
             float minX = (float) (target.minX() - cameraX);
             float minY = (float) (target.minY() - cameraY);
             float minZ = (float) (target.minZ() - cameraZ);
@@ -118,7 +120,8 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.lines());
 
         for (EntityTarget target : targets) {
-            float[] rgba = rgba(target.color(), outlineAlpha);
+            RenderStyle style = RenderStyleUtil.of(target.color(), false, true, 1.0f, outlineAlpha, lineWidth);
+            float[] rgba = RenderStyleUtil.rgba(style, true);
             float minX = (float) (target.minX() - cameraX);
             float minY = (float) (target.minY() - cameraY);
             float minZ = (float) (target.minZ() - cameraZ);
@@ -198,17 +201,6 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
                 .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
                 .setNormal(pose, dx, dy, dz)
                 .setLineWidth(lineWidth);
-    }
-
-    private static float[] rgba(RenderColor color, float alphaMultiplier) {
-        int argb = color.argb();
-        float alpha = (((argb >>> 24) & 0xFF) / 255.0f) * alphaMultiplier;
-        return new float[]{
-                ((argb >>> 16) & 0xFF) / 255.0f,
-                ((argb >>> 8) & 0xFF) / 255.0f,
-                (argb & 0xFF) / 255.0f,
-                alpha
-        };
     }
 
     public int lastVisibleCount() {
