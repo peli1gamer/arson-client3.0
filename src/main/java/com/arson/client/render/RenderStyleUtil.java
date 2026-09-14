@@ -11,6 +11,21 @@ public final class RenderStyleUtil {
     }
 
     public static float[] rgba(RenderStyle style, boolean outline) {
-        return outline ? style.outlineRgba() : style.fillRgba();
+        return rgba(outline ? style.outlineColor() : style.fillColor());
+    }
+
+    public static float[] rgba(RenderStyle style, boolean outline, float alphaOverride) {
+        RenderColor base = style.color();
+        float alpha = Math.max(0.0f, Math.min(1.0f, alphaOverride));
+        return rgba(new RenderColor(base.red(), base.green(), base.blue(), Math.round(alpha * 255.0f)));
+    }
+
+    private static float[] rgba(RenderColor color) {
+        return new float[]{
+                color.red() / 255.0f,
+                color.green() / 255.0f,
+                color.blue() / 255.0f,
+                color.alpha() / 255.0f
+        };
     }
 }
