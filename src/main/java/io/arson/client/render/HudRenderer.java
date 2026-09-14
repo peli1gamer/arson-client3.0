@@ -3,6 +3,7 @@ package io.arson.client.render;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.PlayerInfoModule;
+import io.arson.client.module.WorldInfoModule;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,6 +21,7 @@ public final class HudRenderer {
         if (hud == null || !hud.enabled()) return;
 
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
+        WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
 
         float scale = (float) hud.scale();
         int drawX = 6;
@@ -88,6 +90,34 @@ public final class HudRenderer {
                 ItemStack stack = client.player.getMainHandItem();
                 String held = stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString();
                 graphics.drawString(client.font, held, drawX, y, 0xFFD0D0D0, true);
+                y += line;
+            }
+        }
+
+        if (worldInfo != null && worldInfo.enabled()) {
+            if (worldInfo.showTime()) {
+                long dayTime = Math.floorMod(client.level.getDayTime(), 24000L);
+                long hours = (dayTime / 1000L + 6L) % 24L;
+                long minutes = Math.round((dayTime % 1000L) * 60.0 / 1000.0);
+                if (minutes == 60L) {
+                    minutes = 0L;
+                    hours = (hours + 1L) % 24L;
+                }
+                graphics.drawString(client.font,
+                        String.format(java.util.Locale.ROOT, "Time %02d:%02d", hours, minutes),
+                        drawX, y, 0xFFD0D0D0, true);
+                y += line;
+            }
+
+            if (worldInfo.showDimension()) {
+                String dimension = client.level.dimension().location().toString();
+                graphics.drawString(client.font, "Dimension " + dimension, drawX, y, 0xFFD0D0D0, true);
+                y += line;
+            }
+
+            if (worldInfo.showWeather()) {
+                String weather = client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear";
+                graphics.drawString(client.font, "Weather " + weather, drawX, y, 0xFFD0D0D0, true);
             }
         }
 
