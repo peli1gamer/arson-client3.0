@@ -13,7 +13,9 @@ public record EntityTarget(
         double maxZ,
         float health,
         float maxHealth,
-        RenderColor color) {
+        RenderColor color,
+        String displayName,
+        double distance) {
 
     public double centerX() { return (minX + maxX) * 0.5; }
     public double centerY() { return (minY + maxY) * 0.5; }
