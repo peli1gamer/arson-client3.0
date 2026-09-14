@@ -3,6 +3,7 @@ package io.arson.client.render;
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
+import com.arson.client.render.RenderStyleUtil;
 import io.arson.client.module.EntityESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
@@ -78,6 +79,8 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
                                   List<EntityTarget> targets) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
+        RenderStyle healthStyle = module.healthStyle();
+        RenderStyle backgroundStyle = module.healthBackgroundStyle();
 
         for (EntityTarget target : targets) {
             if (target.maxHealth() <= 0.0f) continue;
@@ -94,20 +97,11 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
             if (module.showHealthBackground()) {
                 quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f,
-                        rgba(module.healthBackgroundColor()));
+                        RenderStyleUtil.rgba(backgroundStyle, false));
             }
             quad(buffer, pose, minX, minY, minZ, maxX, filledMaxY, maxZ,
-                    rgba(module.healthColor()));
+                    RenderStyleUtil.rgba(healthStyle, false));
         }
-    }
-
-    private static float[] rgba(int argb) {
-        return new float[]{
-                ((argb >>> 16) & 0xFF) / 255.0f,
-                ((argb >>> 8) & 0xFF) / 255.0f,
-                (argb & 0xFF) / 255.0f,
-                ((argb >>> 24) & 0xFF) / 255.0f
-        };
     }
 
     private static void quad(VertexConsumer buffer, PoseStack.Pose pose,
