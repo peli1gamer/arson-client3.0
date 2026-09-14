@@ -36,20 +36,27 @@ public abstract class VisualModule extends Module {
     public double outlineAlpha() { return outlineAlpha.get(); }
     public double lineWidth() { return lineWidth.get(); }
 
-    /** Snapshot the mutable GUI settings into immutable render state. */
+    /** Snapshot the module's current default visual settings. */
     public RenderStyle renderStyle() {
-        int argb = color.get();
-        RenderColor renderColor = new RenderColor(
-                (argb >>> 16) & 0xFF,
-                (argb >>> 8) & 0xFF,
-                argb & 0xFF,
-                (argb >>> 24) & 0xFF);
+        return renderStyle(color.get());
+    }
+
+    /** Snapshot the common visual controls while using a per-target color. */
+    protected final RenderStyle renderStyle(int argb) {
         return new RenderStyle(
-                renderColor,
+                color(argb),
                 fill.enabled(),
                 outline.enabled(),
                 fillAlpha.get().floatValue(),
                 outlineAlpha.get().floatValue(),
                 lineWidth.get().floatValue());
+    }
+
+    private static RenderColor color(int argb) {
+        return new RenderColor(
+                (argb >>> 16) & 0xFF,
+                (argb >>> 8) & 0xFF,
+                argb & 0xFF,
+                (argb >>> 24) & 0xFF);
     }
 }
