@@ -7,10 +7,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.PoseStack;
 
@@ -36,7 +34,7 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
         if (!module.enabled() || client.level == null || client.player == null) return;
 
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= 2 || gameTime < lastScanTick) {
+        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, module);
             lastScanTick = gameTime;
         }
@@ -52,9 +50,6 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
             String text = buildText(target);
             if (text.isEmpty()) continue;
 
-            double distance = target.distance();
-            if (distance > module.range()) continue;
-
             double x = target.centerX() - camera.pos.x;
             double y = target.maxY() - camera.pos.y + 0.35;
             double z = target.centerZ() - camera.pos.z;
@@ -66,11 +61,11 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
 
             int width = font.width(text);
             float left = -width / 2.0f;
-            int textColor = module.textColor();
+            int textColor = module.textColorFor(target.type());
             if (module.background()) {
                 int padding = 2;
-                int bg = module.backgroundColor();
-                fillQuad(matrices, consumers, left - padding, -2, left + width + padding, 9, bg);
+                fillQuad(matrices, consumers, left - padding, -2, left + width + padding, 9,
+                        module.backgroundColor());
             }
 
             Matrix4f pose = matrices.last().pose();
@@ -89,7 +84,8 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
         }
         if (module.showHealth() && target.maxHealth() > 0.0f) {
             if (!text.isEmpty()) text.append(" ");
-            text.append("HP ").append(formatHealth(target.health())).append("/").append(formatHealth(target.maxHealth()));
+            text.append("HP ").append(formatHealth(target.health()))
+                    .append("/").append(formatHealth(target.maxHealth()));
         }
         return text.toString();
     }
