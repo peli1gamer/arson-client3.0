@@ -56,14 +56,8 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
                     target.maxX(), target.maxY(), target.maxZ(), style));
         }
 
-        if (module.fill()) {
-            RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
-                    boxes, (float) module.fillAlpha());
-        }
-        if (module.outline()) {
-            RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z,
-                    boxes, (float) module.outlineAlpha(), (float) module.lineWidth());
-        }
+        RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+        RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
         if (module.showHealth()) {
             renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
         }
