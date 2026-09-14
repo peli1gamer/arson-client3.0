@@ -28,6 +28,7 @@ public final class ModuleManager {
         register(new HudModule());
         register(new CombatInfoModule());
         register(new PlayerInfoModule());
+        register(new WorldInfoModule());
     }
 
     public Module get(String id) { return modules.get(id); }
