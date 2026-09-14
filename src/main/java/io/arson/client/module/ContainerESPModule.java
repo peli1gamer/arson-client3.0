@@ -14,6 +14,9 @@ public final class ContainerESPModule extends VisualModule {
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
     private final BooleanSetting outline = setting(new BooleanSetting("outline", "Outline", true));
     private final BooleanSetting fill = setting(new BooleanSetting("fill", "Fill", false));
+    private final DoubleSetting fillAlpha = setting(new DoubleSetting("fill-alpha", "Fill Alpha", 0.35, 0.0, 1.0, 0.05));
+    private final DoubleSetting outlineAlpha = setting(new DoubleSetting("outline-alpha", "Outline Alpha", 1.0, 0.0, 1.0, 0.05));
+    private final DoubleSetting lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 0.5, 8.0, 0.5));
 
     private final ColorSetting chestColor = setting(new ColorSetting("chest-color", "Chest Color", 0xD8F2B84B));
     private final ColorSetting barrelColor = setting(new ColorSetting("barrel-color", "Barrel Color", 0xD89B6B43));
@@ -33,6 +36,9 @@ public final class ContainerESPModule extends VisualModule {
     public double range() { return range.get(); }
     public boolean outline() { return outline.enabled(); }
     public boolean fill() { return fill.enabled(); }
+    public float fillAlpha() { return fillAlpha.get().floatValue(); }
+    public float outlineAlpha() { return outlineAlpha.get().floatValue(); }
+    public float lineWidth() { return lineWidth.get().floatValue(); }
     public int chestColor() { return chestColor.get(); }
     public int barrelColor() { return barrelColor.get(); }
     public int shulkerColor() { return shulkerColor.get(); }
