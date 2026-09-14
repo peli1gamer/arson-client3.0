@@ -73,9 +73,9 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
     }
 
     /** Renders a compact vertical health bar just to the left of living entity bounds. */
-    private static void renderHealthBars(PoseStack matrices, MultiBufferSource consumers,
-                                         double cameraX, double cameraY, double cameraZ,
-                                         List<EntityTarget> targets) {
+    private void renderHealthBars(PoseStack matrices, MultiBufferSource consumers,
+                                  double cameraX, double cameraY, double cameraZ,
+                                  List<EntityTarget> targets) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
 
@@ -91,13 +91,23 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             float minZ = (float) (target.minZ() - cameraZ);
             float maxZ = minZ + 0.035f;
             float filledMaxY = minY + (maxY - minY) * healthRatio;
-            float[] background = new float[]{0.03f, 0.03f, 0.03f, 0.75f};
-            quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f, background);
-            float red = 1.0f - healthRatio;
-            float green = healthRatio;
-            float[] healthColor = new float[]{red, green, 0.08f, 0.95f};
-            quad(buffer, pose, minX, minY, minZ, maxX, filledMaxY, maxZ, healthColor);
+
+            if (module.showHealthBackground()) {
+                quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f,
+                        rgba(module.healthBackgroundColor()));
+            }
+            quad(buffer, pose, minX, minY, minZ, maxX, filledMaxY, maxZ,
+                    rgba(module.healthColor()));
         }
+    }
+
+    private static float[] rgba(int argb) {
+        return new float[]{
+                ((argb >>> 16) & 0xFF) / 255.0f,
+                ((argb >>> 8) & 0xFF) / 255.0f,
+                (argb & 0xFF) / 255.0f,
+                ((argb >>> 24) & 0xFF) / 255.0f
+        };
     }
 
     private static void quad(VertexConsumer buffer, PoseStack.Pose pose,
