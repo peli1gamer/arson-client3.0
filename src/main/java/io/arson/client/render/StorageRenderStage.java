@@ -56,10 +56,12 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         if (boxes.isEmpty()) return;
 
         if (module.fill()) {
-            renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+            renderFills(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes,
+                    module.fillAlpha());
         }
         if (module.outline()) {
-            renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+            renderOutlines(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes,
+                    module.outlineAlpha(), module.lineWidth());
         }
     }
 
@@ -83,38 +85,37 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
 
     private static void renderFills(PoseStack matrices, MultiBufferSource consumers,
                                     double cameraX, double cameraY, double cameraZ,
-                                    List<RenderBox> boxes) {
+                                    List<RenderBox> boxes, float fillAlpha) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
         for (RenderBox box : boxes) {
-            RenderStyle style = RenderStyleUtil.of(box.color(), true, false, 0.35f, 1.0f, 1.0f);
-            float[] c = RenderStyleUtil.rgba(style, false);
-            drawBoxFaces(buffer, pose, box, cameraX, cameraY, cameraZ, c);
+            RenderStyle style = RenderStyleUtil.of(box.color(), true, false, fillAlpha, 1.0f, 1.0f);
+            drawBoxFaces(buffer, pose, box, cameraX, cameraY, cameraZ, RenderStyleUtil.rgba(style, false));
         }
     }
 
     private static void renderOutlines(PoseStack matrices, MultiBufferSource consumers,
                                        double cameraX, double cameraY, double cameraZ,
-                                       List<RenderBox> boxes) {
+                                       List<RenderBox> boxes, float outlineAlpha, float lineWidth) {
         PoseStack.Pose pose = matrices.last();
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.lines());
         for (RenderBox box : boxes) {
-            RenderStyle style = RenderStyleUtil.of(box.color(), false, true, 0.35f, 1.0f, 1.0f);
+            RenderStyle style = RenderStyleUtil.of(box.color(), false, true, 0.35f, outlineAlpha, lineWidth);
             float[] c = RenderStyleUtil.rgba(style, true);
             float minX = (float) (box.minX() - cameraX), minY = (float) (box.minY() - cameraY), minZ = (float) (box.minZ() - cameraZ);
             float maxX = (float) (box.maxX() - cameraX), maxY = (float) (box.maxY() - cameraY), maxZ = (float) (box.maxZ() - cameraZ);
-            line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, c);
-            line(buffer, pose, maxX, minY, minZ, maxX, minY, maxZ, c);
-            line(buffer, pose, maxX, minY, maxZ, minX, minY, maxZ, c);
-            line(buffer, pose, minX, minY, maxZ, minX, minY, minZ, c);
-            line(buffer, pose, minX, maxY, minZ, maxX, maxY, minZ, c);
-            line(buffer, pose, maxX, maxY, minZ, maxX, maxY, maxZ, c);
-            line(buffer, pose, maxX, maxY, maxZ, minX, maxY, maxZ, c);
-            line(buffer, pose, minX, maxY, maxZ, minX, maxY, minZ, c);
-            line(buffer, pose, minX, minY, minZ, minX, maxY, minZ, c);
-            line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, c);
-            line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, c);
-            line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, c);
+            line(buffer, pose, minX, minY, minZ, maxX, minY, minZ, c, lineWidth);
+            line(buffer, pose, maxX, minY, minZ, maxX, minY, maxZ, c, lineWidth);
+            line(buffer, pose, maxX, minY, maxZ, minX, minY, maxZ, c, lineWidth);
+            line(buffer, pose, minX, minY, maxZ, minX, minY, minZ, c, lineWidth);
+            line(buffer, pose, minX, maxY, minZ, maxX, maxY, minZ, c, lineWidth);
+            line(buffer, pose, maxX, maxY, minZ, maxX, maxY, maxZ, c, lineWidth);
+            line(buffer, pose, maxX, maxY, maxZ, minX, maxY, maxZ, c, lineWidth);
+            line(buffer, pose, minX, maxY, maxZ, minX, maxY, minZ, c, lineWidth);
+            line(buffer, pose, minX, minY, minZ, minX, maxY, minZ, c, lineWidth);
+            line(buffer, pose, maxX, minY, minZ, maxX, maxY, minZ, c, lineWidth);
+            line(buffer, pose, maxX, minY, maxZ, maxX, maxY, maxZ, c, lineWidth);
+            line(buffer, pose, minX, minY, maxZ, minX, maxY, maxZ, c, lineWidth);
         }
     }
 
@@ -149,12 +150,13 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
     }
 
     private static void line(VertexConsumer buffer, PoseStack.Pose pose,
-                             float x1, float y1, float z1, float x2, float y2, float z2, float[] c) {
+                             float x1, float y1, float z1, float x2, float y2, float z2,
+                             float[] c, float lineWidth) {
         float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
         float length = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (length < 1.0e-5f) return;
-        buffer.addVertex(pose, x1, y1, z1).setColor(c[0], c[1], c[2], c[3]).setLineWidth(1.0f);
-        buffer.addVertex(pose, x2, y2, z2).setColor(c[0], c[1], c[2], c[3]).setLineWidth(1.0f);
+        buffer.addVertex(pose, x1, y1, z1).setColor(c[0], c[1], c[2], c[3]).setLineWidth(lineWidth);
+        buffer.addVertex(pose, x2, y2, z2).setColor(c[0], c[1], c[2], c[3]).setLineWidth(lineWidth);
     }
 
     public int lastVisibleCount() { return lastVisibleCount; }
