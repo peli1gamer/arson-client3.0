@@ -51,4 +51,10 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public RenderStyle mobStyle() { return renderStyle(mobColor.get()); }
     public RenderStyle animalStyle() { return renderStyle(animalColor.get()); }
     public RenderStyle itemStyle() { return renderStyle(itemColor.get()); }
+
+    /** Health fill style. */
+    public RenderStyle healthStyle() { return renderStyle(healthColor.get()); }
+
+    /** Health background style. */
+    public RenderStyle healthBackgroundStyle() { return renderStyle(healthBackgroundColor.get()); }
 }
