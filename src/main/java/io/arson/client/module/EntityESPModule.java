@@ -12,6 +12,16 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     private final BooleanSetting mobs = setting(new BooleanSetting("mobs", "Mobs", true));
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
     private final BooleanSetting items = setting(new BooleanSetting("items", "Dropped Items", false));
+
+    private final BooleanSetting playerFill = setting(new BooleanSetting("player-fill", "Player Fill", true));
+    private final BooleanSetting playerOutline = setting(new BooleanSetting("player-outline", "Player Outline", true));
+    private final BooleanSetting mobFill = setting(new BooleanSetting("mob-fill", "Mob Fill", true));
+    private final BooleanSetting mobOutline = setting(new BooleanSetting("mob-outline", "Mob Outline", true));
+    private final BooleanSetting animalFill = setting(new BooleanSetting("animal-fill", "Animal Fill", true));
+    private final BooleanSetting animalOutline = setting(new BooleanSetting("animal-outline", "Animal Outline", true));
+    private final BooleanSetting itemFill = setting(new BooleanSetting("item-fill", "Item Fill", true));
+    private final BooleanSetting itemOutline = setting(new BooleanSetting("item-outline", "Item Outline", true));
+
     private final BooleanSetting showHealth = setting(new BooleanSetting("health", "Health", false));
     private final BooleanSetting healthBackground = setting(new BooleanSetting("health-background", "Health Background", true));
     private final BooleanSetting healthRight = setting(new BooleanSetting("health-right", "Health Bar Right", false));
@@ -55,14 +65,20 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 
-    public RenderStyle playerStyle() { return renderStyle(playerColor.get()); }
-    public RenderStyle mobStyle() { return renderStyle(mobColor.get()); }
-    public RenderStyle animalStyle() { return renderStyle(animalColor.get()); }
-    public RenderStyle itemStyle() { return renderStyle(itemColor.get()); }
+    public RenderStyle playerStyle() { return renderStyle(playerColor.get(), playerFill.enabled(), playerOutline.enabled()); }
+    public RenderStyle mobStyle() { return renderStyle(mobColor.get(), mobFill.enabled(), mobOutline.enabled()); }
+    public RenderStyle animalStyle() { return renderStyle(animalColor.get(), animalFill.enabled(), animalOutline.enabled()); }
+    public RenderStyle itemStyle() { return renderStyle(itemColor.get(), itemFill.enabled(), itemOutline.enabled()); }
 
     /** Health fill style. */
     public RenderStyle healthStyle() { return renderStyle(healthColor.get()); }
 
     /** Health background style. */
     public RenderStyle healthBackgroundStyle() { return renderStyle(healthBackgroundColor.get()); }
+
+    private RenderStyle renderStyle(int argb, boolean fillEnabled, boolean outlineEnabled) {
+        RenderStyle base = super.renderStyle(argb);
+        return new RenderStyle(base.color(), fillEnabled, outlineEnabled,
+                base.fillAlpha(), base.outlineAlpha(), base.lineWidth());
+    }
 }
