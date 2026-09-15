@@ -8,9 +8,11 @@ import io.arson.client.settings.DoubleSetting;
 public final class ArrayListModule extends Module {
     private final BooleanSetting showCategory = setting(new BooleanSetting("show-category", "Show Category", false));
     private final BooleanSetting categoryColors = setting(new BooleanSetting("category-colors", "Category Colors", false));
+    private final BooleanSetting animation = setting(new BooleanSetting("animation", "Animation", true));
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", true));
     private final BooleanSetting shadow = setting(new BooleanSetting("shadow", "Text Shadow", true));
     private final BooleanSetting rightAlign = setting(new BooleanSetting("right-align", "Right Align", true));
+    private final DoubleSetting animationSpeed = setting(new DoubleSetting("animation-speed", "Animation Speed", 1.0, 0.25, 3.0, 0.25));
     private final DoubleSetting x = setting(new DoubleSetting("x", "X", 6.0, 0.0, 1000.0, 1.0));
     private final DoubleSetting y = setting(new DoubleSetting("y", "Y", 6.0, 0.0, 1000.0, 1.0));
     private final DoubleSetting scale = setting(new DoubleSetting("scale", "Scale", 1.0, 0.5, 2.0, 0.05));
@@ -32,9 +34,11 @@ public final class ArrayListModule extends Module {
 
     public boolean showCategory() { return showCategory.enabled(); }
     public boolean categoryColors() { return categoryColors.enabled(); }
+    public boolean animation() { return animation.enabled(); }
     public boolean background() { return background.enabled(); }
     public boolean shadow() { return shadow.enabled(); }
     public boolean rightAlign() { return rightAlign.enabled(); }
+    public float animationSpeed() { return animationSpeed.get().floatValue(); }
     public int x() { return (int) Math.round(x.get()); }
     public int y() { return (int) Math.round(y.get()); }
     public float scale() { return scale.get().floatValue(); }
