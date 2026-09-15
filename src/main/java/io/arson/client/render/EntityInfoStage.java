@@ -47,11 +47,14 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
         float scale = (float) module.scale();
 
         for (EntityTarget target : cachedTargets) {
+            float fade = distanceFade(target);
+            if (fade <= 0.0f) continue;
+
             String text = buildText(target);
             if (text.isEmpty()) continue;
 
             double x = target.centerX() - camera.pos.x;
-            double y = target.maxY() - camera.pos.y + 0.35;
+            double y = target.maxY() - camera.pos.y + module.heightOffset();
             double z = target.centerZ() - camera.pos.z;
 
             matrices.pushPose();
@@ -61,11 +64,11 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
 
             int width = font.width(text);
             float left = -width / 2.0f;
-            int textColor = module.textColorFor(target.type());
+            int textColor = fadeColor(module.textColorFor(target.type()), fade);
             if (module.background()) {
-                int padding = 2;
+                float padding = (float) module.backgroundPadding();
                 fillQuad(matrices, consumers, left - padding, -2, left + width + padding, 9,
-                        module.backgroundColor());
+                        fadeColor(module.backgroundColor(), fade));
             }
 
             Matrix4f pose = matrices.last().pose();
@@ -88,6 +91,19 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
                     .append("/").append(formatHealth(target.maxHealth()));
         }
         return text.toString();
+    }
+
+    private float distanceFade(EntityTarget target) {
+        if (!module.distanceFade()) return 1.0f;
+        double range = Math.max(1.0, module.range());
+        double normalized = Math.max(0.0, Math.min(1.0, target.distance() / range));
+        return (float) Math.max(0.0, Math.min(1.0,
+                1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
+    }
+
+    private static int fadeColor(int argb, float fade) {
+        int alpha = Math.round(((argb >>> 24) & 0xFF) * fade);
+        return (argb & 0x00FFFFFF) | (alpha << 24);
     }
 
     private static String formatHealth(float health) {
