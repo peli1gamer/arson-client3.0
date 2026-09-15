@@ -14,6 +14,7 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     private final BooleanSetting mobs = setting(new BooleanSetting("mobs", "Mobs", true));
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
     private final BooleanSetting items = setting(new BooleanSetting("items", "Dropped Items", false));
+    private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final ColorSetting playerColor = setting(new ColorSetting("player-color", "Player Color", 0xD6AA66FF));
     private final ColorSetting mobColor = setting(new ColorSetting("mob-color", "Mob Color", 0xD6FF5555));
     private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
@@ -31,6 +32,7 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     public boolean showMobs() { return mobs.enabled(); }
     public boolean showAnimals() { return animals.enabled(); }
     public boolean showItems() { return items.enabled(); }
+    public boolean distanceFade() { return distanceFade.enabled(); }
     public int color() { return playerColor.get(); }
     public int playerColor() { return playerColor.get(); }
     public int mobColor() { return mobColor.get(); }
@@ -42,9 +44,9 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 
     /** Snapshot the tracer appearance so the render stage only consumes immutable style data. */
-    public RenderStyle styleFor(EntityTarget target) {
+    public RenderStyle styleFor(EntityTarget target, float fade) {
         RenderColor color = target.color();
         return new RenderStyle(color, false, true, 0.0f,
-                alpha.get().floatValue(), lineWidth.get().floatValue());
+                alpha.get().floatValue() * fade, lineWidth.get().floatValue());
     }
 }
