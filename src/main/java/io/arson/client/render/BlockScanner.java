@@ -10,30 +10,52 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Cached block discovery for Block ESP. Only loaded-world state is queried. */
+/** Cached ore discovery with allocation-light block scanning. */
 public final class BlockScanner {
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
         if (client.level == null || client.player == null || !module.enabled()) return List.of();
 
-        int radius = Math.max(1, Math.min(64, (int) Math.round(module.range())));
-        double rangeSquared = module.range() * module.range();
+        double playerX = client.player.getX();
+        double playerY = client.player.getY();
+        double playerZ = client.player.getZ();
+        double range = Math.max(1.0, module.range());
+        double rangeSquared = range * range;
+        int radius = Math.max(1, Math.min(64, (int) Math.ceil(range)));
         BlockPos center = client.player.blockPosition();
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
         List<BlockTarget> result = new ArrayList<>();
 
-        for (int x = center.getX() - radius; x <= center.getX() + radius; x++) {
-            for (int y = center.getY() - radius; y <= center.getY() + radius; y++) {
-                if (y < client.level.getMinY() || y > client.level.getMaxY()) continue;
-                for (int z = center.getZ() - radius; z <= center.getZ() + radius; z++) {
-                    double dx = x + 0.5 - client.player.getX();
-                    double dy = y + 0.5 - client.player.getY();
-                    double dz = z + 0.5 - client.player.getZ();
-                    if (dx * dx + dy * dy + dz * dz > rangeSquared) continue;
+        int minX = center.getX() - radius;
+        int maxX = center.getX() + radius;
+        int minY = Math.max(client.level.getMinY(), center.getY() - radius);
+        int maxY = Math.min(client.level.getMaxY(), center.getY() + radius);
+        int minZ = center.getZ() - radius;
+        int maxZ = center.getZ() + radius;
 
-                    BlockState state = client.level.getBlockState(new BlockPos(x, y, z));
+        for (int x = minX; x <= maxX; x++) {
+            double dx = x + 0.5 - playerX;
+            double dxSquared = dx * dx;
+            if (dxSquared > rangeSquared) continue;
+
+            for (int y = minY; y <= maxY; y++) {
+                double dy = y + 0.5 - playerY;
+                double partialDistanceSquared = dxSquared + dy * dy;
+                if (partialDistanceSquared > rangeSquared) continue;
+
+                for (int z = minZ; z <= maxZ; z++) {
+                    double dz = z + 0.5 - playerZ;
+                    double distanceSquared = partialDistanceSquared + dz * dz;
+                    if (distanceSquared > rangeSquared) continue;
+
+                    mutable.set(x, y, z);
+                    BlockState state = client.level.getBlockState(mutable);
                     RenderStyleMatch match = match(state.getBlock(), module);
                     if (match == null) continue;
-                    result.add(new BlockTarget(x, y, z, x + 1.0, y + 1.0, z + 1.0,
-                            match.style(), Math.sqrt(dx * dx + dy * dy + dz * dz)));
+
+                    result.add(new BlockTarget(
+                            x, y, z,
+                            x + 1.0, y + 1.0, z + 1.0,
+                            match.style(), Math.sqrt(distanceSquared)));
                 }
             }
         }
