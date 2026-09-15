@@ -8,6 +8,7 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.Setting;
+import io.arson.client.settings.StringSetting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -70,6 +71,7 @@ public final class ArsonScreen extends Screen {
                 if (setting instanceof BooleanSetting bool) settingButton = Button.builder(settingLabel(bool), button -> { bool.set(!bool.enabled()); button.setMessage(settingLabel(bool)); }).bounds(x + 14, y, 351, 18).build();
                 else if (setting instanceof DoubleSetting number) settingButton = Button.builder(settingLabel(number), button -> { double next = number.get() + number.step(); if (next > number.max()) next = number.min(); number.set(next); button.setMessage(settingLabel(number)); }).bounds(x + 14, y, 351, 18).build();
                 else if (setting instanceof ColorSetting color) settingButton = Button.builder(settingLabel(color), button -> { color.set(nextColor(color.get())); button.setMessage(settingLabel(color)); }).bounds(x + 14, y, 351, 18).build();
+                else if (setting instanceof StringSetting text) settingButton = Button.builder(settingLabel(text), button -> { text.set(text.get().isEmpty() ? "Arson V3" : ""); button.setMessage(settingLabel(text)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
                 if (settingButton != null) { addContentWidget(settingButton, y, panelY); y += 21; contentHeight += 21; }
             }
             y += 6; contentHeight += 6;
@@ -103,6 +105,7 @@ public final class ArsonScreen extends Screen {
     private static Component settingLabel(BooleanSetting setting) { return Component.literal("  " + setting.name() + ": " + (setting.enabled() ? "ON" : "OFF")); }
     private static Component settingLabel(DoubleSetting setting) { return Component.literal("  " + setting.name() + ": " + String.format(Locale.ROOT, "%.2f", setting.get())); }
     private static Component settingLabel(ColorSetting setting) { return Component.literal("  " + setting.name() + ": #" + String.format(Locale.ROOT, "%08X", setting.get())); }
+    private static Component settingLabel(StringSetting setting) { String value = setting.get().isEmpty() ? "<empty>" : setting.get(); return Component.literal("  " + setting.name() + ": " + value); }
 
     @Override public boolean charTyped(char codePoint, int modifiers) { if (bindingModule == null && searchBox != null && searchBox.isFocused()) { boolean handled = super.charTyped(codePoint, modifiers); if (handled) { rebuildContentFromSearch(); return true; } } return super.charTyped(codePoint, modifiers); }
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
