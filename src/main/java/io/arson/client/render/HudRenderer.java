@@ -21,15 +21,15 @@ public final class HudRenderer {
 
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
-        float scale = (float) hud.scale();
+        float globalScale = (float) hud.scale();
 
         graphics.pose().pushMatrix();
-        graphics.pose().scale(scale, scale);
+        graphics.pose().scale(globalScale, globalScale);
 
-        if (hud.showWatermark()) drawElement(graphics, client, hud, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()}, hud.textColor(), hud.watermarkAlign());
+        if (hud.showWatermark()) drawElement(graphics, client, hud, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
         if (hud.showCoordinates()) drawElement(graphics, client, hud, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d",
-                client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())}, hud.secondaryColor(), hud.coordinatesAlign());
-        if (hud.showFps()) drawElement(graphics, client, hud, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getFps()}, hud.secondaryColor(), hud.fpsAlign());
+                client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())});
+        if (hud.showFps()) drawElement(graphics, client, hud, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getFps()});
 
         if (hud.showPlayerInfo() && playerInfo != null && playerInfo.enabled()) {
             java.util.ArrayList<String> rows = new java.util.ArrayList<>();
@@ -40,7 +40,7 @@ public final class HudRenderer {
                 ItemStack stack = client.player.getMainHandItem();
                 rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString());
             }
-            drawElement(graphics, client, hud, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new), hud.secondaryColor(), hud.playerInfoAlign());
+            drawElement(graphics, client, hud, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
 
         if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
@@ -54,29 +54,37 @@ public final class HudRenderer {
             }
             if (worldInfo.showDimension()) rows.add("Dimension " + client.level.dimension().location());
             if (worldInfo.showWeather()) rows.add("Weather " + (client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear"));
-            drawElement(graphics, client, hud, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new), hud.secondaryColor(), hud.worldInfoAlign());
+            drawElement(graphics, client, hud, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
         graphics.pose().popMatrix();
     }
 
     private static void drawElement(GuiGraphics graphics, Minecraft client, HudModule hud, String element,
-                                    int x, int y, String[] rows, int color, String alignment) {
+                                    int x, int y, String[] rows) {
         if (rows.length == 0) return;
+        double elementScale = hud.elementScale(element);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
+        graphics.pose().scale((float) elementScale, (float) elementScale);
+
         int maxWidth = 0;
         for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row));
         int padding = hud.padding();
         int line = hud.lineSpacing();
-        int drawX = alignedX(x, maxWidth, alignment);
-        if (hud.showBackground()) {
-            graphics.fill(drawX - padding, y - padding, drawX + maxWidth + padding,
-                    y + rows.length * line + padding - 1, hud.backgroundColor());
+        String alignment = hud.elementAlignment(element);
+        int anchorX = 0;
+        int left = alignedX(anchorX, maxWidth, alignment);
+
+        if (hud.showBackground() && hud.elementBackground(element)) {
+            graphics.fill(left - padding, -padding, left + maxWidth + padding,
+                    rows.length * line + padding - 1, hud.elementBackgroundColor());
         }
         for (int i = 0; i < rows.length; i++) {
             int rowWidth = client.font.width(rows[i]);
-            int rowX = alignedX(x, rowWidth, alignment);
-            int rowColor = i == 0 && "watermark".equals(element) ? hud.textColor() : color;
-            graphics.drawString(client.font, rows[i], rowX, y + i * line, rowColor, hud.showShadow());
+            int rowX = alignedX(anchorX, rowWidth, alignment);
+            graphics.drawString(client.font, rows[i], rowX, i * line, hud.elementColor(element), hud.showShadow());
         }
+        graphics.pose().popMatrix();
     }
 
     private static int alignedX(int x, int width, String alignment) {
