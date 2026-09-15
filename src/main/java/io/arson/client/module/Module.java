@@ -35,6 +35,16 @@ public abstract class Module {
 
     public final void toggle() { setEnabled(!enabled); }
 
+    public final void resetSettings() {
+        for (Setting<?> setting : settings) setting.reset();
+    }
+
+    public final void resetToDefaults() {
+        setEnabled(false);
+        resetSettings();
+        keyCode = 0;
+    }
+
     public final void tick(Minecraft client) {
         if (enabled) onTick(client);
     }
