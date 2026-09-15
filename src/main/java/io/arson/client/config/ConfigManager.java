@@ -22,11 +22,33 @@ import java.nio.file.StandardCopyOption;
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
     private static final String TEMP_FILE_NAME = "arson-v3.json.tmp";
+    private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
 
     private ConfigManager() {}
 
     public static void load(Minecraft client, ModuleManager modules) {
-        Path path = client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME);
+        loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
+    }
+
+    public static void save(Minecraft client, ModuleManager modules) {
+        saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
+    }
+
+    public static void saveProfile(Minecraft client, ModuleManager modules, String profileName) {
+        String safeName = sanitizeProfileName(profileName);
+        if (safeName.isEmpty()) return;
+        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+        saveToPath(directory.resolve(safeName + ".json"), modules);
+    }
+
+    public static void loadProfile(Minecraft client, ModuleManager modules, String profileName) {
+        String safeName = sanitizeProfileName(profileName);
+        if (safeName.isEmpty()) return;
+        Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
+        loadFromPath(path, modules);
+    }
+
+    private static void loadFromPath(Path path, ModuleManager modules) {
         if (!Files.isRegularFile(path)) return;
 
         try {
@@ -39,12 +61,8 @@ public final class ConfigManager {
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
-                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) {
-                    module.setEnabled(data.get("enabled").getAsBoolean());
-                }
-                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) {
-                    module.setKeyCode(data.get("keyCode").getAsInt());
-                }
+                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
+                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject()
                         ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
@@ -65,10 +83,10 @@ public final class ConfigManager {
         }
     }
 
-    public static void save(Minecraft client, ModuleManager modules) {
-        Path directory = client.gameDirectory.toPath().resolve("config");
-        Path path = directory.resolve(FILE_NAME);
-        Path tempPath = directory.resolve(TEMP_FILE_NAME);
+    private static void saveToPath(Path path, ModuleManager modules) {
+        Path directory = path.getParent();
+        if (directory == null) return;
+        Path tempPath = path.resolveSibling(path.getFileName() + ".tmp");
         JsonObject root = new JsonObject();
         JsonObject moduleRoot = new JsonObject();
         root.add("modules", moduleRoot);
@@ -97,11 +115,17 @@ public final class ConfigManager {
                 Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ignored) {
-            try {
-                Files.deleteIfExists(tempPath);
-            } catch (IOException ignoredCleanup) {
-                // Best-effort cleanup only.
-            }
+            try { Files.deleteIfExists(tempPath); } catch (IOException ignoredCleanup) { }
         }
+    }
+
+    private static String sanitizeProfileName(String name) {
+        if (name == null) return "";
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < name.length() && result.length() < 32; i++) {
+            char c = name.charAt(i);
+            if (Character.isLetterOrDigit(c) || c == '-' || c == '_') result.append(c);
+        }
+        return result.toString();
     }
 }
