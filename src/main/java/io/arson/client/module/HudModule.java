@@ -3,10 +3,12 @@ package io.arson.client.module;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
+import io.arson.client.settings.StringSetting;
 
 /** Configurable HUD module. Drawing is kept separate from state/configuration. */
 public final class HudModule extends Module {
     private final BooleanSetting watermark = setting(new BooleanSetting("watermark", "Watermark", true));
+    private final StringSetting watermarkText = setting(new StringSetting("watermark-text", "Watermark Text", "Arson V3", 32));
     private final BooleanSetting coordinates = setting(new BooleanSetting("coordinates", "Coordinates", true));
     private final BooleanSetting fps = setting(new BooleanSetting("fps", "FPS", true));
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", false));
@@ -27,6 +29,7 @@ public final class HudModule extends Module {
     }
 
     public boolean showWatermark() { return watermark.enabled(); }
+    public String watermarkText() { return watermarkText.get(); }
     public boolean showCoordinates() { return coordinates.enabled(); }
     public boolean showFps() { return fps.enabled(); }
     public boolean showBackground() { return background.enabled(); }
