@@ -21,7 +21,6 @@ import java.nio.file.StandardCopyOption;
 /** Small, defensive JSON config layer. A broken config never prevents the client from starting. */
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
-    private static final String TEMP_FILE_NAME = "arson-v3.json.tmp";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
 
     private ConfigManager() {}
@@ -62,6 +61,7 @@ public final class ConfigManager {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
+                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
                 if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject()
                         ? data.getAsJsonObject("settings") : new JsonObject();
@@ -94,6 +94,7 @@ public final class ConfigManager {
         for (Module module : modules.all()) {
             JsonObject data = new JsonObject();
             data.addProperty("enabled", module.enabled());
+            data.addProperty("favorite", module.favorite());
             data.addProperty("keyCode", module.keyCode());
             JsonObject settings = new JsonObject();
             for (Setting<?> setting : module.settings()) {
