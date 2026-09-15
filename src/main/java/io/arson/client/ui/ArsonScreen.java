@@ -2,6 +2,7 @@ package io.arson.client.ui;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
+import io.arson.client.module.HudModule;
 import io.arson.client.module.Module;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
@@ -149,10 +150,33 @@ public final class ArsonScreen extends Screen {
             saveConfig();
             rebuild();
         }).bounds(panelX + 145, panelY + 330, 120, 20).build());
+
+        Module hudModule = ArsonClient.getInstance().modules().get("hud");
+        if (hudModule instanceof HudModule hud) {
+            this.addRenderableWidget(Button.builder(Component.literal("HUD Preset"), b -> {
+                applyNextHudPreset(hud);
+                saveConfig();
+                rebuild();
+            }).bounds(panelX + 271, panelY + 330, 100, 20).build());
+        }
+
         this.addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveConfig())
-                .bounds(right - 210, panelY + 330, 100, 20).build());
+                .bounds(right - 150, panelY + 330, 70, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
-                .bounds(right - 100, panelY + 330, 100, 20).build());
+                .bounds(right - 75, panelY + 330, 75, 20).build());
+    }
+
+    private static void applyNextHudPreset(HudModule hud) {
+        int signature = hud.showCoordinates() ? 1 : 0;
+        signature += hud.showBackground() ? 2 : 0;
+        signature += hud.scale() > 1.04 ? 4 : 0;
+        if (signature == 0 || signature == 1) {
+            hud.applyPreset("compact");
+        } else if (signature == 2 || signature == 3) {
+            hud.applyPreset("full");
+        } else {
+            hud.applyPreset("minimal");
+        }
     }
 
     private void addContentWidget(Button button, int y, int panelY) {
@@ -229,7 +253,6 @@ public final class ArsonScreen extends Screen {
     }
 
     private void rebuildContentFromSearch() {
-        // Rebuild the whole screen so the filtered list stays synchronized with the text field.
         String value = searchBox == null ? "" : searchBox.getValue();
         rebuild();
         if (searchBox != null) {
