@@ -5,6 +5,7 @@ import io.arson.client.config.ConfigManager;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.WorldInfoModule;
+import io.arson.client.settings.StringSetting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -121,10 +122,14 @@ public final class HudEditorScreen extends Screen {
     }
 
     private void save() {
-        if (hud != null && watermarkBox != null) hud.settings().stream()
-                .filter(setting -> setting.id().equals("watermark-text"))
-                .findFirst()
-                .ifPresent(setting -> setting.set(watermarkBox.getValue()));
+        if (hud != null && watermarkBox != null) {
+            for (var setting : hud.settings()) {
+                if (setting instanceof StringSetting text && text.id().equals("watermark-text")) {
+                    text.set(watermarkBox.getValue());
+                    break;
+                }
+            }
+        }
         if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
     }
 
