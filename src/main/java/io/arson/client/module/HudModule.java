@@ -96,6 +96,49 @@ public final class HudModule extends Module {
     public int secondaryColor() { return secondaryColor.get(); }
     public int backgroundColor() { return backgroundColor.get(); }
 
+    public void cycleElementColor(String element) {
+        int next = switch (elementColor(element)) {
+            case 0xFFFFFFFF -> 0xFF55FFFF;
+            case 0xFF55FFFF -> 0xFF55FF55;
+            case 0xFF55FF55 -> 0xFFFFFF55;
+            case 0xFFFFFF55 -> 0xFFFF55FF;
+            case 0xFFFF55FF -> 0xFFFF5555;
+            default -> 0xFFFFFFFF;
+        };
+        switch (element) {
+            case "watermark" -> watermarkColor.set(next);
+            case "coordinates" -> coordinatesColor.set(next);
+            case "fps" -> fpsColor.set(next);
+            case "player-info" -> playerInfoColor.set(next);
+            case "world-info" -> worldInfoColor.set(next);
+            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
+        }
+    }
+
+    public void cycleElementBackgroundColor() {
+        int next = switch (elementBackgroundColor()) {
+            case 0x80000000 -> 0x90000080;
+            case 0x90000080 -> 0x90008080;
+            case 0x90008080 -> 0x90008000;
+            case 0x90008000 -> 0x90800080;
+            case 0x90800080 -> 0x90800000;
+            default -> 0x80000000;
+        };
+        elementBackgroundColor.set(next);
+    }
+
+    public void adjustElementScale(String element, double delta) {
+        double next = Math.max(0.5, Math.min(2.0, elementScale(element) + delta));
+        switch (element) {
+            case "watermark" -> watermarkScale.set(next);
+            case "coordinates" -> coordinatesScale.set(next);
+            case "fps" -> fpsScale.set(next);
+            case "player-info" -> playerInfoScale.set(next);
+            case "world-info" -> worldInfoScale.set(next);
+            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
+        }
+    }
+
     public boolean elementVisible(String element) { return switch (element) { case "watermark" -> watermark.enabled(); case "coordinates" -> coordinates.enabled(); case "fps" -> fps.enabled(); case "player-info" -> playerInfo.enabled(); case "world-info" -> worldInfo.enabled(); default -> false; }; }
     public void setElementVisible(String element, boolean visible) { switch (element) { case "watermark" -> watermark.set(visible); case "coordinates" -> coordinates.set(visible); case "fps" -> fps.set(visible); case "player-info" -> playerInfo.set(visible); case "world-info" -> worldInfo.set(visible); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); } }
     public String elementAlignment(String element) { return switch (element) { case "watermark" -> watermarkAlign(); case "coordinates" -> coordinatesAlign(); case "fps" -> fpsAlign(); case "player-info" -> playerInfoAlign(); case "world-info" -> worldInfoAlign(); default -> "left"; }; }
