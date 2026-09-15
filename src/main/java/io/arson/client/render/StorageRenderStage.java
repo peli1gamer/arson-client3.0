@@ -2,12 +2,14 @@ package io.arson.client.render;
 
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
+import com.arson.client.render.RenderStyle;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
 import io.arson.client.module.ContainerESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Render-stage adapter for container ESP. Detection is cached and drawing stays in the render stage. */
@@ -39,7 +41,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         overlay.range(module.range());
 
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= 5 || gameTime < lastScanTick) {
+        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, overlay.range());
             lastScanTick = gameTime;
         }
@@ -52,6 +54,21 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
             case ENDER_CHEST -> module.enderChestStyle();
             case OTHER -> module.otherStorageStyle();
         });
+
+        if (module.distanceFade() && !boxes.isEmpty()) {
+            List<RenderBox> faded = new ArrayList<>(boxes.size());
+            for (RenderBox box : boxes) {
+                double dx = box.centerX() - camera.x;
+                double dy = box.centerY() - camera.y;
+                double dz = box.centerZ() - camera.z;
+                double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                float fade = fadeForDistance(distance, module.range());
+                if (fade <= 0.0f) continue;
+                faded.add(withFade(box, fade));
+            }
+            boxes = faded;
+        }
+
         lastVisibleCount = boxes.size();
         if (boxes.isEmpty()) return;
 
@@ -66,6 +83,23 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         profile.enabled(StorageType.SHULKER, module.showShulkers());
         profile.enabled(StorageType.ENDER_CHEST, module.showEnderChests());
         profile.enabled(StorageType.OTHER, module.showOtherStorage());
+    }
+
+    private static float fadeForDistance(double distance, double range) {
+        double normalized = Math.max(0.0, Math.min(1.0, distance / Math.max(1.0, range)));
+        return (float) Math.max(0.0, Math.min(1.0,
+                1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
+    }
+
+    private static RenderBox withFade(RenderBox box, float fade) {
+        RenderStyle style = box.style();
+        RenderStyle faded = new RenderStyle(
+                style.color(), style.fill(), style.outline(),
+                style.fillAlpha() * fade,
+                style.outlineAlpha() * fade,
+                style.lineWidth());
+        return new RenderBox(box.minX(), box.minY(), box.minZ(),
+                box.maxX(), box.maxY(), box.maxZ(), faded);
     }
 
     public int lastVisibleCount() {
