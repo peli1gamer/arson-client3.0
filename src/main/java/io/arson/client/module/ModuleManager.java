@@ -30,6 +30,7 @@ public final class ModuleManager {
         register(new EntityTracerModule());
         register(new BlockESPModule());
         register(new HudModule());
+        register(new ArrayListModule());
         register(new CombatInfoModule());
         register(new PlayerInfoModule());
         register(new WorldInfoModule());
