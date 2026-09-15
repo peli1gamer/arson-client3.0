@@ -52,13 +52,17 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         lastVisibleCount = cachedTargets.size();
         List<RenderBox> boxes = new ArrayList<>(cachedTargets.size());
         for (EntityTarget target : cachedTargets) {
-            RenderStyle style = styleFor(target.type());
+            float fade = distanceFade(target);
+            if (fade <= 0.0f) continue;
+            RenderStyle style = fadeStyle(styleFor(target.type()), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
         }
 
-        RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
-        RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+        if (!boxes.isEmpty()) {
+            RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+            RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
+        }
         if (module.showHealth()) {
             renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
         }
@@ -73,7 +77,20 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         };
     }
 
-    /** Renders a compact vertical health bar just to the left of living entity bounds. */
+    private float distanceFade(EntityTarget target) {
+        if (!module.distanceFade()) return 1.0f;
+        double range = Math.max(1.0, module.range());
+        double normalized = Math.max(0.0, Math.min(1.0, target.distance() / range));
+        // Keep nearby targets fully visible and smoothly fade the far half of the range.
+        return (float) Math.max(0.0, Math.min(1.0, 1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
+    }
+
+    private static RenderStyle fadeStyle(RenderStyle style, float fade) {
+        return new RenderStyle(style.color(), style.fill(), style.outline(),
+                style.fillAlpha() * fade, style.outlineAlpha() * fade, style.lineWidth());
+    }
+
+    /** Renders a compact vertical health bar beside living entity bounds. */
     private void renderHealthBars(PoseStack matrices, MultiBufferSource consumers,
                                   double cameraX, double cameraY, double cameraZ,
                                   List<EntityTarget> targets) {
@@ -84,23 +101,33 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
         for (EntityTarget target : targets) {
             if (target.maxHealth() <= 0.0f) continue;
+            float fade = distanceFade(target);
+            if (fade <= 0.0f) continue;
+
             float healthRatio = Math.max(0.0f, Math.min(1.0f, target.health() / target.maxHealth()));
             if (healthRatio <= 0.0f) continue;
 
-            float minX = (float) (target.minX() - cameraX - 0.08);
-            float maxX = minX + 0.035f;
+            float side = module.healthRight() ? 1.0f : -1.0f;
+            float edgeX = module.healthRight()
+                    ? (float) (target.maxX() - cameraX + 0.045)
+                    : (float) (target.minX() - cameraX - 0.08);
+            float minX = edgeX + (module.healthRight() ? 0.0f : -0.035f);
+            float maxX = edgeX + (module.healthRight() ? 0.035f : 0.0f);
             float minY = (float) (target.minY() - cameraY);
             float maxY = (float) (target.maxY() - cameraY);
             float minZ = (float) (target.minZ() - cameraZ);
             float maxZ = minZ + 0.035f;
+            float filledMinY = module.healthRight() ? minY : minY;
             float filledMaxY = minY + (maxY - minY) * healthRatio;
 
+            RenderStyle fadedBackground = fadeStyle(backgroundStyle, fade);
+            RenderStyle fadedHealth = fadeStyle(healthStyle, fade);
             if (module.showHealthBackground()) {
                 quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f,
-                        RenderStyleUtil.rgba(backgroundStyle, false));
+                        RenderStyleUtil.rgba(fadedBackground, false));
             }
-            quad(buffer, pose, minX, minY, minZ, maxX, filledMaxY, maxZ,
-                    RenderStyleUtil.rgba(healthStyle, false));
+            quad(buffer, pose, minX, filledMinY, minZ, maxX, filledMaxY, maxZ,
+                    RenderStyleUtil.rgba(fadedHealth, false));
         }
     }
 
