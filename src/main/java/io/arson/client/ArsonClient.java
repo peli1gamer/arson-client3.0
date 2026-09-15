@@ -8,6 +8,7 @@ import io.arson.client.module.ContainerESPModule;
 import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
+import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.render.BlockRenderStage;
 import io.arson.client.render.BlockScanner;
@@ -33,6 +34,9 @@ import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class ArsonClient implements ClientModInitializer {
     public static final String MOD_ID = "arson";
 
@@ -40,6 +44,7 @@ public final class ArsonClient implements ClientModInitializer {
     private ModuleManager moduleManager;
     private KeyMapping openMenuKey;
     private WorldRenderBridge worldRenderBridge;
+    private final Map<Integer, Boolean> moduleKeyStates = new HashMap<>();
 
     public static ArsonClient getInstance() {
         return instance;
@@ -105,6 +110,7 @@ public final class ArsonClient implements ClientModInitializer {
                 }
             }
 
+            processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
         });
 
@@ -119,6 +125,25 @@ public final class ArsonClient implements ClientModInitializer {
         Component startup = Component.literal("Arson V3 initialized");
         if (client.player != null) {
             client.player.displayClientMessage(startup, true);
+        }
+    }
+
+    private void processModuleKeybinds(Minecraft client) {
+        if (client.getWindow() == null) return;
+        if (client.gui.getChat() != null) return;
+        if (client.screen != null && !(client.screen instanceof ArsonScreen)) return;
+
+        long window = client.getWindow().handle();
+        for (Module module : moduleManager.all()) {
+            int keyCode = module.keyCode();
+            if (keyCode <= 0) continue;
+
+            boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
+            boolean wasDown = moduleKeyStates.getOrDefault(keyCode, false);
+            moduleKeyStates.put(keyCode, down);
+            if (down && !wasDown && client.screen == null) {
+                module.toggle();
+            }
         }
     }
 
