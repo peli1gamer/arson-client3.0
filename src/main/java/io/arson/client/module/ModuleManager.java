@@ -25,6 +25,7 @@ public final class ModuleManager {
         register(new PerformanceModule());
         register(new ContainerESPModule());
         register(new EntityESPModule());
+        register(new ItemESPModule());
         register(new EntityInfoModule());
         register(new EntityTracerModule());
         register(new BlockESPModule());
