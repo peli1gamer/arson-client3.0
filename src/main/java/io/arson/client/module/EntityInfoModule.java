@@ -14,7 +14,6 @@ public final class EntityInfoModule extends Module implements EntityScanConfig {
     private final BooleanSetting showName = setting(new BooleanSetting("name", "Name", true));
     private final BooleanSetting showDistance = setting(new BooleanSetting("distance", "Distance", true));
     private final BooleanSetting showHealth = setting(new BooleanSetting("health", "Health", true));
-    private final BooleanSetting healthPercent = setting(new BooleanSetting("health-percent", "Health Percent", false));
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", true));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final ColorSetting playerTextColor = setting(new ColorSetting("player-text-color", "Player Text Color", 0xFFFFFFFF));
@@ -39,7 +38,6 @@ public final class EntityInfoModule extends Module implements EntityScanConfig {
     public boolean showName() { return showName.enabled(); }
     public boolean showDistance() { return showDistance.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
-    public boolean healthPercent() { return healthPercent.enabled(); }
     public boolean background() { return background.enabled(); }
     public boolean distanceFade() { return distanceFade.enabled(); }
     public int textColor() { return playerTextColor.get(); }
