@@ -41,6 +41,9 @@ public final class ConfigManager {
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) {
                     module.setEnabled(data.get("enabled").getAsBoolean());
                 }
+                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) {
+                    module.setKeyCode(data.get("keyCode").getAsInt());
+                }
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject()
                         ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
@@ -71,6 +74,7 @@ public final class ConfigManager {
         for (Module module : modules.all()) {
             JsonObject data = new JsonObject();
             data.addProperty("enabled", module.enabled());
+            data.addProperty("keyCode", module.keyCode());
             JsonObject settings = new JsonObject();
             for (Setting<?> setting : module.settings()) {
                 Object value = setting.get();
