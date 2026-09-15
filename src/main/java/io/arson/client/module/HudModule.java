@@ -37,6 +37,7 @@ public final class HudModule extends Module {
     public int padding() { return (int) Math.round(padding.get()); }
     public int lineSpacing() { return (int) Math.round(lineSpacing.get()); }
     public boolean gridSnap() { return snap.enabled(); }
+    public void setGridSnap(boolean enabled) { snap.set(enabled); }
     public int gridSize() { return (int) Math.round(gridSize.get()); }
     public int textColor() { return textColor.get(); }
     public int secondaryColor() { return secondaryColor.get(); }
