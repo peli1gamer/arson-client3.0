@@ -11,6 +11,7 @@ import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ItemESPModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.ArrayListRenderer;
 import io.arson.client.render.BlockRenderStage;
 import io.arson.client.render.BlockScanner;
 import io.arson.client.render.CombatInfoRenderer;
@@ -72,6 +73,10 @@ public final class ArsonClient implements ClientModInitializer {
         HudElementRegistry.addLast(
                 Identifier.fromNamespaceAndPath(MOD_ID, "hud"),
                 HudRenderer::render
+        );
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath(MOD_ID, "array_list"),
+                ArrayListRenderer::render
         );
         HudElementRegistry.addLast(
                 Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"),
