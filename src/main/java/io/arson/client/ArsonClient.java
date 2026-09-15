@@ -3,11 +3,14 @@ package io.arson.client;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
+import io.arson.client.module.BlockESPModule;
 import io.arson.client.module.ContainerESPModule;
 import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.BlockRenderStage;
+import io.arson.client.render.BlockScanner;
 import io.arson.client.render.CombatInfoRenderer;
 import io.arson.client.render.EntityInfoStage;
 import io.arson.client.render.EntityRenderStage;
@@ -86,6 +89,9 @@ public final class ArsonClient implements ClientModInitializer {
 
         EntityTracerModule entityTracers = (EntityTracerModule) moduleManager.get("entity-tracers");
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, entityTracers));
+
+        BlockESPModule blockESP = (BlockESPModule) moduleManager.get("block-esp");
+        worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), blockESP));
 
         worldRenderBridge.attach();
 
