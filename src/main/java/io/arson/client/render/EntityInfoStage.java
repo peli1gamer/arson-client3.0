@@ -82,15 +82,25 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
         StringBuilder text = new StringBuilder();
         if (module.showName()) text.append(target.displayName());
         if (module.showDistance()) {
-            if (!text.isEmpty()) text.append(" ");
+            appendSeparator(text);
             text.append("[").append(Math.round(target.distance())).append("m]");
         }
         if (module.showHealth() && target.maxHealth() > 0.0f) {
-            if (!text.isEmpty()) text.append(" ");
-            text.append("HP ").append(formatHealth(target.health()))
-                    .append("/").append(formatHealth(target.maxHealth()));
+            appendSeparator(text);
+            if (module.healthPercent()) {
+                int percent = Math.round(Math.max(0.0f,
+                        Math.min(1.0f, target.health() / target.maxHealth())) * 100.0f);
+                text.append("HP ").append(percent).append('%');
+            } else {
+                text.append("HP ").append(formatHealth(target.health()))
+                        .append('/').append(formatHealth(target.maxHealth()));
+            }
         }
         return text.toString();
+    }
+
+    private static void appendSeparator(StringBuilder text) {
+        if (!text.isEmpty()) text.append(" ");
     }
 
     private float distanceFade(EntityTarget target) {
