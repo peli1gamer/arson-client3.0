@@ -33,7 +33,7 @@ public final class BlockESPModule extends VisualModule {
     private final ColorSetting ancientDebrisColor = setting(new ColorSetting("ancient-debris-color", "Ancient Debris Color", 0xD88A4B35));
 
     public BlockESPModule() {
-        super("block-esp", "Block ESP", false);
+        super("block-esp", "Ore ESP", false);
     }
 
     public boolean showDiamond() { return diamond.enabled(); }
