@@ -33,4 +33,43 @@ public final class HudModule extends Module {
     public int textColor() { return textColor.get(); }
     public int secondaryColor() { return secondaryColor.get(); }
     public int backgroundColor() { return backgroundColor.get(); }
+
+    /** Apply a complete HUD layout preset without changing the module enabled state. */
+    public void applyPreset(String preset) {
+        switch (preset.toLowerCase(java.util.Locale.ROOT)) {
+            case "minimal" -> {
+                watermark.set(true);
+                coordinates.set(false);
+                fps.set(true);
+                background.set(false);
+                shadow.set(true);
+                scale.set(1.0);
+                x.set(6.0);
+                y.set(6.0);
+            }
+            case "compact" -> {
+                watermark.set(true);
+                coordinates.set(true);
+                fps.set(true);
+                background.set(true);
+                shadow.set(true);
+                scale.set(0.90);
+                x.set(6.0);
+                y.set(6.0);
+                backgroundColor.set(0x90000000);
+            }
+            case "full" -> {
+                watermark.set(true);
+                coordinates.set(true);
+                fps.set(true);
+                background.set(true);
+                shadow.set(true);
+                scale.set(1.10);
+                x.set(10.0);
+                y.set(10.0);
+                backgroundColor.set(0xA0000000);
+            }
+            default -> throw new IllegalArgumentException("Unknown HUD preset: " + preset);
+        }
+    }
 }
