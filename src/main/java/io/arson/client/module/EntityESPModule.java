@@ -22,6 +22,19 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     private final BooleanSetting itemFill = setting(new BooleanSetting("item-fill", "Item Fill", true));
     private final BooleanSetting itemOutline = setting(new BooleanSetting("item-outline", "Item Outline", true));
 
+    private final DoubleSetting playerFillAlpha = setting(new DoubleSetting("player-fill-alpha", "Player Fill Alpha", 0.30, 0.0, 1.0, 0.05));
+    private final DoubleSetting playerOutlineAlpha = setting(new DoubleSetting("player-outline-alpha", "Player Outline Alpha", 1.0, 0.0, 1.0, 0.05));
+    private final DoubleSetting playerLineWidth = setting(new DoubleSetting("player-line-width", "Player Line Width", 1.0, 0.5, 8.0, 0.5));
+    private final DoubleSetting mobFillAlpha = setting(new DoubleSetting("mob-fill-alpha", "Mob Fill Alpha", 0.30, 0.0, 1.0, 0.05));
+    private final DoubleSetting mobOutlineAlpha = setting(new DoubleSetting("mob-outline-alpha", "Mob Outline Alpha", 1.0, 0.0, 1.0, 0.05));
+    private final DoubleSetting mobLineWidth = setting(new DoubleSetting("mob-line-width", "Mob Line Width", 1.0, 0.5, 8.0, 0.5));
+    private final DoubleSetting animalFillAlpha = setting(new DoubleSetting("animal-fill-alpha", "Animal Fill Alpha", 0.30, 0.0, 1.0, 0.05));
+    private final DoubleSetting animalOutlineAlpha = setting(new DoubleSetting("animal-outline-alpha", "Animal Outline Alpha", 1.0, 0.0, 1.0, 0.05));
+    private final DoubleSetting animalLineWidth = setting(new DoubleSetting("animal-line-width", "Animal Line Width", 1.0, 0.5, 8.0, 0.5));
+    private final DoubleSetting itemFillAlpha = setting(new DoubleSetting("item-fill-alpha", "Item Fill Alpha", 0.30, 0.0, 1.0, 0.05));
+    private final DoubleSetting itemOutlineAlpha = setting(new DoubleSetting("item-outline-alpha", "Item Outline Alpha", 1.0, 0.0, 1.0, 0.05));
+    private final DoubleSetting itemLineWidth = setting(new DoubleSetting("item-line-width", "Item Line Width", 1.0, 0.5, 8.0, 0.5));
+
     private final BooleanSetting showHealth = setting(new BooleanSetting("health", "Health", false));
     private final BooleanSetting healthBackground = setting(new BooleanSetting("health-background", "Health Background", true));
     private final BooleanSetting healthRight = setting(new BooleanSetting("health-right", "Health Bar Right", false));
@@ -65,20 +78,18 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 
-    public RenderStyle playerStyle() { return renderStyle(playerColor.get(), playerFill.enabled(), playerOutline.enabled()); }
-    public RenderStyle mobStyle() { return renderStyle(mobColor.get(), mobFill.enabled(), mobOutline.enabled()); }
-    public RenderStyle animalStyle() { return renderStyle(animalColor.get(), animalFill.enabled(), animalOutline.enabled()); }
-    public RenderStyle itemStyle() { return renderStyle(itemColor.get(), itemFill.enabled(), itemOutline.enabled()); }
+    public RenderStyle playerStyle() { return renderStyle(playerColor.get(), playerFill.enabled(), playerOutline.enabled(), playerFillAlpha.get(), playerOutlineAlpha.get(), playerLineWidth.get()); }
+    public RenderStyle mobStyle() { return renderStyle(mobColor.get(), mobFill.enabled(), mobOutline.enabled(), mobFillAlpha.get(), mobOutlineAlpha.get(), mobLineWidth.get()); }
+    public RenderStyle animalStyle() { return renderStyle(animalColor.get(), animalFill.enabled(), animalOutline.enabled(), animalFillAlpha.get(), animalOutlineAlpha.get(), animalLineWidth.get()); }
+    public RenderStyle itemStyle() { return renderStyle(itemColor.get(), itemFill.enabled(), itemOutline.enabled(), itemFillAlpha.get(), itemOutlineAlpha.get(), itemLineWidth.get()); }
 
-    /** Health fill style. */
     public RenderStyle healthStyle() { return renderStyle(healthColor.get()); }
-
-    /** Health background style. */
     public RenderStyle healthBackgroundStyle() { return renderStyle(healthBackgroundColor.get()); }
 
-    private RenderStyle renderStyle(int argb, boolean fillEnabled, boolean outlineEnabled) {
+    private RenderStyle renderStyle(int argb, boolean fillEnabled, boolean outlineEnabled,
+                                    double fillAlphaValue, double outlineAlphaValue, double lineWidthValue) {
         RenderStyle base = super.renderStyle(argb);
         return new RenderStyle(base.color(), fillEnabled, outlineEnabled,
-                base.fillAlpha(), base.outlineAlpha(), base.lineWidth());
+                (float) fillAlphaValue, (float) outlineAlphaValue, (float) lineWidthValue);
     }
 }
