@@ -9,6 +9,7 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.Setting;
+import io.arson.client.settings.StringSetting;
 import net.minecraft.client.Minecraft;
 
 import java.io.IOException;
@@ -53,6 +54,7 @@ public final class ConfigManager {
                         if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
                         else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
                         else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
+                        else if (setting instanceof StringSetting text) text.set(value.getAsString());
                     } catch (RuntimeException ignored) {
                         // Keep the declared default when an individual value is invalid.
                     }
@@ -80,6 +82,7 @@ public final class ConfigManager {
                 Object value = setting.get();
                 if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool);
                 else if (value instanceof Number number) settings.addProperty(setting.id(), number);
+                else if (value instanceof String text) settings.addProperty(setting.id(), text);
             }
             data.add("settings", settings);
             moduleRoot.add(module.id(), data);
