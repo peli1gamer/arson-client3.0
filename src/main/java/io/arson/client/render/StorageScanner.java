@@ -7,6 +7,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.DispenserBlockEntity;
+import net.minecraft.world.level.block.entity.DropperBlockEntity;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 
@@ -143,6 +146,9 @@ public final class StorageScanner {
         if (entity instanceof ShulkerBoxBlockEntity) return StorageType.SHULKER;
         if (entity.getBlockState().is(Blocks.BARREL)) return StorageType.BARREL;
         if (entity.getBlockState().is(Blocks.ENDER_CHEST)) return StorageType.ENDER_CHEST;
+        if (entity instanceof HopperBlockEntity
+                || entity instanceof DispenserBlockEntity
+                || entity instanceof DropperBlockEntity) return StorageType.OTHER;
         return null;
     }
 }
