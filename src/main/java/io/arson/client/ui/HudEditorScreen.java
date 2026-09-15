@@ -2,7 +2,9 @@ package io.arson.client.ui;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
+import io.arson.client.module.ArrayListModule;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.Module;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.settings.BooleanSetting;
@@ -18,12 +20,13 @@ import net.minecraft.world.item.ItemStack;
 
 /** Visual editor for independently positioning and styling HUD elements. */
 public final class HudEditorScreen extends Screen {
-    private static final String[] ELEMENTS = {"watermark", "coordinates", "fps", "player-info", "world-info"};
-    private static final String[] LABELS = {"Watermark", "Coordinates", "FPS", "Player Info", "World Info"};
+    private static final String[] ELEMENTS = {"watermark", "coordinates", "fps", "player-info", "world-info", "array-list"};
+    private static final String[] LABELS = {"Watermark", "Coordinates", "FPS", "Player Info", "World Info", "Array List"};
     private static final int[] COLOR_PRESETS = {0xFFFFFFFF, 0xFFFF5555, 0xFFFFAA00, 0xFFFFFF55, 0xFF55FF55, 0xFF55FFFF, 0xFF55AAFF, 0xFFAA55FF, 0xFFFF55FF, 0xFFAAAAAA};
 
     private final Screen parent;
     private HudModule hud;
+    private ArrayListModule arrayList;
     private EditBox watermarkBox;
     private String selected = "watermark";
     private boolean dragging;
@@ -38,6 +41,7 @@ public final class HudEditorScreen extends Screen {
     @Override
     protected void init() {
         hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
+        arrayList = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
         if (hud == null) return;
 
         watermarkBox = new EditBox(font, 10, 82, 180, 20, Component.literal("Watermark"));
@@ -48,50 +52,85 @@ public final class HudEditorScreen extends Screen {
 
         for (int i = 0; i < ELEMENTS.length; i++) {
             final int index = i;
+            int buttonWidth = 78;
             addRenderableWidget(Button.builder(Component.literal(elementButtonText(index)), b -> {
                 saveWatermarkText();
                 selected = ELEMENTS[index];
                 rebuild();
-            }).bounds(10 + i * 86, 50, 82, 20).build());
+            }).bounds(10 + i * 80, 50, buttonWidth, 20).build());
         }
 
-        addRenderableWidget(Button.builder(Component.literal("Color: " + colorHex(hud.elementColor(selected))), b -> {
-            cycleColor(selected);
-            b.setMessage(Component.literal("Color: " + colorHex(hud.elementColor(selected))));
-            save();
-        }).bounds(200, 82, 100, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale -"), b -> {
-            adjustScale(selected, -0.05);
-            save();
-            rebuild();
-        }).bounds(306, 82, 70, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale +"), b -> {
-            adjustScale(selected, 0.05);
-            save();
-            rebuild();
-        }).bounds(382, 82, 70, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Background: " + (hud.elementBackground(selected) ? "ON" : "OFF")), b -> {
-            toggleBackground(selected);
-            b.setMessage(Component.literal("Background: " + (hud.elementBackground(selected) ? "ON" : "OFF")));
-            save();
-        }).bounds(458, 82, 120, 20).build());
+        if (isArrayList()) {
+            addRenderableWidget(Button.builder(Component.literal("Color: " + colorHex(arrayList.textColor())), b -> {
+                arrayList.cycleTextColor(COLOR_PRESETS);
+                b.setMessage(Component.literal("Color: " + colorHex(arrayList.textColor())));
+                save();
+            }).bounds(200, 82, 100, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Scale -"), b -> {
+                arrayList.adjustScale(-0.05);
+                save();
+                rebuild();
+            }).bounds(306, 82, 70, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Scale +"), b -> {
+                arrayList.adjustScale(0.05);
+                save();
+                rebuild();
+            }).bounds(382, 82, 70, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Background: " + (arrayList.background() ? "ON" : "OFF")), b -> {
+                arrayList.toggleBackground();
+                b.setMessage(Component.literal("Background: " + (arrayList.background() ? "ON" : "OFF")));
+                save();
+            }).bounds(458, 82, 120, 20).build());
+        } else {
+            addRenderableWidget(Button.builder(Component.literal("Color: " + colorHex(hud.elementColor(selected))), b -> {
+                cycleColor(selected);
+                b.setMessage(Component.literal("Color: " + colorHex(hud.elementColor(selected))));
+                save();
+            }).bounds(200, 82, 100, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Scale -"), b -> {
+                adjustScale(selected, -0.05);
+                save();
+                rebuild();
+            }).bounds(306, 82, 70, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Scale +"), b -> {
+                adjustScale(selected, 0.05);
+                save();
+                rebuild();
+            }).bounds(382, 82, 70, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Background: " + (hud.elementBackground(selected) ? "ON" : "OFF")), b -> {
+                toggleBackground(selected);
+                b.setMessage(Component.literal("Background: " + (hud.elementBackground(selected) ? "ON" : "OFF")));
+                save();
+            }).bounds(458, 82, 120, 20).build());
+        }
 
         addRenderableWidget(Button.builder(Component.literal("Reset Selected"), b -> {
-            hud.resetElement(selected);
+            if (isArrayList()) arrayList.resetSettings();
+            else hud.resetElement(selected);
             save();
+            rebuild();
         }).bounds(10, this.height - 30, 105, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Reset All"), b -> {
-            for (String element : ELEMENTS) hud.resetElement(element);
+            for (String element : ELEMENTS) {
+                if (element.equals("array-list")) {
+                    if (arrayList != null) arrayList.resetSettings();
+                } else {
+                    hud.resetElement(element);
+                }
+            }
             save();
+            rebuild();
         }).bounds(120, this.height - 30, 85, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Align: " + hud.elementAlignment(selected)), b -> {
-            hud.cycleAlignment(selected);
-            b.setMessage(Component.literal("Align: " + hud.elementAlignment(selected)));
+        addRenderableWidget(Button.builder(Component.literal(isArrayList() ? "Align: " + (arrayList.rightAlign() ? "Right" : "Left") : "Align: " + hud.elementAlignment(selected)), b -> {
+            if (isArrayList()) arrayList.toggleRightAlign();
+            else hud.cycleAlignment(selected);
+            b.setMessage(Component.literal(isArrayList() ? "Align: " + (arrayList.rightAlign() ? "Right" : "Left") : "Align: " + hud.elementAlignment(selected)));
             save();
         }).bounds(215, this.height - 30, 90, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Visible: " + (hud.elementVisible(selected) ? "ON" : "OFF")), b -> {
-            hud.setElementVisible(selected, !hud.elementVisible(selected));
-            b.setMessage(Component.literal("Visible: " + (hud.elementVisible(selected) ? "ON" : "OFF")));
+        addRenderableWidget(Button.builder(Component.literal("Visible: " + (isArrayList() ? (arrayList.enabled() ? "ON" : "OFF") : (hud.elementVisible(selected) ? "ON" : "OFF"))), b -> {
+            if (isArrayList()) arrayList.toggle();
+            else hud.setElementVisible(selected, !hud.elementVisible(selected));
+            b.setMessage(Component.literal("Visible: " + (isArrayList() ? (arrayList.enabled() ? "ON" : "OFF") : (hud.elementVisible(selected) ? "ON" : "OFF"))));
             save();
         }).bounds(315, this.height - 30, 95, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Grid: " + (hud.gridSnap() ? "ON" : "OFF")), b -> {
@@ -102,6 +141,8 @@ public final class HudEditorScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
                 .bounds(this.width - 80, this.height - 30, 70, 20).build());
     }
+
+    private boolean isArrayList() { return "array-list".equals(selected) && arrayList != null; }
 
     private String elementButtonText(int index) {
         String label = LABELS[index];
@@ -153,11 +194,12 @@ public final class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && hud != null && hitHud(mouseX, mouseY)) {
+        if (button == 0 && hitHud(mouseX, mouseY)) {
             dragging = true;
             double[] position = position(selected);
-            dragOffsetX = mouseX - position[0] * hud.scale();
-            dragOffsetY = mouseY - position[1] * hud.scale();
+            double scale = isArrayList() ? arrayList.scale() : hud.scale();
+            dragOffsetX = mouseX - position[0] * scale;
+            dragOffsetY = mouseY - position[1] * scale;
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -165,8 +207,12 @@ public final class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (dragging && button == 0 && hud != null) {
-            hud.setEditorPosition(selected, (mouseX - dragOffsetX) / hud.scale(), (mouseY - dragOffsetY) / hud.scale());
+        if (dragging && button == 0) {
+            if (isArrayList()) {
+                arrayList.setEditorPosition((mouseX - dragOffsetX) / arrayList.scale(), (mouseY - dragOffsetY) / arrayList.scale());
+            } else if (hud != null) {
+                hud.setEditorPosition(selected, (mouseX - dragOffsetX) / hud.scale(), (mouseY - dragOffsetY) / hud.scale());
+            }
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -183,13 +229,17 @@ public final class HudEditorScreen extends Screen {
     }
 
     private boolean hitHud(double mouseX, double mouseY) {
-        if (hud == null || !hud.elementVisible(selected)) return false;
-        double[] position = position(selected);
-        int[] bounds = previewBounds(selected, position);
+        if (isArrayList()) {
+            if (!arrayList.enabled()) return false;
+        } else if (hud == null || !hud.elementVisible(selected)) {
+            return false;
+        }
+        int[] bounds = previewBounds(selected, position(selected));
         return mouseX >= bounds[0] && mouseX <= bounds[2] && mouseY >= bounds[1] && mouseY <= bounds[3];
     }
 
     private double[] position(String element) {
+        if (isArrayList()) return new double[]{arrayList.x(), arrayList.y()};
         return switch (element) {
             case "coordinates" -> new double[]{hud.coordinatesX(), hud.coordinatesY()};
             case "fps" -> new double[]{hud.fpsX(), hud.fpsY()};
@@ -208,6 +258,7 @@ public final class HudEditorScreen extends Screen {
     }
 
     private int[] previewBounds(String element, double[] pos) {
+        if (isArrayList()) return arrayListPreviewBounds(pos);
         PreviewData data = previewData(element);
         double totalScale = hud.scale() * hud.elementScale(element);
         int left = (int) Math.round(alignedLeft(pos[0], data.width, hud.elementAlignment(element)) * hud.scale() - hud.padding() * totalScale);
@@ -217,12 +268,28 @@ public final class HudEditorScreen extends Screen {
         return new int[]{left, top, right, bottom};
     }
 
-    private int playerInfoHeight() {
-        return previewData("player-info").height;
+    private int[] arrayListPreviewBounds(double[] pos) {
+        String[] rows = arrayListRows();
+        int width = 70;
+        for (String row : rows) width = Math.max(width, font.width(row));
+        double scale = arrayList.scale();
+        int height = Math.max(12, rows.length * arrayList.spacing());
+        int left = arrayList.rightAlign() ? (int) Math.round(pos[0] * scale - width * scale) : (int) Math.round(pos[0] * scale);
+        int top = (int) Math.round(pos[1] * scale);
+        int padding = (int) Math.round(arrayList.padding() * scale);
+        return new int[]{left - padding, top - padding, left + (int) Math.round(width * scale) + padding, top + (int) Math.round(height * scale) + padding};
     }
 
-    private int worldInfoHeight() {
-        return previewData("world-info").height;
+    private String[] arrayListRows() {
+        java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+        for (Module module : ArsonClient.getInstance().modules().all()) {
+            if (!module.enabled() || module.id().equals("array-list")) continue;
+            String label = arrayList.showCategory() ? module.name() + "  [" + module.category().displayName() + "]" : module.name();
+            rows.add(label);
+        }
+        rows.sort((a, b) -> Integer.compare(font.width(b), font.width(a)));
+        int max = Math.min(rows.size(), arrayList.maxModules());
+        return rows.subList(0, max).toArray(String[]::new);
     }
 
     private PreviewData previewData(String element) {
@@ -313,14 +380,21 @@ public final class HudEditorScreen extends Screen {
         graphics.fill(0, 0, width, height, 0xB0101014);
         graphics.text(font, "HUD Editor — select an element, then drag its box", 10, 16, 0xFFFFFFFF, true);
         double[] selectedPosition = hud == null ? new double[]{0, 0} : position(selected);
+        String scaleText = isArrayList()
+                ? String.format(java.util.Locale.ROOT, "%.2f", arrayList.scale())
+                : String.format(java.util.Locale.ROOT, "%.2f", hud.elementScale(selected));
         graphics.text(font, "Selected: " + selected + "  X=" + (int) selectedPosition[0] + " Y=" + (int) selectedPosition[1]
-                + "  Scale=" + (hud == null ? "1.00" : String.format(java.util.Locale.ROOT, "%.2f", hud.elementScale(selected))), 10, 32, 0xFFD0D0D0, false);
+                + "  Scale=" + scaleText, 10, 32, 0xFFD0D0D0, false);
         graphics.text(font, "Watermark text", 10, 72, 0xFFFFFFFF, false);
 
         if (hud != null) {
             for (int i = 0; i < ELEMENTS.length; i++) {
                 String element = ELEMENTS[i];
-                if (!hud.elementVisible(element)) continue;
+                if (element.equals("array-list")) {
+                    if (arrayList == null || !arrayList.enabled()) continue;
+                } else if (!hud.elementVisible(element)) {
+                    continue;
+                }
                 drawPreviewElement(graphics, element);
             }
         }
@@ -328,6 +402,10 @@ public final class HudEditorScreen extends Screen {
     }
 
     private void drawPreviewElement(GuiGraphicsExtractor graphics, String element) {
+        if (element.equals("array-list")) {
+            drawArrayListPreview(graphics);
+            return;
+        }
         double[] pos = position(element);
         PreviewData data = previewData(element);
         int[] bounds = previewBounds(element, pos);
@@ -349,6 +427,26 @@ public final class HudEditorScreen extends Screen {
                 default -> baseLeft;
             };
             graphics.text(font, row, rowX, baseTop + padding + (int) Math.round(i * hud.lineSpacing() * totalScale), hud.elementColor(element), hud.showShadow());
+        }
+    }
+
+    private void drawArrayListPreview(GuiGraphicsExtractor graphics) {
+        double[] pos = position("array-list");
+        String[] rows = arrayListRows();
+        int[] bounds = previewBounds("array-list", pos);
+        int outline = selected.equals("array-list") ? 0xFFFFFFFF : 0xFF6A6A6A;
+        graphics.fill(bounds[0], bounds[1], bounds[2], bounds[3], arrayList.background() ? arrayList.backgroundColor() : 0x30303038);
+        graphics.outline(bounds[0], bounds[1], bounds[2] - bounds[0], bounds[3] - bounds[1], outline);
+        double scale = arrayList.scale();
+        int width = bounds[2] - bounds[0];
+        int baseLeft = arrayList.rightAlign() ? (int) Math.round(pos[0] * scale) : (int) Math.round(pos[0] * scale);
+        int top = (int) Math.round(pos[1] * scale);
+        for (int i = 0; i < rows.length; i++) {
+            String row = rows[i];
+            int textWidth = font.width(row);
+            int x = arrayList.rightAlign() ? baseLeft - textWidth : baseLeft;
+            if (!arrayList.rightAlign()) x = Math.max(0, x);
+            graphics.text(font, row, x, top + i * (int) Math.round(arrayList.spacing() * scale), arrayList.textColor(), arrayList.shadow());
         }
     }
 
