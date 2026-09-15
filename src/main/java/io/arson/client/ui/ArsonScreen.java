@@ -1,6 +1,7 @@
 package io.arson.client.ui;
 
 import io.arson.client.ArsonClient;
+import io.arson.client.config.ConfigManager;
 import io.arson.client.module.Module;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
@@ -110,6 +111,8 @@ public final class ArsonScreen extends Screen {
         maxScroll = Math.max(0, contentHeight - (CONTENT_BOTTOM - CONTENT_TOP));
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
 
+        this.addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveConfig())
+                .bounds(right - 210, panelY + 330, 100, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
                 .bounds(right - 100, panelY + 330, 100, 20).build());
     }
@@ -118,6 +121,12 @@ public final class ArsonScreen extends Screen {
         if (y >= panelY + CONTENT_TOP && y <= panelY + CONTENT_BOTTOM - 18) {
             this.addRenderableWidget(button);
             contentButtons.add(button);
+        }
+    }
+
+    private void saveConfig() {
+        if (this.minecraft != null) {
+            ConfigManager.save(this.minecraft, ArsonClient.getInstance().modules());
         }
     }
 
@@ -175,6 +184,7 @@ public final class ArsonScreen extends Screen {
 
     @Override
     public void onClose() {
+        saveConfig();
         this.minecraft.gui.setScreen(parent);
     }
 }
