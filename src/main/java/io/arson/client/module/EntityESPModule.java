@@ -14,6 +14,8 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     private final BooleanSetting items = setting(new BooleanSetting("items", "Dropped Items", false));
     private final BooleanSetting showHealth = setting(new BooleanSetting("health", "Health", false));
     private final BooleanSetting healthBackground = setting(new BooleanSetting("health-background", "Health Background", true));
+    private final BooleanSetting healthRight = setting(new BooleanSetting("health-right", "Health Bar Right", false));
+    private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final ColorSetting playerColor = setting(new ColorSetting("player-color", "Player Color", 0xD655AAFF));
     private final ColorSetting mobColor = setting(new ColorSetting("mob-color", "Mob Color", 0xD6FF5555));
     private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
@@ -33,6 +35,8 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public boolean showItems() { return items.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
     public boolean showHealthBackground() { return healthBackground.enabled(); }
+    public boolean healthRight() { return healthRight.enabled(); }
+    public boolean distanceFade() { return distanceFade.enabled(); }
     public boolean fill() { return super.filled(); }
     public boolean outline() { return super.outline(); }
     public int playerColor() { return playerColor.get(); }
