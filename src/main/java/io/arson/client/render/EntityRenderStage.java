@@ -5,6 +5,8 @@ import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
 import com.arson.client.render.RenderStyleUtil;
 import io.arson.client.module.EntityESPModule;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Shared world-render stage for entity ESP. */
+@Environment(EnvType.CLIENT)
 public final class EntityRenderStage implements WorldRenderBridge.WorldRenderStage {
     private final Minecraft client;
     private final EntityScanner scanner;
@@ -49,7 +52,6 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         }
 
         var camera = context.worldState().cameraRenderState.pos;
-        lastVisibleCount = cachedTargets.size();
         List<RenderBox> boxes = new ArrayList<>(cachedTargets.size());
         for (EntityTarget target : cachedTargets) {
             float fade = distanceFade(target);
@@ -58,6 +60,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
         }
+        lastVisibleCount = boxes.size();
 
         if (!boxes.isEmpty()) {
             RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
