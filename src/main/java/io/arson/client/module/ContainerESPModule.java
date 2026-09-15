@@ -12,7 +12,9 @@ public final class ContainerESPModule extends VisualModule {
     private final BooleanSetting shulkers = setting(new BooleanSetting("shulkers", "Shulkers", true));
     private final BooleanSetting enderChests = setting(new BooleanSetting("ender-chests", "Ender Chests", true));
     private final BooleanSetting otherStorage = setting(new BooleanSetting("other-storage", "Other Storage", false));
+    private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
+    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 5.0, 1.0, 20.0, 1.0));
 
     private final ColorSetting chestColor = setting(new ColorSetting("chest-color", "Chest Color", 0xD8F2B84B));
     private final ColorSetting barrelColor = setting(new ColorSetting("barrel-color", "Barrel Color", 0xD89B6B43));
@@ -29,7 +31,9 @@ public final class ContainerESPModule extends VisualModule {
     public boolean showShulkers() { return shulkers.enabled(); }
     public boolean showEnderChests() { return enderChests.enabled(); }
     public boolean showOtherStorage() { return otherStorage.enabled(); }
+    public boolean distanceFade() { return distanceFade.enabled(); }
     public double range() { return range.get(); }
+    public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
     public boolean fill() { return super.filled(); }
     public boolean outline() { return super.outline(); }
     public float fillAlpha() { return (float) super.fillAlpha(); }
