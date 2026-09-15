@@ -9,6 +9,7 @@ import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.Setting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
@@ -33,6 +34,7 @@ public final class ArsonScreen extends Screen {
     private int scrollOffset;
     private int maxScroll;
     private Module bindingModule;
+    private EditBox searchBox;
 
     public ArsonScreen(Screen parent) {
         super(Component.literal("Arson Client V3"));
@@ -51,6 +53,10 @@ public final class ArsonScreen extends Screen {
         int panelX = Math.max(20, this.width / 2 - 280);
         int panelY = Math.max(20, this.height / 2 - 180);
 
+        searchBox = new EditBox(this.font, panelX + 145, panelY + 14, 265, 20, Component.literal("Search modules"));
+        searchBox.setHint(Component.literal("Search modules..."));
+        this.addRenderableWidget(searchBox);
+
         int categoryX = panelX + 18;
         int categoryY = panelY + 58;
         for (Module.Category category : Module.Category.values()) {
@@ -65,13 +71,24 @@ public final class ArsonScreen extends Screen {
             categoryY += 24;
         }
 
+        addContent(panelX, panelY);
+        addFooter(panelX, panelY);
+    }
+
+    private boolean matches(Module module) {
+        String query = searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
+        if (query.isEmpty()) return true;
+        return module.name().toLowerCase(Locale.ROOT).contains(query)
+                || module.id().toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private void addContent(int panelX, int panelY) {
         int x = panelX + 145;
         int y = panelY + CONTENT_TOP - scrollOffset;
-        int right = panelX + 530;
         int contentHeight = 0;
 
         for (Module module : ArsonClient.getInstance().modules().all()) {
-            if (module.category() != selectedCategory) continue;
+            if (module.category() != selectedCategory || !matches(module)) continue;
             Module current = module;
 
             Button moduleButton = Button.builder(moduleLabel(current), button -> {
@@ -121,7 +138,17 @@ public final class ArsonScreen extends Screen {
 
         maxScroll = Math.max(0, contentHeight - (CONTENT_BOTTOM - CONTENT_TOP));
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
+    }
 
+    private void addFooter(int panelX, int panelY) {
+        int right = panelX + 530;
+        this.addRenderableWidget(Button.builder(Component.literal("Reset Category"), b -> {
+            for (Module module : ArsonClient.getInstance().modules().all()) {
+                if (module.category() == selectedCategory) module.resetToDefaults();
+            }
+            saveConfig();
+            rebuild();
+        }).bounds(panelX + 145, panelY + 330, 120, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveConfig())
                 .bounds(right - 210, panelY + 330, 100, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
@@ -153,7 +180,6 @@ public final class ArsonScreen extends Screen {
     }
 
     private static Component bindLabel(Module module) {
-        if (module == null) return Component.literal("Bind");
         return Component.literal(module.hasKeybind() ? "Key: " + module.keyCode() : "Bind");
     }
 
@@ -167,6 +193,18 @@ public final class ArsonScreen extends Screen {
 
     private static Component settingLabel(ColorSetting setting) {
         return Component.literal("  " + setting.name() + ": #" + String.format(Locale.ROOT, "%08X", setting.get()));
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (bindingModule == null && searchBox != null && searchBox.isFocused()) {
+            boolean handled = super.charTyped(codePoint, modifiers);
+            if (handled) {
+                rebuildContentFromSearch();
+                return true;
+            }
+        }
+        return super.charTyped(codePoint, modifiers);
     }
 
     @Override
@@ -190,14 +228,24 @@ public final class ArsonScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
+    private void rebuildContentFromSearch() {
+        // Rebuild the whole screen so the filtered list stays synchronized with the text field.
+        String value = searchBox == null ? "" : searchBox.getValue();
+        rebuild();
+        if (searchBox != null) {
+            searchBox.setValue(value);
+            searchBox.setFocused(true);
+            searchBox.moveCursorToEnd(false);
+        }
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         int panelX = Math.max(20, this.width / 2 - 280);
         int panelY = Math.max(20, this.height / 2 - 180);
         if (mouseX >= panelX + 140 && mouseX <= panelX + 535 && mouseY >= panelY + CONTENT_TOP && mouseY <= panelY + CONTENT_BOTTOM) {
             int direction = verticalAmount > 0 ? -1 : 1;
-            int next = scrollOffset + direction * SCROLL_STEP;
-            scrollOffset = Math.max(0, Math.min(maxScroll, next));
+            scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset + direction * SCROLL_STEP));
             rebuild();
             return true;
         }
