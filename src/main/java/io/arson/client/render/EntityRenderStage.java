@@ -81,7 +81,6 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         if (!module.distanceFade()) return 1.0f;
         double range = Math.max(1.0, module.range());
         double normalized = Math.max(0.0, Math.min(1.0, target.distance() / range));
-        // Keep nearby targets fully visible and smoothly fade the far half of the range.
         return (float) Math.max(0.0, Math.min(1.0, 1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
     }
 
@@ -98,6 +97,8 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
         RenderStyle healthStyle = module.healthStyle();
         RenderStyle backgroundStyle = module.healthBackgroundStyle();
+        float width = (float) module.healthWidth();
+        float offset = (float) module.healthOffset();
 
         for (EntityTarget target : targets) {
             if (target.maxHealth() <= 0.0f) continue;
@@ -107,17 +108,15 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             float healthRatio = Math.max(0.0f, Math.min(1.0f, target.health() / target.maxHealth()));
             if (healthRatio <= 0.0f) continue;
 
-            float side = module.healthRight() ? 1.0f : -1.0f;
             float edgeX = module.healthRight()
-                    ? (float) (target.maxX() - cameraX + 0.045)
-                    : (float) (target.minX() - cameraX - 0.08);
-            float minX = edgeX + (module.healthRight() ? 0.0f : -0.035f);
-            float maxX = edgeX + (module.healthRight() ? 0.035f : 0.0f);
+                    ? (float) (target.maxX() - cameraX + offset)
+                    : (float) (target.minX() - cameraX - offset);
+            float minX = module.healthRight() ? edgeX : edgeX - width;
+            float maxX = module.healthRight() ? edgeX + width : edgeX;
             float minY = (float) (target.minY() - cameraY);
             float maxY = (float) (target.maxY() - cameraY);
             float minZ = (float) (target.minZ() - cameraZ);
-            float maxZ = minZ + 0.035f;
-            float filledMinY = module.healthRight() ? minY : minY;
+            float maxZ = minZ + width;
             float filledMaxY = minY + (maxY - minY) * healthRatio;
 
             RenderStyle fadedBackground = fadeStyle(backgroundStyle, fade);
@@ -126,7 +125,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
                 quad(buffer, pose, minX - 0.01f, minY, minZ, maxX + 0.01f, maxY, maxZ + 0.01f,
                         RenderStyleUtil.rgba(fadedBackground, false));
             }
-            quad(buffer, pose, minX, filledMinY, minZ, maxX, filledMaxY, maxZ,
+            quad(buffer, pose, minX, minY, minZ, maxX, filledMaxY, maxZ,
                     RenderStyleUtil.rgba(fadedHealth, false));
         }
     }
