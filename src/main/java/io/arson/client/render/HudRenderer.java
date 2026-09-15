@@ -47,7 +47,7 @@ public final class HudRenderer {
 
     private static String[] rows(Minecraft client, HudModule hud, PlayerInfoModule playerInfo, WorldInfoModule worldInfo) {
         java.util.ArrayList<String> rows = new java.util.ArrayList<>();
-        if (hud.showWatermark()) rows.add("Arson V3");
+        if (hud.showWatermark()) rows.add(hud.watermarkText());
         if (hud.showCoordinates()) rows.add(String.format(java.util.Locale.ROOT, "XYZ %d %d %d",
                 client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ()));
         if (hud.showFps()) rows.add("FPS " + client.getFps());
