@@ -14,6 +14,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 /** Visual editor for independently positioning and styling HUD elements. */
 public final class HudEditorScreen extends Screen {
@@ -54,24 +55,26 @@ public final class HudEditorScreen extends Screen {
             }).bounds(10 + i * 86, 50, 82, 20).build());
         }
 
-        addRenderableWidget(Button.builder(Component.literal("Color"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("Color: " + colorHex(hud.elementColor(selected))), b -> {
             cycleColor(selected);
-            save();
             b.setMessage(Component.literal("Color: " + colorHex(hud.elementColor(selected))));
-        }).bounds(200, 82, 72, 20).build());
+            save();
+        }).bounds(200, 82, 100, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Scale -"), b -> {
             adjustScale(selected, -0.05);
             save();
-        }).bounds(278, 82, 70, 20).build());
+            rebuild();
+        }).bounds(306, 82, 70, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Scale +"), b -> {
             adjustScale(selected, 0.05);
             save();
-        }).bounds(354, 82, 70, 20).build());
+            rebuild();
+        }).bounds(382, 82, 70, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Background: " + (hud.elementBackground(selected) ? "ON" : "OFF")), b -> {
             toggleBackground(selected);
             b.setMessage(Component.literal("Background: " + (hud.elementBackground(selected) ? "ON" : "OFF")));
             save();
-        }).bounds(430, 82, 120, 20).build());
+        }).bounds(458, 82, 120, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Reset Selected"), b -> {
             hud.resetElement(selected);
@@ -121,10 +124,7 @@ public final class HudEditorScreen extends Screen {
 
     private ColorSetting colorSetting(String element) {
         for (var setting : hud.settings()) {
-            if (!(setting instanceof ColorSetting color)) continue;
-            String id = color.id();
-            String expected = element + "-color";
-            if (id.equals(expected)) return color;
+            if (setting instanceof ColorSetting color && color.id().equals(element + "-color")) return color;
         }
         return null;
     }
@@ -185,14 +185,8 @@ public final class HudEditorScreen extends Screen {
     private boolean hitHud(double mouseX, double mouseY) {
         if (hud == null || !hud.elementVisible(selected)) return false;
         double[] position = position(selected);
-        int width = Math.max(55, selected.equals("watermark") ? font.width(hud.watermarkText()) : 55);
-        int height = selected.equals("player-info") ? playerInfoHeight() : selected.equals("world-info") ? worldInfoHeight() : hud.lineSpacing();
-        double elementScale = hud.elementScale(selected) * hud.scale();
-        double left = alignedLeft(position[0], width, hud.elementAlignment(selected)) * hud.scale() - hud.padding() * elementScale;
-        double top = position[1] * hud.scale() - hud.padding() * elementScale;
-        double right = left + width * elementScale + hud.padding() * 2 * elementScale;
-        double bottom = top + height * elementScale + hud.padding() * 2 * elementScale;
-        return mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom;
+        int[] bounds = previewBounds(selected, position);
+        return mouseX >= bounds[0] && mouseX <= bounds[2] && mouseY >= bounds[1] && mouseY <= bounds[3];
     }
 
     private double[] position(String element) {
@@ -213,57 +207,149 @@ public final class HudEditorScreen extends Screen {
         };
     }
 
+    private int[] previewBounds(String element, double[] pos) {
+        PreviewData data = previewData(element);
+        double totalScale = hud.scale() * hud.elementScale(element);
+        int left = (int) Math.round(alignedLeft(pos[0], data.width, hud.elementAlignment(element)) * hud.scale() - hud.padding() * totalScale);
+        int top = (int) Math.round(pos[1] * hud.scale() - hud.padding() * totalScale);
+        int right = left + (int) Math.round(data.width * totalScale + hud.padding() * 2 * totalScale);
+        int bottom = top + (int) Math.round(data.height * totalScale + hud.padding() * 2 * totalScale);
+        return new int[]{left, top, right, bottom};
+    }
+
     private int playerInfoHeight() {
-        PlayerInfoModule module = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
-        int rows = 0;
-        if (module != null && module.enabled()) {
-            if (module.showHealth()) rows++; if (module.showHunger()) rows++; if (module.showArmor()) rows++; if (module.showHeldItem()) rows++;
-        }
-        return Math.max(hud.lineSpacing(), rows * hud.lineSpacing());
+        return previewData("player-info").height;
     }
 
     private int worldInfoHeight() {
-        WorldInfoModule module = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
-        int rows = 0;
-        if (module != null && module.enabled()) {
-            if (module.showTime()) rows++; if (module.showDimension()) rows++; if (module.showWeather()) rows++;
-        }
-        return Math.max(hud.lineSpacing(), rows * hud.lineSpacing());
+        return previewData("world-info").height;
     }
+
+    private PreviewData previewData(String element) {
+        String[] rows = previewRows(element);
+        int width = 0;
+        for (String row : rows) width = Math.max(width, font.width(row));
+        width = Math.max(55, width);
+        return new PreviewData(width, Math.max(hud.lineSpacing(), rows.length * hud.lineSpacing()), rows);
+    }
+
+    private String[] previewRows(String element) {
+        var client = minecraft;
+        if (client == null || client.player == null || client.level == null) {
+            return switch (element) {
+                case "watermark" -> new String[]{hud.watermarkText()};
+                case "coordinates" -> new String[]{"XYZ 0 64 0"};
+                case "fps" -> new String[]{"FPS 60"};
+                case "player-info" -> new String[]{"Health 20.0/20.0", "Food 20", "Armor 4/4", "Held Hand"};
+                case "world-info" -> new String[]{"Time 12:00", "Dimension minecraft:overworld", "Weather Clear"};
+                default -> new String[]{LABELS[elementIndex(element)]};
+            };
+        }
+        return switch (element) {
+            case "watermark" -> new String[]{hud.watermarkText()};
+            case "coordinates" -> new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())};
+            case "fps" -> new String[]{"FPS " + client.getFps()};
+            case "player-info" -> playerRows(client);
+            case "world-info" -> worldRows(client);
+            default -> new String[]{LABELS[elementIndex(element)]};
+        };
+    }
+
+    private String[] playerRows(net.minecraft.client.Minecraft client) {
+        PlayerInfoModule module = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
+        if (module == null || !module.enabled()) return new String[]{"Player Info disabled"};
+        java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+        if (module.showHealth()) rows.add(String.format(java.util.Locale.ROOT, "Health %.1f/%.1f", client.player.getHealth(), client.player.getMaxHealth()));
+        if (module.showHunger()) rows.add("Food " + client.player.getFoodData().getFoodLevel());
+        if (module.showArmor()) rows.add(armor(client));
+        if (module.showHeldItem()) {
+            ItemStack stack = client.player.getMainHandItem();
+            rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString());
+        }
+        return rows.isEmpty() ? new String[]{"Player Info empty"} : rows.toArray(String[]::new);
+    }
+
+    private String[] worldRows(net.minecraft.client.Minecraft client) {
+        WorldInfoModule module = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
+        if (module == null || !module.enabled()) return new String[]{"World Info disabled"};
+        java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+        if (module.showTime()) {
+            long dayTime = Math.floorMod(client.level.getDayTime(), 24000L);
+            long hours = (dayTime / 1000L + 6L) % 24L;
+            long minutes = Math.round((dayTime % 1000L) * 60.0 / 1000.0);
+            if (minutes == 60) { minutes = 0; hours = (hours + 1) % 24; }
+            rows.add(String.format(java.util.Locale.ROOT, "Time %02d:%02d", hours, minutes));
+        }
+        if (module.showDimension()) rows.add("Dimension " + client.level.dimension().location());
+        if (module.showWeather()) rows.add("Weather " + (client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear"));
+        return rows.isEmpty() ? new String[]{"World Info empty"} : rows.toArray(String[]::new);
+    }
+
+    private String armor(net.minecraft.client.Minecraft client) {
+        int equipped = 0, durabilityTotal = 0, durabilityMax = 0;
+        for (ItemStack stack : client.player.getArmorSlots()) {
+            if (!stack.isEmpty()) {
+                equipped++;
+                if (stack.isDamageableItem()) {
+                    durabilityTotal += stack.getMaxDamage() - stack.getDamageValue();
+                    durabilityMax += stack.getMaxDamage();
+                }
+            }
+        }
+        return durabilityMax > 0
+                ? String.format(java.util.Locale.ROOT, "Armor %d/4  Durability %d%%", equipped, Math.round(durabilityTotal * 100.0f / durabilityMax))
+                : "Armor " + equipped + "/4";
+    }
+
+    private int elementIndex(String element) {
+        for (int i = 0; i < ELEMENTS.length; i++) if (ELEMENTS[i].equals(element)) return i;
+        return 0;
+    }
+
+    private record PreviewData(int width, int height, String[] rows) {}
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, width, height, 0xB0101014);
         graphics.text(font, "HUD Editor — select an element, then drag its box", 10, 16, 0xFFFFFFFF, true);
-        graphics.text(font, "Selected: " + selected + "  X=" + (int) position(selected)[0] + " Y=" + (int) position(selected)[1]
-                + "  Scale=" + String.format(java.util.Locale.ROOT, "%.2f", hud.elementScale(selected)), 10, 32, 0xFFD0D0D0, false);
+        double[] selectedPosition = hud == null ? new double[]{0, 0} : position(selected);
+        graphics.text(font, "Selected: " + selected + "  X=" + (int) selectedPosition[0] + " Y=" + (int) selectedPosition[1]
+                + "  Scale=" + (hud == null ? "1.00" : String.format(java.util.Locale.ROOT, "%.2f", hud.elementScale(selected))), 10, 32, 0xFFD0D0D0, false);
         graphics.text(font, "Watermark text", 10, 72, 0xFFFFFFFF, false);
 
         if (hud != null) {
             for (int i = 0; i < ELEMENTS.length; i++) {
                 String element = ELEMENTS[i];
                 if (!hud.elementVisible(element)) continue;
-                drawPreviewElement(graphics, element, LABELS[i]);
+                drawPreviewElement(graphics, element);
             }
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
-    private void drawPreviewElement(GuiGraphicsExtractor graphics, String element, String label) {
+    private void drawPreviewElement(GuiGraphicsExtractor graphics, String element) {
         double[] pos = position(element);
-        double totalScale = hud.scale() * hud.elementScale(element);
-        int width = element.equals("watermark") ? Math.max(70, font.width(hud.watermarkText())) : 70;
-        int height = element.equals("player-info") ? playerInfoHeight() : element.equals("world-info") ? worldInfoHeight() : hud.lineSpacing();
-        int left = (int) Math.round(alignedLeft(pos[0], width, hud.elementAlignment(element)) * hud.scale() - hud.padding() * totalScale);
-        int top = (int) Math.round(pos[1] * hud.scale() - hud.padding() * totalScale);
-        int right = left + (int) Math.round(width * totalScale + hud.padding() * 2 * totalScale);
-        int bottom = top + (int) Math.round(height * totalScale + hud.padding() * 2 * totalScale);
+        PreviewData data = previewData(element);
+        int[] bounds = previewBounds(element, pos);
         int outline = element.equals(selected) ? 0xFFFFFFFF : 0xFF6A6A6A;
         int fill = hud.elementBackground(element) ? hud.elementBackgroundColor() : 0x30303038;
-        graphics.fill(left, top, right, bottom, fill);
-        graphics.outline(left, top, right - left, bottom - top, outline);
-        String preview = element.equals("watermark") ? hud.watermarkText() : label;
-        graphics.text(font, preview, left + hud.padding(), top + hud.padding(), hud.elementColor(element), hud.showShadow());
+        graphics.fill(bounds[0], bounds[1], bounds[2], bounds[3], fill);
+        graphics.outline(bounds[0], bounds[1], bounds[2] - bounds[0], bounds[3] - bounds[1], outline);
+
+        double totalScale = hud.scale() * hud.elementScale(element);
+        int padding = (int) Math.round(hud.padding() * totalScale);
+        int baseLeft = (int) Math.round(alignedLeft(pos[0], data.width, hud.elementAlignment(element)) * hud.scale());
+        int baseTop = (int) Math.round(pos[1] * hud.scale());
+        for (int i = 0; i < data.rows.length; i++) {
+            String row = data.rows[i];
+            int rowWidth = font.width(row);
+            int rowX = switch (hud.elementAlignment(element)) {
+                case "center" -> baseLeft - (int) Math.round(rowWidth * totalScale / 2.0);
+                case "right" -> baseLeft - (int) Math.round(rowWidth * totalScale);
+                default -> baseLeft;
+            };
+            graphics.text(font, row, rowX, baseTop + padding + (int) Math.round(i * hud.lineSpacing() * totalScale), hud.elementColor(element), hud.showShadow());
+        }
     }
 
     private void saveWatermarkText() {
