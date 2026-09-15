@@ -76,6 +76,56 @@ public final class HudModule extends Module {
     public int secondaryColor() { return secondaryColor.get(); }
     public int backgroundColor() { return backgroundColor.get(); }
 
+    public boolean elementVisible(String element) {
+        return switch (element) {
+            case "watermark" -> watermark.enabled();
+            case "coordinates" -> coordinates.enabled();
+            case "fps" -> fps.enabled();
+            case "player-info" -> playerInfo.enabled();
+            case "world-info" -> worldInfo.enabled();
+            default -> false;
+        };
+    }
+
+    public void setElementVisible(String element, boolean visible) {
+        switch (element) {
+            case "watermark" -> watermark.set(visible);
+            case "coordinates" -> coordinates.set(visible);
+            case "fps" -> fps.set(visible);
+            case "player-info" -> playerInfo.set(visible);
+            case "world-info" -> worldInfo.set(visible);
+            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
+        }
+    }
+
+    public String elementAlignment(String element) {
+        return switch (element) {
+            case "watermark" -> watermarkAlign();
+            case "coordinates" -> coordinatesAlign();
+            case "fps" -> fpsAlign();
+            case "player-info" -> playerInfoAlign();
+            case "world-info" -> worldInfoAlign();
+            default -> "left";
+        };
+    }
+
+    public void cycleAlignment(String element) {
+        String current = elementAlignment(element).trim().toLowerCase(java.util.Locale.ROOT);
+        String next = switch (current) {
+            case "left" -> "center";
+            case "center" -> "right";
+            default -> "left";
+        };
+        switch (element) {
+            case "watermark" -> watermarkAlign.set(next);
+            case "coordinates" -> coordinatesAlign.set(next);
+            case "fps" -> fpsAlign.set(next);
+            case "player-info" -> playerInfoAlign.set(next);
+            case "world-info" -> worldInfoAlign.set(next);
+            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
+        }
+    }
+
     public void setEditorPosition(String element, double newX, double newY) {
         double step = gridSnap() ? gridSize() : 1.0;
         double px = Math.round(Math.max(0.0, newX) / step) * step;
