@@ -13,11 +13,17 @@ public abstract class Module {
     private final Category category;
     private final List<Setting<?>> settings = new ArrayList<>();
     private boolean enabled;
+    private int keyCode;
 
     protected Module(String id, String name, Category category) {
+        this(id, name, category, 0);
+    }
+
+    protected Module(String id, String name, Category category, int defaultKeyCode) {
         this.id = id;
         this.name = name;
         this.category = category;
+        this.keyCode = defaultKeyCode;
     }
 
     public final void setEnabled(boolean enabled) {
@@ -46,6 +52,9 @@ public abstract class Module {
     public String name() { return name; }
     public Category category() { return category; }
     public boolean enabled() { return enabled; }
+    public int keyCode() { return keyCode; }
+    public void setKeyCode(int keyCode) { this.keyCode = Math.max(0, keyCode); }
+    public boolean hasKeybind() { return keyCode > 0; }
     public List<Setting<?>> settings() { return Collections.unmodifiableList(settings); }
 
     public enum Category {
