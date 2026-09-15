@@ -81,12 +81,25 @@ public final class ArsonScreen extends Screen {
 
             if (collapsedModules.contains(current.id())) continue;
             for (Setting<?> setting : current.settings()) {
-                Button settingButton = null;
-                if (setting instanceof BooleanSetting bool) settingButton = Button.builder(settingLabel(bool), button -> { bool.set(!bool.enabled()); button.setMessage(settingLabel(bool)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
-                else if (setting instanceof DoubleSetting number) settingButton = Button.builder(settingLabel(number), button -> { double next = number.get() + number.step(); if (next > number.max()) next = number.min(); number.set(next); button.setMessage(settingLabel(number)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
-                else if (setting instanceof ColorSetting color) settingButton = Button.builder(settingLabel(color), button -> { color.set(nextColor(color.get())); button.setMessage(settingLabel(color)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
-                else if (setting instanceof StringSetting text) settingButton = Button.builder(settingLabel(text), button -> beginStringEdit(text)).bounds(x + 14, y, 351, 18).build();
-                if (settingButton != null) { addContentWidget(settingButton, y, panelY); y += 21; contentHeight += 21; }
+                if (setting instanceof BooleanSetting bool) {
+                    Button settingButton = Button.builder(settingLabel(bool), button -> { bool.set(!bool.enabled()); button.setMessage(settingLabel(bool)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
+                    addContentWidget(settingButton, y, panelY); y += 21; contentHeight += 21;
+                } else if (setting instanceof DoubleSetting number) {
+                    Button minus = Button.builder(Component.literal("-"), button -> { number.set(clamp(number.get() - number.step(), number.min(), number.max())); saveConfig(); rebuild(); }).bounds(x + 14, y, 24, 18).build();
+                    Button value = Button.builder(settingLabel(number), button -> { number.set(clamp(number.get() + number.step(), number.min(), number.max())); saveConfig(); rebuild(); }).bounds(x + 40, y, 317, 18).build();
+                    Button plus = Button.builder(Component.literal("+"), button -> { number.set(clamp(number.get() + number.step(), number.min(), number.max())); saveConfig(); rebuild(); }).bounds(x + 359, y, 24, 18).build();
+                    addContentWidget(minus, y, panelY); addContentWidget(value, y, panelY); addContentWidget(plus, y, panelY);
+                    y += 21; contentHeight += 21;
+                } else if (setting instanceof ColorSetting color) {
+                    Button settingButton = Button.builder(settingLabel(color), button -> { color.set(nextColor(color.get())); button.setMessage(settingLabel(color)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
+                    addContentWidget(settingButton, y, panelY);
+                    Button preset = Button.builder(Component.literal("Next"), button -> { color.set(nextColor(color.get())); saveConfig(); rebuild(); }).bounds(x + 369, y, 44, 18).build();
+                    addContentWidget(preset, y, panelY);
+                    y += 21; contentHeight += 21;
+                } else if (setting instanceof StringSetting text) {
+                    Button settingButton = Button.builder(settingLabel(text), button -> beginStringEdit(text)).bounds(x + 14, y, 399, 18).build();
+                    addContentWidget(settingButton, y, panelY); y += 21; contentHeight += 21;
+                }
             }
             y += 6; contentHeight += 6;
         }
@@ -128,6 +141,7 @@ public final class ArsonScreen extends Screen {
     private void addContentWidget(Button button, int y, int panelY) { if (y >= panelY + CONTENT_TOP && y <= panelY + CONTENT_BOTTOM - 18) { addRenderableWidget(button); contentButtons.add(button); } }
     private void saveConfig() { if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules()); }
     private static int nextColor(int current) { for (int i = 0; i < COLOR_PRESETS.length; i++) if (COLOR_PRESETS[i] == current) return COLOR_PRESETS[(i + 1) % COLOR_PRESETS.length]; return COLOR_PRESETS[0]; }
+    private static double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
     private static String bindLabel(Module module) { return module.keyCode() == 0 ? "Bind" : "Key " + module.keyCode(); }
     private static Component moduleLabel(Module module) { return Component.literal((module.enabled() ? "[ON] " : "[OFF] ") + (module.settings().isEmpty() ? "" : "> ") + module.name()); }
     private static Component settingLabel(BooleanSetting setting) { return Component.literal("  " + setting.name() + ": " + (setting.enabled() ? "ON" : "OFF")); }
@@ -182,6 +196,32 @@ public final class ArsonScreen extends Screen {
         graphics.text(font, "Right-click a module to collapse settings", panelX + 145, panelY + 326, 0xFF777777, false);
         if (editingString != null) graphics.text(font, "Editing: " + editingString.name(), panelX + 145, panelY + 267, 0xFFFFAA55, false);
         if (bindingModule != null) graphics.text(font, "Binding: " + bindingModule.name() + " — press a key", panelX + 145, panelY + 48, 0xFFFFAA55, false); else if (maxScroll > 0) graphics.text(font, "Scroll", panelX + 485, panelY + 40, 0xFFAAAAAA, false);
+
+        int categoryY = panelY + 58;
+        for (Module.Category category : Module.Category.values()) {
+            if (category == selectedCategory) graphics.fill(panelX + 16, categoryY - 1, panelX + 125, categoryY + 21, 0x4055AAFF);
+            categoryY += 24;
+        }
+
+        int x = panelX + 145, y = panelY + CONTENT_TOP - scrollOffset;
+        for (Module module : ArsonClient.getInstance().modules().organized(selectedCategory)) {
+            if (!matches(module)) continue;
+            if (y >= panelY + CONTENT_TOP - 1 && y <= panelY + CONTENT_BOTTOM - 1) {
+                int highlight = module.enabled() ? 0x3033AA66 : 0x18181820;
+                graphics.fill(x - 2, y - 1, x + 433, y + 22, highlight);
+                if (module.enabled()) graphics.fill(x - 2, y - 1, x + 1, y + 22, 0xFF55CC88);
+                int swatchX = x + 349;
+                for (Setting<?> setting : module.settings()) {
+                    if (setting instanceof ColorSetting color) {
+                        graphics.fill(swatchX, y + 4, swatchX + 10, y + 14, color.get());
+                        break;
+                    }
+                }
+            }
+            y += 25;
+            if (collapsedModules.contains(module.id())) continue;
+            y += module.settings().size() * 21 + 6;
+        }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
