@@ -11,8 +11,10 @@ import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Cached storage discovery. Positions are reused while range filtering stays dynamic. */
 public final class StorageScanner {
@@ -71,6 +73,7 @@ public final class StorageScanner {
         int centerChunkX = client.player.blockPosition().getX() >> 4;
         int centerChunkZ = client.player.blockPosition().getZ() >> 4;
         List<StorageOverlay.StorageTarget> targets = new ArrayList<>();
+        Set<BlockPos> emittedChestPositions = new HashSet<>();
 
         for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
             for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
@@ -85,13 +88,53 @@ public final class StorageScanner {
                     if (type == null) continue;
 
                     BlockPos pos = entry.getKey();
-                    double height = entity instanceof ChestBlockEntity ? 0.875 : 1.0;
-                    targets.add(new StorageOverlay.StorageTarget(
-                            type, pos.getX(), pos.getY(), pos.getZ(), 1.0, height, 1.0));
+                    if (entity instanceof ChestBlockEntity) {
+                        if (emittedChestPositions.contains(pos)) continue;
+                        targets.add(buildChestTarget(client, pos, emittedChestPositions));
+                    } else {
+                        targets.add(new StorageOverlay.StorageTarget(
+                                type, pos.getX(), pos.getY(), pos.getZ(), 1.0, 1.0, 1.0));
+                    }
                 }
             }
         }
         return targets.isEmpty() ? List.of() : List.copyOf(targets);
+    }
+
+    private static StorageOverlay.StorageTarget buildChestTarget(Minecraft client, BlockPos pos,
+                                                                  Set<BlockPos> emittedPositions) {
+        BlockPos east = pos.east();
+        BlockPos south = pos.south();
+        BlockPos west = pos.west();
+        BlockPos north = pos.north();
+
+        BlockPos partner = null;
+        if (isChest(client, east)) partner = east;
+        else if (isChest(client, south)) partner = south;
+        else if (isChest(client, west)) partner = west;
+        else if (isChest(client, north)) partner = north;
+
+        double x = pos.getX();
+        double z = pos.getZ();
+        double width = 1.0;
+        double depth = 1.0;
+
+        if (partner != null) {
+            x = Math.min(pos.getX(), partner.getX());
+            z = Math.min(pos.getZ(), partner.getZ());
+            width = pos.getX() == partner.getX() ? 1.0 : 2.0;
+            depth = pos.getZ() == partner.getZ() ? 1.0 : 2.0;
+            emittedPositions.add(partner);
+        }
+
+        emittedPositions.add(pos);
+        return new StorageOverlay.StorageTarget(
+                StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
+    }
+
+    private static boolean isChest(Minecraft client, BlockPos pos) {
+        BlockEntity entity = client.level.getBlockEntity(pos);
+        return entity instanceof ChestBlockEntity;
     }
 
     private static StorageType classify(BlockEntity entity) {
