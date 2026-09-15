@@ -31,6 +31,24 @@ public final class HudModule extends Module {
     private final StringSetting fpsAlign = setting(new StringSetting("fps-align", "FPS Align", "left", 8));
     private final StringSetting playerInfoAlign = setting(new StringSetting("player-info-align", "Player Info Align", "left", 8));
     private final StringSetting worldInfoAlign = setting(new StringSetting("world-info-align", "World Info Align", "left", 8));
+
+    private final ColorSetting watermarkColor = setting(new ColorSetting("watermark-color", "Watermark Color", 0xFFFFFFFF));
+    private final ColorSetting coordinatesColor = setting(new ColorSetting("coordinates-color", "Coordinates Color", 0xFFD0D0D0));
+    private final ColorSetting fpsColor = setting(new ColorSetting("fps-color", "FPS Color", 0xFFD0D0D0));
+    private final ColorSetting playerInfoColor = setting(new ColorSetting("player-info-color", "Player Info Color", 0xFFD0D0D0));
+    private final ColorSetting worldInfoColor = setting(new ColorSetting("world-info-color", "World Info Color", 0xFFD0D0D0));
+    private final ColorSetting elementBackgroundColor = setting(new ColorSetting("element-background-color", "Element Background Color", 0x80000000));
+    private final DoubleSetting watermarkScale = setting(new DoubleSetting("watermark-scale", "Watermark Scale", 1.0, 0.5, 2.0, 0.05));
+    private final DoubleSetting coordinatesScale = setting(new DoubleSetting("coordinates-scale", "Coordinates Scale", 1.0, 0.5, 2.0, 0.05));
+    private final DoubleSetting fpsScale = setting(new DoubleSetting("fps-scale", "FPS Scale", 1.0, 0.5, 2.0, 0.05));
+    private final DoubleSetting playerInfoScale = setting(new DoubleSetting("player-info-scale", "Player Info Scale", 1.0, 0.5, 2.0, 0.05));
+    private final DoubleSetting worldInfoScale = setting(new DoubleSetting("world-info-scale", "World Info Scale", 1.0, 0.5, 2.0, 0.05));
+    private final BooleanSetting watermarkBackground = setting(new BooleanSetting("watermark-background", "Watermark Background", false));
+    private final BooleanSetting coordinatesBackground = setting(new BooleanSetting("coordinates-background", "Coordinates Background", false));
+    private final BooleanSetting fpsBackground = setting(new BooleanSetting("fps-background", "FPS Background", false));
+    private final BooleanSetting playerInfoBackground = setting(new BooleanSetting("player-info-background", "Player Info Background", false));
+    private final BooleanSetting worldInfoBackground = setting(new BooleanSetting("world-info-background", "World Info Background", false));
+
     private final DoubleSetting padding = setting(new DoubleSetting("padding", "Background Padding", 3.0, 0.0, 16.0, 1.0));
     private final DoubleSetting lineSpacing = setting(new DoubleSetting("line-spacing", "Line Spacing", 11.0, 8.0, 24.0, 1.0));
     private final BooleanSetting snap = setting(new BooleanSetting("snap", "Grid Snap", true));
@@ -39,9 +57,7 @@ public final class HudModule extends Module {
     private final ColorSetting secondaryColor = setting(new ColorSetting("secondary-color", "Secondary Color", 0xFFD0D0D0));
     private final ColorSetting backgroundColor = setting(new ColorSetting("background-color", "Background Color", 0x80000000));
 
-    public HudModule() {
-        super("hud", "HUD", Category.RENDER);
-    }
+    public HudModule() { super("hud", "HUD", Category.RENDER); }
 
     public boolean showWatermark() { return watermark.enabled(); }
     public String watermarkText() { return watermarkText.get(); }
@@ -67,6 +83,10 @@ public final class HudModule extends Module {
     public String fpsAlign() { return fpsAlign.get(); }
     public String playerInfoAlign() { return playerInfoAlign.get(); }
     public String worldInfoAlign() { return worldInfoAlign.get(); }
+    public int elementColor(String element) { return switch (element) { case "watermark" -> watermarkColor.get(); case "coordinates" -> coordinatesColor.get(); case "fps" -> fpsColor.get(); case "player-info" -> playerInfoColor.get(); case "world-info" -> worldInfoColor.get(); default -> textColor.get(); }; }
+    public double elementScale(String element) { return switch (element) { case "watermark" -> watermarkScale.get(); case "coordinates" -> coordinatesScale.get(); case "fps" -> fpsScale.get(); case "player-info" -> playerInfoScale.get(); case "world-info" -> worldInfoScale.get(); default -> 1.0; }; }
+    public boolean elementBackground(String element) { return switch (element) { case "watermark" -> watermarkBackground.enabled(); case "coordinates" -> coordinatesBackground.enabled(); case "fps" -> fpsBackground.enabled(); case "player-info" -> playerInfoBackground.enabled(); case "world-info" -> worldInfoBackground.enabled(); default -> false; }; }
+    public int elementBackgroundColor() { return elementBackgroundColor.get(); }
     public int padding() { return (int) Math.round(padding.get()); }
     public int lineSpacing() { return (int) Math.round(lineSpacing.get()); }
     public boolean gridSnap() { return snap.enabled(); }
@@ -76,103 +96,25 @@ public final class HudModule extends Module {
     public int secondaryColor() { return secondaryColor.get(); }
     public int backgroundColor() { return backgroundColor.get(); }
 
-    public boolean elementVisible(String element) {
-        return switch (element) {
-            case "watermark" -> watermark.enabled();
-            case "coordinates" -> coordinates.enabled();
-            case "fps" -> fps.enabled();
-            case "player-info" -> playerInfo.enabled();
-            case "world-info" -> worldInfo.enabled();
-            default -> false;
-        };
-    }
-
-    public void setElementVisible(String element, boolean visible) {
-        switch (element) {
-            case "watermark" -> watermark.set(visible);
-            case "coordinates" -> coordinates.set(visible);
-            case "fps" -> fps.set(visible);
-            case "player-info" -> playerInfo.set(visible);
-            case "world-info" -> worldInfo.set(visible);
-            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
-        }
-    }
-
-    public String elementAlignment(String element) {
-        return switch (element) {
-            case "watermark" -> watermarkAlign();
-            case "coordinates" -> coordinatesAlign();
-            case "fps" -> fpsAlign();
-            case "player-info" -> playerInfoAlign();
-            case "world-info" -> worldInfoAlign();
-            default -> "left";
-        };
-    }
-
-    public void cycleAlignment(String element) {
-        String current = elementAlignment(element).trim().toLowerCase(java.util.Locale.ROOT);
-        String next = switch (current) {
-            case "left" -> "center";
-            case "center" -> "right";
-            default -> "left";
-        };
-        switch (element) {
-            case "watermark" -> watermarkAlign.set(next);
-            case "coordinates" -> coordinatesAlign.set(next);
-            case "fps" -> fpsAlign.set(next);
-            case "player-info" -> playerInfoAlign.set(next);
-            case "world-info" -> worldInfoAlign.set(next);
-            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
-        }
-    }
+    public boolean elementVisible(String element) { return switch (element) { case "watermark" -> watermark.enabled(); case "coordinates" -> coordinates.enabled(); case "fps" -> fps.enabled(); case "player-info" -> playerInfo.enabled(); case "world-info" -> worldInfo.enabled(); default -> false; }; }
+    public void setElementVisible(String element, boolean visible) { switch (element) { case "watermark" -> watermark.set(visible); case "coordinates" -> coordinates.set(visible); case "fps" -> fps.set(visible); case "player-info" -> playerInfo.set(visible); case "world-info" -> worldInfo.set(visible); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); } }
+    public String elementAlignment(String element) { return switch (element) { case "watermark" -> watermarkAlign(); case "coordinates" -> coordinatesAlign(); case "fps" -> fpsAlign(); case "player-info" -> playerInfoAlign(); case "world-info" -> worldInfoAlign(); default -> "left"; }; }
+    public void cycleAlignment(String element) { String current = elementAlignment(element).trim().toLowerCase(java.util.Locale.ROOT); String next = switch (current) { case "left" -> "center"; case "center" -> "right"; default -> "left"; }; switch (element) { case "watermark" -> watermarkAlign.set(next); case "coordinates" -> coordinatesAlign.set(next); case "fps" -> fpsAlign.set(next); case "player-info" -> playerInfoAlign.set(next); case "world-info" -> worldInfoAlign.set(next); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); } }
 
     public void setEditorPosition(String element, double newX, double newY) {
         double step = gridSnap() ? gridSize() : 1.0;
         double px = Math.round(Math.max(0.0, newX) / step) * step;
         double py = Math.round(Math.max(0.0, newY) / step) * step;
-        switch (element) {
-            case "watermark" -> { x.set(px); y.set(py); }
-            case "coordinates" -> { coordinatesX.set(px); coordinatesY.set(py); }
-            case "fps" -> { fpsX.set(px); fpsY.set(py); }
-            case "player-info" -> { playerInfoX.set(px); playerInfoY.set(py); }
-            case "world-info" -> { worldInfoX.set(px); worldInfoY.set(py); }
-            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
-        }
+        switch (element) { case "watermark" -> { x.set(px); y.set(py); } case "coordinates" -> { coordinatesX.set(px); coordinatesY.set(py); } case "fps" -> { fpsX.set(px); fpsY.set(py); } case "player-info" -> { playerInfoX.set(px); playerInfoY.set(py); } case "world-info" -> { worldInfoX.set(px); worldInfoY.set(py); } default -> throw new IllegalArgumentException("Unknown HUD element: " + element); }
     }
+    public void setEditorPosition(double newX, double newY) { setEditorPosition("watermark", newX, newY); }
+    public void resetElement(String element) { switch (element) { case "watermark" -> setEditorPosition(element, 6, 6); case "coordinates" -> setEditorPosition(element, 6, 28); case "fps" -> setEditorPosition(element, 6, 39); case "player-info" -> setEditorPosition(element, 6, 50); case "world-info" -> setEditorPosition(element, 6, 94); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); } }
 
-    public void setEditorPosition(double newX, double newY) {
-        setEditorPosition("watermark", newX, newY);
-    }
-
-    public void resetElement(String element) {
-        switch (element) {
-            case "watermark" -> setEditorPosition(element, 6, 6);
-            case "coordinates" -> setEditorPosition(element, 6, 28);
-            case "fps" -> setEditorPosition(element, 6, 39);
-            case "player-info" -> setEditorPosition(element, 6, 50);
-            case "world-info" -> setEditorPosition(element, 6, 94);
-            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
-        }
-    }
-
-    /** Apply a complete HUD layout preset without changing the module enabled state. */
     public void applyPreset(String preset) {
         switch (preset.toLowerCase(java.util.Locale.ROOT)) {
-            case "minimal" -> {
-                watermark.set(true); coordinates.set(false); fps.set(true); playerInfo.set(false); worldInfo.set(false);
-                background.set(false); shadow.set(true); scale.set(1.0);
-                resetElement("watermark"); resetElement("fps");
-            }
-            case "compact" -> {
-                watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true);
-                background.set(true); shadow.set(true); scale.set(0.90); backgroundColor.set(0x90000000);
-                resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info");
-            }
-            case "full" -> {
-                watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true);
-                background.set(true); shadow.set(true); scale.set(1.10); backgroundColor.set(0xA0000000);
-                resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info");
-            }
+            case "minimal" -> { watermark.set(true); coordinates.set(false); fps.set(true); playerInfo.set(false); worldInfo.set(false); background.set(false); shadow.set(true); scale.set(1.0); resetElement("watermark"); resetElement("fps"); }
+            case "compact" -> { watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true); background.set(true); shadow.set(true); scale.set(0.90); backgroundColor.set(0x90000000); resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info"); }
+            case "full" -> { watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true); background.set(true); shadow.set(true); scale.set(1.10); backgroundColor.set(0xA0000000); resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info"); }
             default -> throw new IllegalArgumentException("Unknown HUD preset: " + preset);
         }
     }
