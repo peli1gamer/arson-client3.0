@@ -25,7 +25,10 @@ public final class ArrayListRenderer {
         for (Module candidate : ArsonClient.getInstance().modules().all()) {
             if (candidate.enabled() && !candidate.id().equals("array-list")) enabled.add(candidate);
         }
-        enabled.sort(Comparator.comparingInt((Module value) -> client.font.width(label(value, module))).reversed());
+        enabled.sort(Comparator
+                .comparingInt((Module value) -> client.font.width(label(value, module)))
+                .reversed()
+                .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
         if (enabled.size() > module.maxModules()) enabled = enabled.subList(0, module.maxModules());
 
         graphics.pose().pushMatrix();
@@ -45,7 +48,9 @@ public final class ArrayListRenderer {
                 graphics.fill(x - padding, top - padding, x + width + padding,
                         top + line - 1 + padding, module.backgroundColor());
             }
-            graphics.drawString(client.font, text, x, top, module.textColor(), module.shadow());
+
+            int color = module.categoryColors() ? module.colorFor(candidate.category()) : module.textColor();
+            graphics.drawString(client.font, text, x, top, color, module.shadow());
         }
         graphics.pose().popMatrix();
     }
