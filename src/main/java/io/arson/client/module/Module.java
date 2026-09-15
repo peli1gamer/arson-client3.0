@@ -13,6 +13,7 @@ public abstract class Module {
     private final Category category;
     private final List<Setting<?>> settings = new ArrayList<>();
     private boolean enabled;
+    private boolean favorite;
     private int keyCode;
 
     protected Module(String id, String name, Category category) {
@@ -42,6 +43,7 @@ public abstract class Module {
     public final void resetToDefaults() {
         setEnabled(false);
         resetSettings();
+        favorite = false;
         keyCode = 0;
     }
 
@@ -62,6 +64,8 @@ public abstract class Module {
     public String name() { return name; }
     public Category category() { return category; }
     public boolean enabled() { return enabled; }
+    public boolean favorite() { return favorite; }
+    public void setFavorite(boolean favorite) { this.favorite = favorite; }
     public int keyCode() { return keyCode; }
     public void setKeyCode(int keyCode) { this.keyCode = Math.max(0, keyCode); }
     public boolean hasKeybind() { return keyCode > 0; }
