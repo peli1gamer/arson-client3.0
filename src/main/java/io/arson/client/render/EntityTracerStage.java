@@ -16,6 +16,7 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
     private final EntityTracerModule module;
     private List<EntityTarget> cachedTargets = List.of();
     private long lastScanTick = Long.MIN_VALUE;
+    private int lastVisibleCount;
 
     public EntityTracerStage(Minecraft client, EntityScanner scanner, EntityTracerModule module) {
         this.client = client;
@@ -25,7 +26,10 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
 
     @Override
     public void render(WorldRenderContext context) {
-        if (!module.enabled() || client.level == null || client.player == null) return;
+        if (!module.enabled() || client.level == null || client.player == null) {
+            lastVisibleCount = 0;
+            return;
+        }
 
         long gameTime = client.level.getGameTime();
         if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
@@ -33,18 +37,39 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
             lastScanTick = gameTime;
         }
 
-        if (cachedTargets.isEmpty()) return;
+        if (cachedTargets.isEmpty()) {
+            lastVisibleCount = 0;
+            return;
+        }
 
         var camera = context.worldState().cameraRenderState.pos;
         VertexConsumer buffer = context.consumers().getBuffer(RenderTypes.lines());
+        int visible = 0;
 
         for (EntityTarget target : cachedTargets) {
-            RenderStyle style = module.styleFor(target);
+            float fade = distanceFade(target);
+            if (fade <= 0.0f) continue;
+
+            RenderStyle style = module.styleFor(target, fade);
             double x = target.centerX() - camera.x;
             double y = target.centerY() - camera.y;
             double z = target.centerZ() - camera.z;
             RenderLineRenderer.line(context.matrices(), buffer,
                     0.0, 0.0, 0.0, x, y, z, style);
+            visible++;
         }
+        lastVisibleCount = visible;
+    }
+
+    private float distanceFade(EntityTarget target) {
+        if (!module.distanceFade()) return 1.0f;
+        double range = Math.max(1.0, module.range());
+        double normalized = Math.max(0.0, Math.min(1.0, target.distance() / range));
+        return (float) Math.max(0.0, Math.min(1.0,
+                1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
+    }
+
+    public int lastVisibleCount() {
+        return lastVisibleCount;
     }
 }
