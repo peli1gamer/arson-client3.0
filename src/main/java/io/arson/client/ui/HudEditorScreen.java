@@ -44,8 +44,9 @@ public final class HudEditorScreen extends Screen {
         for (int i = 0; i < ELEMENTS.length; i++) {
             final int index = i;
             addRenderableWidget(Button.builder(Component.literal(elementButtonText(index)), b -> {
+                saveWatermarkText();
                 selected = ELEMENTS[index];
-                rebuildButtons();
+                rebuild();
             }).bounds(10 + i * 86, 50, 82, 20).build());
         }
 
@@ -73,11 +74,6 @@ public final class HudEditorScreen extends Screen {
         }).bounds(420, this.height - 30, 85, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
                 .bounds(this.width - 80, this.height - 30, 70, 20).build());
-    }
-
-    private void rebuildButtons() {
-        // The selected element is reflected by the labels during the next screen init.
-        // Position/visibility changes are still immediate; avoid recreating widgets while iterating them.
     }
 
     private String elementButtonText(int index) {
@@ -201,7 +197,7 @@ public final class HudEditorScreen extends Screen {
         graphics.text(font, preview, left + hud.padding(), top + hud.padding(), hud.textColor(), hud.showShadow());
     }
 
-    private void save() {
+    private void saveWatermarkText() {
         if (hud != null && watermarkBox != null) {
             for (var setting : hud.settings()) {
                 if (setting instanceof StringSetting text && text.id().equals("watermark-text")) {
@@ -210,6 +206,10 @@ public final class HudEditorScreen extends Screen {
                 }
             }
         }
+    }
+
+    private void save() {
+        saveWatermarkText();
         if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
     }
 
