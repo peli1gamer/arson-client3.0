@@ -8,6 +8,7 @@ import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.CombatInfoRenderer;
 import io.arson.client.render.EntityInfoStage;
 import io.arson.client.render.EntityRenderStage;
 import io.arson.client.render.EntityScanner;
@@ -61,6 +62,10 @@ public final class ArsonClient implements ClientModInitializer {
         HudElementRegistry.addLast(
                 Identifier.fromNamespaceAndPath(MOD_ID, "hud"),
                 HudRenderer::render
+        );
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"),
+                CombatInfoRenderer::render
         );
 
         worldRenderBridge = new WorldRenderBridge();
