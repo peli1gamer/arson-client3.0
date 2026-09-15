@@ -26,6 +26,7 @@ public final class ModuleManager {
         register(new EntityESPModule());
         register(new EntityInfoModule());
         register(new EntityTracerModule());
+        register(new BlockESPModule());
         register(new HudModule());
         register(new CombatInfoModule());
         register(new PlayerInfoModule());
