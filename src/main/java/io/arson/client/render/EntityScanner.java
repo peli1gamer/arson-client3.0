@@ -49,7 +49,7 @@ public final class EntityScanner {
                     raw.minX(), raw.minY(), raw.minZ(),
                     raw.maxX(), raw.maxY(), raw.maxZ(),
                     raw.health(), raw.maxHealth(), color,
-                    raw.displayName(), Math.sqrt(raw.distanceSq())));
+                    raw.displayName(), raw.itemCount(), Math.sqrt(raw.distanceSq())));
         }
 
         return List.copyOf(result);
@@ -81,13 +81,14 @@ public final class EntityScanner {
                     ? living.getHealth() : 0.0f;
             float maxHealth = entity instanceof net.minecraft.world.entity.LivingEntity living
                     ? living.getMaxHealth() : 0.0f;
+            int itemCount = entity instanceof ItemEntity item ? item.getItem().getCount() : 0;
 
             result.add(new RawEntityTarget(
                     type,
                     box.minX, box.minY, box.minZ,
                     box.maxX, box.maxY, box.maxZ,
                     health, maxHealth,
-                    entity.getName().getString(), distanceSq));
+                    entity.getName().getString(), itemCount, distanceSq));
         }
 
         snapshot = List.copyOf(result);
@@ -108,5 +109,5 @@ public final class EntityScanner {
             double minX, double minY, double minZ,
             double maxX, double maxY, double maxZ,
             float health, float maxHealth,
-            String displayName, double distanceSq) {}
+            String displayName, int itemCount, double distanceSq) {}
 }
