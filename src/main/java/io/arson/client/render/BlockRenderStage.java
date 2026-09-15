@@ -10,7 +10,7 @@ import net.minecraft.client.Minecraft;
 import java.util.ArrayList;
 import java.util.List;
 
-/** World-render adapter for cached Block ESP targets. */
+/** World-render adapter for cached Ore ESP targets. */
 public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStage {
     private final Minecraft client;
     private final BlockScanner scanner;
@@ -44,9 +44,20 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
         }
 
         var camera = context.worldState().cameraRenderState.pos;
+        double playerX = client.player.getX();
+        double playerY = client.player.getY();
+        double playerZ = client.player.getZ();
+        double range = Math.max(1.0, module.range());
         List<RenderBox> boxes = new ArrayList<>(cachedTargets.size());
+
         for (BlockTarget target : cachedTargets) {
-            float fade = distanceFade(target.distance());
+            double dx = target.centerX() - playerX;
+            double dy = target.centerY() - playerY;
+            double dz = target.centerZ() - playerZ;
+            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (distance > range) continue;
+
+            float fade = distanceFade(distance, range);
             if (fade <= 0.0f) continue;
             RenderStyle style = fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
@@ -60,9 +71,8 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
         }
     }
 
-    private float distanceFade(double distance) {
-        if (!module.distanceFade()) return 1.0f;
-        double range = Math.max(1.0, module.range());
+    private static float distanceFade(double distance, double range) {
+        if (range <= 0.0) return 0.0f;
         double normalized = Math.max(0.0, Math.min(1.0, distance / range));
         return (float) Math.max(0.0, Math.min(1.0,
                 1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
