@@ -22,6 +22,8 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     private final ColorSetting itemColor = setting(new ColorSetting("item-color", "Item Color", 0xD6FFDC46));
     private final ColorSetting healthColor = setting(new ColorSetting("health-color", "Health Color", 0xF6FF5555));
     private final ColorSetting healthBackgroundColor = setting(new ColorSetting("health-background-color", "Health Background Color", 0xC6202020));
+    private final DoubleSetting healthWidth = setting(new DoubleSetting("health-width", "Health Bar Width", 0.035, 0.01, 0.10, 0.005));
+    private final DoubleSetting healthOffset = setting(new DoubleSetting("health-offset", "Health Bar Offset", 0.08, 0.01, 0.30, 0.01));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 2.0, 1.0, 10.0, 1.0));
 
@@ -48,6 +50,8 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public double fillAlpha() { return super.fillAlpha(); }
     public double outlineAlpha() { return super.outlineAlpha(); }
     public double lineWidth() { return super.lineWidth(); }
+    public double healthWidth() { return healthWidth.get(); }
+    public double healthOffset() { return healthOffset.get(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 
