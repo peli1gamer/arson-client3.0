@@ -22,7 +22,7 @@ public final class HudRenderer {
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
         float scale = (float) hud.scale();
-        int drawX = hud.x(), drawY = hud.y(), line = 11, y = drawY;
+        int drawX = hud.x(), drawY = hud.y(), line = hud.lineSpacing(), y = drawY;
         boolean shadow = hud.showShadow();
 
         graphics.pose().pushMatrix();
@@ -32,7 +32,9 @@ public final class HudRenderer {
         int maxWidth = 0;
         for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row));
         if (hud.showBackground() && rows.length > 0) {
-            graphics.fill(drawX - 3, drawY - 3, drawX + maxWidth + 3, drawY + rows.length * line + 1, hud.backgroundColor());
+            int padding = hud.padding();
+            graphics.fill(drawX - padding, drawY - padding, drawX + maxWidth + padding,
+                    drawY + rows.length * line + padding - 1, hud.backgroundColor());
         }
 
         for (int i = 0; i < rows.length; i++) {
