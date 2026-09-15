@@ -15,10 +15,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 /** Small, defensive JSON config layer. A broken config never prevents the client from starting. */
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
+    private static final String TEMP_FILE_NAME = "arson-v3.json.tmp";
 
     private ConfigManager() {}
 
@@ -61,6 +63,7 @@ public final class ConfigManager {
     public static void save(Minecraft client, ModuleManager modules) {
         Path directory = client.gameDirectory.toPath().resolve("config");
         Path path = directory.resolve(FILE_NAME);
+        Path tempPath = directory.resolve(TEMP_FILE_NAME);
         JsonObject root = new JsonObject();
         JsonObject moduleRoot = new JsonObject();
         root.add("modules", moduleRoot);
@@ -80,9 +83,18 @@ public final class ConfigManager {
 
         try {
             Files.createDirectories(directory);
-            Files.writeString(path, root.toString(), StandardCharsets.UTF_8);
+            Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);
+            try {
+                Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException atomicMoveUnsupported) {
+                Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException ignored) {
-            // Config saving is best-effort.
+            try {
+                Files.deleteIfExists(tempPath);
+            } catch (IOException ignoredCleanup) {
+                // Best-effort cleanup only.
+            }
         }
     }
 }
