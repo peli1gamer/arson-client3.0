@@ -130,8 +130,7 @@ public final class ArsonClient implements ClientModInitializer {
 
     private void processModuleKeybinds(Minecraft client) {
         if (client.getWindow() == null) return;
-        if (client.gui.getChat() != null) return;
-        if (client.screen != null && !(client.screen instanceof ArsonScreen)) return;
+        if (client.screen != null) return;
 
         long window = client.getWindow().handle();
         for (Module module : moduleManager.all()) {
@@ -141,7 +140,7 @@ public final class ArsonClient implements ClientModInitializer {
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
             boolean wasDown = moduleKeyStates.getOrDefault(keyCode, false);
             moduleKeyStates.put(keyCode, down);
-            if (down && !wasDown && client.screen == null) {
+            if (down && !wasDown) {
                 module.toggle();
             }
         }
