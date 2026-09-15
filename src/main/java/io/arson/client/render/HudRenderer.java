@@ -22,36 +22,17 @@ public final class HudRenderer {
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
         float scale = (float) hud.scale();
-        int drawX = hud.x(), drawY = hud.y(), line = hud.lineSpacing(), y = drawY;
-        boolean shadow = hud.showShadow();
 
         graphics.pose().pushMatrix();
         graphics.pose().scale(scale, scale);
 
-        String[] rows = rows(client, hud, playerInfo, worldInfo);
-        int maxWidth = 0;
-        for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row));
-        if (hud.showBackground() && rows.length > 0) {
-            int padding = hud.padding();
-            graphics.fill(drawX - padding, drawY - padding, drawX + maxWidth + padding,
-                    drawY + rows.length * line + padding - 1, hud.backgroundColor());
-        }
+        if (hud.showWatermark()) drawElement(graphics, client, hud, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()}, hud.textColor(), hud.watermarkAlign());
+        if (hud.showCoordinates()) drawElement(graphics, client, hud, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d",
+                client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())}, hud.secondaryColor(), hud.coordinatesAlign());
+        if (hud.showFps()) drawElement(graphics, client, hud, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getFps()}, hud.secondaryColor(), hud.fpsAlign());
 
-        for (int i = 0; i < rows.length; i++) {
-            int color = i == 0 && hud.showWatermark() ? hud.textColor() : hud.secondaryColor();
-            graphics.drawString(client.font, rows[i], drawX, y, color, shadow);
-            y += line;
-        }
-        graphics.pose().popMatrix();
-    }
-
-    private static String[] rows(Minecraft client, HudModule hud, PlayerInfoModule playerInfo, WorldInfoModule worldInfo) {
-        java.util.ArrayList<String> rows = new java.util.ArrayList<>();
-        if (hud.showWatermark()) rows.add(hud.watermarkText());
-        if (hud.showCoordinates()) rows.add(String.format(java.util.Locale.ROOT, "XYZ %d %d %d",
-                client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ()));
-        if (hud.showFps()) rows.add("FPS " + client.getFps());
-        if (playerInfo != null && playerInfo.enabled()) {
+        if (hud.showPlayerInfo() && playerInfo != null && playerInfo.enabled()) {
+            java.util.ArrayList<String> rows = new java.util.ArrayList<>();
             if (playerInfo.showHealth()) rows.add(String.format(java.util.Locale.ROOT, "Health %.1f/%.1f", client.player.getHealth(), client.player.getMaxHealth()));
             if (playerInfo.showHunger()) rows.add("Food " + client.player.getFoodData().getFoodLevel());
             if (playerInfo.showArmor()) rows.add(armor(client));
@@ -59,8 +40,11 @@ public final class HudRenderer {
                 ItemStack stack = client.player.getMainHandItem();
                 rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString());
             }
+            drawElement(graphics, client, hud, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new), hud.secondaryColor(), hud.playerInfoAlign());
         }
-        if (worldInfo != null && worldInfo.enabled()) {
+
+        if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
+            java.util.ArrayList<String> rows = new java.util.ArrayList<>();
             if (worldInfo.showTime()) {
                 long dayTime = Math.floorMod(client.level.getDayTime(), 24000L);
                 long hours = (dayTime / 1000L + 6L) % 24L;
@@ -70,8 +54,37 @@ public final class HudRenderer {
             }
             if (worldInfo.showDimension()) rows.add("Dimension " + client.level.dimension().location());
             if (worldInfo.showWeather()) rows.add("Weather " + (client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear"));
+            drawElement(graphics, client, hud, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new), hud.secondaryColor(), hud.worldInfoAlign());
         }
-        return rows.toArray(String[]::new);
+        graphics.pose().popMatrix();
+    }
+
+    private static void drawElement(GuiGraphics graphics, Minecraft client, HudModule hud, String element,
+                                    int x, int y, String[] rows, int color, String alignment) {
+        if (rows.length == 0) return;
+        int maxWidth = 0;
+        for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row));
+        int padding = hud.padding();
+        int line = hud.lineSpacing();
+        int drawX = alignedX(x, maxWidth, alignment);
+        if (hud.showBackground()) {
+            graphics.fill(drawX - padding, y - padding, drawX + maxWidth + padding,
+                    y + rows.length * line + padding - 1, hud.backgroundColor());
+        }
+        for (int i = 0; i < rows.length; i++) {
+            int rowWidth = client.font.width(rows[i]);
+            int rowX = alignedX(x, rowWidth, alignment);
+            int rowColor = i == 0 && "watermark".equals(element) ? hud.textColor() : color;
+            graphics.drawString(client.font, rows[i], rowX, y + i * line, rowColor, hud.showShadow());
+        }
+    }
+
+    private static int alignedX(int x, int width, String alignment) {
+        return switch (alignment == null ? "left" : alignment.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "center" -> x - width / 2;
+            case "right" -> x - width;
+            default -> x;
+        };
     }
 
     private static String armor(Minecraft client) {
