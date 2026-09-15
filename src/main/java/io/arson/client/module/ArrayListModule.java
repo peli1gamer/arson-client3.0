@@ -35,4 +35,27 @@ public final class ArrayListModule extends Module {
     public int padding() { return (int) Math.round(padding.get()); }
     public int textColor() { return textColor.get(); }
     public int backgroundColor() { return backgroundColor.get(); }
+
+    public void setEditorPosition(double x, double y) {
+        this.x.set(Math.max(0.0, Math.min(1000.0, x)));
+        this.y.set(Math.max(0.0, Math.min(1000.0, y)));
+    }
+
+    public void adjustScale(double delta) {
+        scale.set(Math.max(0.5, Math.min(2.0, scale.get() + delta)));
+    }
+
+    public void toggleBackground() { background.set(!background.enabled()); }
+    public void toggleRightAlign() { rightAlign.set(!rightAlign.enabled()); }
+    public void cycleTextColor(int[] presets) {
+        int current = textColor.get();
+        int next = presets.length == 0 ? current : presets[0];
+        for (int i = 0; i < presets.length; i++) {
+            if (presets[i] == current) {
+                next = presets[(i + 1) % presets.length];
+                break;
+            }
+        }
+        textColor.set(next);
+    }
 }
