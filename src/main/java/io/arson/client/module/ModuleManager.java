@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -36,6 +37,32 @@ public final class ModuleManager {
     public Module get(String id) { return modules.get(id); }
     public Collection<Module> all() { return new ArrayList<>(modules.values()); }
 
+    /** Stable UI order: enabled modules first, then alphabetical by display name. */
+    public Collection<Module> organized(Module.Category category) {
+        ArrayList<Module> result = new ArrayList<>();
+        for (Module module : modules.values()) if (module.category() == category) result.add(module);
+        result.sort(Comparator.comparing(Module::enabled).reversed().thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+        return result;
+    }
+
+    public int categoryCount(Module.Category category) {
+        int count = 0;
+        for (Module module : modules.values()) if (module.category() == category) count++;
+        return count;
+    }
+
+    public int enabledCount(Module.Category category) {
+        int count = 0;
+        for (Module module : modules.values()) if (module.category() == category && module.enabled()) count++;
+        return count;
+    }
+
+    public int enabledCount() {
+        int count = 0;
+        for (Module module : modules.values()) if (module.enabled()) count++;
+        return count;
+    }
+
     public void tick(Minecraft client) {
         for (Module module : modules.values()) module.tick(client);
     }
@@ -49,7 +76,6 @@ public final class ModuleManager {
 
     private static final class SprintModule extends Module {
         private final BooleanSetting forwardOnly = setting(new BooleanSetting("forward-only", "Forward Only", true));
-
         private SprintModule() { super("sprint", "Sprint", Category.MOVEMENT); }
 
         @Override
@@ -62,7 +88,6 @@ public final class ModuleManager {
 
     private static final class PerformanceModule extends Module {
         private final DoubleSetting tickBudget = setting(new DoubleSetting("tick-budget", "Logic Budget", 1.0, 0.1, 5.0, 0.1));
-
         private PerformanceModule() { super("performance", "Performance", Category.MISC); }
         public double tickBudget() { return tickBudget.get(); }
     }
