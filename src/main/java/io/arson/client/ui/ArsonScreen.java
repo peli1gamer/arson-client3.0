@@ -33,6 +33,8 @@ public final class ArsonScreen extends Screen {
     private Module bindingModule;
     private EditBox searchBox;
     private EditBox profileBox;
+    private EditBox stringBox;
+    private StringSetting editingString;
 
     public ArsonScreen(Screen parent) { super(Component.literal("Arson Client V3")); this.parent = parent; }
 
@@ -50,6 +52,14 @@ public final class ArsonScreen extends Screen {
             categoryY += 24;
         }
         addContent(panelX, panelY); addFooter(panelX, panelY);
+        if (editingString != null) {
+            stringBox = new EditBox(font, panelX + 145, panelY + 282, 265, 20, Component.literal(editingString.name()));
+            stringBox.setValue(editingString.get());
+            stringBox.setMaxLength(128);
+            addRenderableWidget(stringBox);
+            stringBox.setFocused(true);
+            stringBox.moveCursorToEnd(false);
+        }
     }
 
     private boolean matches(Module module) {
@@ -72,7 +82,7 @@ public final class ArsonScreen extends Screen {
                 if (setting instanceof BooleanSetting bool) settingButton = Button.builder(settingLabel(bool), button -> { bool.set(!bool.enabled()); button.setMessage(settingLabel(bool)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
                 else if (setting instanceof DoubleSetting number) settingButton = Button.builder(settingLabel(number), button -> { double next = number.get() + number.step(); if (next > number.max()) next = number.min(); number.set(next); button.setMessage(settingLabel(number)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
                 else if (setting instanceof ColorSetting color) settingButton = Button.builder(settingLabel(color), button -> { color.set(nextColor(color.get())); button.setMessage(settingLabel(color)); saveConfig(); }).bounds(x + 14, y, 351, 18).build();
-                else if (setting instanceof StringSetting text) settingButton = Button.builder(settingLabel(text), button -> editString(text), x + 14, y, 351, 18);
+                else if (setting instanceof StringSetting text) settingButton = Button.builder(settingLabel(text), button -> beginStringEdit(text)).bounds(x + 14, y, 351, 18).build();
                 if (settingButton != null) { addContentWidget(settingButton, y, panelY); y += 21; contentHeight += 21; }
             }
             y += 6; contentHeight += 6;
@@ -81,16 +91,19 @@ public final class ArsonScreen extends Screen {
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
     }
 
-    private Button editString(StringSetting setting, int x, int y, int width, int height) {
-        return Button.builder(settingLabel(setting), button -> {
-            if (profileBox != null) return;
-            profileBox = new EditBox(font, x, y, width, height, Component.literal(setting.name()));
-            profileBox.setValue(setting.get());
-            profileBox.setMaxLength(128);
-            addRenderableWidget(profileBox);
-            profileBox.setFocused(true);
-            profileBox.moveCursorToEnd(false);
-        }).bounds(x, y, width, height).build();
+    private void beginStringEdit(StringSetting setting) {
+        editingString = setting;
+        rebuild();
+    }
+
+    private void finishStringEdit(boolean save) {
+        if (editingString != null && stringBox != null && save) {
+            editingString.set(stringBox.getValue());
+            saveConfig();
+        }
+        editingString = null;
+        stringBox = null;
+        rebuild();
     }
 
     private void addFooter(int panelX, int panelY) {
@@ -138,18 +151,12 @@ public final class ArsonScreen extends Screen {
     private static Component settingLabel(ColorSetting setting) { return Component.literal("  " + setting.name() + ": #" + String.format(Locale.ROOT, "%08X", setting.get())); }
     private static Component settingLabel(StringSetting setting) { String value = setting.get().isEmpty() ? "<empty>" : setting.get(); return Component.literal("  " + setting.name() + ": " + value); }
 
-    @Override public boolean charTyped(char codePoint, int modifiers) {
-        if (bindingModule == null && profileBox != null && profileBox.isFocused()) return super.charTyped(codePoint, modifiers);
-        if (bindingModule == null && searchBox != null && searchBox.isFocused()) { boolean handled = super.charTyped(codePoint, modifiers); if (handled) { rebuildContentFromSearch(); return true; } }
-        return super.charTyped(codePoint, modifiers);
-    }
+    @Override public boolean charTyped(char codePoint, int modifiers) { if (bindingModule == null && (profileBox != null && profileBox.isFocused() || stringBox != null && stringBox.isFocused())) return super.charTyped(codePoint, modifiers); if (bindingModule == null && searchBox != null && searchBox.isFocused()) { boolean handled = super.charTyped(codePoint, modifiers); if (handled) { rebuildContentFromSearch(); return true; } } return super.charTyped(codePoint, modifiers); }
 
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (bindingModule != null) { if (keyCode == GLFW.GLFW_KEY_ESCAPE) { bindingModule = null; rebuild(); return true; } if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) bindingModule.setKeyCode(0); else bindingModule.setKeyCode(keyCode); bindingModule = null; saveConfig(); rebuild(); return true; }
-        if (profileBox != null && profileBox.isFocused()) {
-            if (keyCode == GLFW.GLFW_KEY_ENTER) { if (profileBox.getValue().length() > 0) saveProfile(); return true; }
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) { profileBox.setFocused(false); return true; }
-        }
+        if (stringBox != null && stringBox.isFocused()) { if (keyCode == GLFW.GLFW_KEY_ENTER) { finishStringEdit(true); return true; } if (keyCode == GLFW.GLFW_KEY_ESCAPE) { finishStringEdit(false); return true; } return super.keyPressed(keyCode, scanCode, modifiers); }
+        if (profileBox != null && profileBox.isFocused()) { if (keyCode == GLFW.GLFW_KEY_ENTER) { if (!profileBox.getValue().isBlank()) saveProfile(); return true; } if (keyCode == GLFW.GLFW_KEY_ESCAPE) { profileBox.setFocused(false); return true; } }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -161,6 +168,7 @@ public final class ArsonScreen extends Screen {
         graphics.fill(panelX, panelY, panelX + 560, panelY + 360, 0xE0101014); graphics.outline(panelX, panelY, 560, 360, 0xFF4C4C56);
         graphics.text(font, "Arson Client V3", panelX + 18, panelY + 18, 0xFFFFFFFF, true); graphics.text(font, "Modules / Settings", panelX + 18, panelY + 34, 0xFFAAAAAA, false); graphics.text(font, selectedCategory.displayName(), panelX + 145, panelY + 40, 0xFFFFFFFF, true);
         graphics.text(font, "Profile", panelX + 18, panelY + 311, 0xFFAAAAAA, false);
+        if (editingString != null) graphics.text(font, "Editing: " + editingString.name(), panelX + 145, panelY + 267, 0xFFFFAA55, false);
         if (bindingModule != null) graphics.text(font, "Binding: " + bindingModule.name() + " — press a key", panelX + 145, panelY + 48, 0xFFFFAA55, false); else if (maxScroll > 0) graphics.text(font, "Scroll", panelX + 485, panelY + 40, 0xFFAAAAAA, false);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
