@@ -16,8 +16,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 /** Multi-panel ClickGUI: categories -> modules -> settings. */
@@ -36,6 +34,7 @@ public final class ArsonScreen extends Screen {
     private Module.Category selectedCategory = Module.Category.RENDER;
     private Module selectedModule;
     private EditBox searchBox;
+    private EditBox settingSearchBox;
     private EditBox profileBox;
     private EditBox stringBox;
     private EditBox colorBox;
@@ -50,6 +49,7 @@ public final class ArsonScreen extends Screen {
     private int maxSettingsScroll;
     private boolean draggingPanel;
     private boolean resizingPanel;
+    private boolean favoritesOnly;
     private double dragOffsetX;
     private double dragOffsetY;
 
@@ -111,8 +111,7 @@ public final class ArsonScreen extends Screen {
         int y = contentTop();
         for (Module.Category category : Module.Category.values()) {
             Module.Category current = category;
-            String icon = categoryIcon(category);
-            String label = icon + "  " + category.displayName();
+            String label = categoryIcon(category) + "  " + category.displayName();
             addRenderableWidget(Button.builder(Component.literal(label), b -> {
                 selectedCategory = current;
                 settingsScroll = 0;
@@ -128,25 +127,35 @@ public final class ArsonScreen extends Screen {
     }
 
     private void addModuleButtons() {
+        addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
+            favoritesOnly = !favoritesOnly;
+            selectedModule = null;
+            selectFirstModuleIfNeeded();
+            rebuild();
+        }).bounds(moduleX() + MODULE_WIDTH - 30, contentTop(), 26, 20).build());
+
         String query = query();
-        int y = contentTop();
+        int y = contentTop() + 26;
         for (Module module : ArsonClient.getInstance().modules().organized(selectedCategory)) {
-            if (!matches(module, query)) continue;
+            if (!matches(module, query) || (favoritesOnly && !module.favorite())) continue;
             Module current = module;
             String marker = current.enabled() ? "● " : "○ ";
-            Button moduleButton = Button.builder(Component.literal(marker + current.name()), b -> {
+            addRenderableWidget(Button.builder(Component.literal(marker + current.name()), b -> {
                 selectedModule = current;
                 settingsScroll = 0;
                 editingString = null;
                 editingColor = null;
                 rebuild();
-            }).bounds(moduleX(), y, MODULE_WIDTH - 74, 23).build();
-            addRenderableWidget(moduleButton);
-            Button bindButton = Button.builder(Component.literal(bindLabel(current)), b -> {
+            }).bounds(moduleX(), y, MODULE_WIDTH - 94, 23).build());
+            addRenderableWidget(Button.builder(Component.literal(current.favorite() ? "★" : "☆"), b -> {
+                current.setFavorite(!current.favorite());
+                saveConfig();
+                rebuild();
+            }).bounds(moduleX() + MODULE_WIDTH - 92, y, 30, 23).build());
+            addRenderableWidget(Button.builder(Component.literal(bindLabel(current)), b -> {
                 bindingModule = current;
                 b.setMessage(Component.literal("Press key"));
-            }).bounds(moduleX() + MODULE_WIDTH - 70, y, 70, 23).build();
-            addRenderableWidget(bindButton);
+            }).bounds(moduleX() + MODULE_WIDTH - 58, y, 58, 23).build());
             y += 27;
             if (y > contentBottom() + 27) break;
         }
@@ -157,23 +166,38 @@ public final class ArsonScreen extends Screen {
             maxSettingsScroll = 0;
             return;
         }
-        int y = contentTop() - settingsScroll + 22;
+
+        int filterY = contentTop();
+        int filterWidth = Math.max(120, settingsWidth() - 48);
+        settingSearchBox = new EditBox(font, settingsX(), filterY, filterWidth, 20, Component.literal("Search settings"));
+        settingSearchBox.setHint(Component.literal("Search settings..."));
+        addRenderableWidget(settingSearchBox);
+        addRenderableWidget(Button.builder(Component.literal("All"), b -> {
+            settingSearchBox.setValue("");
+            settingsScroll = 0;
+            rebuild();
+        }).bounds(settingsX() + filterWidth + 4, filterY, 44, 20).build());
+
+        String filter = settingQuery();
+        int y = contentTop() - settingsScroll + 48;
         String previousGroup = "";
         for (Setting<?> setting : selectedModule.settings()) {
+            if (!matchesSetting(setting, filter)) continue;
             String group = settingGroup(setting);
             if (!group.equals(previousGroup)) {
                 y += 22;
                 previousGroup = group;
             }
+
+            int resetWidth = 34;
+            int usable = Math.max(80, settingsWidth() - resetWidth - 4);
             if (setting instanceof BooleanSetting bool) {
-                Button button = Button.builder(settingLabel(bool), b -> {
+                addSettingWidget(Button.builder(settingLabel(bool), b -> {
                     bool.set(!bool.enabled());
                     saveConfig();
                     rebuild();
-                }).bounds(settingsX(), y, settingsWidth(), 20).build();
-                addSettingWidget(button, y);
+                }).bounds(settingsX(), y, usable, 20).build(), y);
             } else if (setting instanceof DoubleSetting number) {
-                int usable = settingsWidth();
                 Button minus = Button.builder(Component.literal("−"), b -> {
                     number.set(clamp(number.get() - number.step(), number.min(), number.max()));
                     saveConfig();
@@ -183,7 +207,7 @@ public final class ArsonScreen extends Screen {
                     number.set(clamp(number.get() + number.step(), number.min(), number.max()));
                     saveConfig();
                     rebuild();
-                }).bounds(settingsX() + 29, y, Math.max(80, usable - 58), 20).build();
+                }).bounds(settingsX() + 29, y, Math.max(40, usable - 58), 20).build();
                 Button plus = Button.builder(Component.literal("+"), b -> {
                     number.set(clamp(number.get() + number.step(), number.min(), number.max()));
                     saveConfig();
@@ -193,27 +217,31 @@ public final class ArsonScreen extends Screen {
                 addSettingWidget(value, y);
                 addSettingWidget(plus, y);
             } else if (setting instanceof ColorSetting color) {
-                Button value = Button.builder(settingLabel(color), b -> {
+                addSettingWidget(Button.builder(settingLabel(color), b -> {
                     color.set(nextColor(color.get()));
                     saveConfig();
                     rebuild();
-                }).bounds(settingsX(), y, Math.max(90, settingsWidth() - 58), 20).build();
-                Button edit = Button.builder(Component.literal("Edit"), b -> beginColorEdit(color)).bounds(settingsX() + settingsWidth() - 52, y, 52, 20).build();
-                addSettingWidget(value, y);
-                addSettingWidget(edit, y);
+                }).bounds(settingsX(), y, Math.max(40, usable - 58), 20).build(), y);
+                addSettingWidget(Button.builder(Component.literal("Edit"), b -> beginColorEdit(color)).bounds(settingsX() + usable - 54, y, 54, 20).build(), y);
             } else if (setting instanceof StringSetting text) {
-                Button button = Button.builder(settingLabel(text), b -> beginStringEdit(text)).bounds(settingsX(), y, settingsWidth(), 20).build();
-                addSettingWidget(button, y);
+                addSettingWidget(Button.builder(settingLabel(text), b -> beginStringEdit(text)).bounds(settingsX(), y, usable, 20).build(), y);
             }
+
+            addSettingWidget(Button.builder(Component.literal("↺"), b -> {
+                setting.reset();
+                saveConfig();
+                rebuild();
+            }).bounds(settingsX() + settingsWidth() - resetWidth, y, resetWidth, 20).build(), y);
             y += 25;
         }
-        int visible = Math.max(100, contentBottom() - contentTop());
+
+        int visible = Math.max(100, contentBottom() - contentTop() - 26);
         maxSettingsScroll = Math.max(0, y - contentTop() - visible);
         if (settingsScroll > maxSettingsScroll) settingsScroll = maxSettingsScroll;
     }
 
     private void addSettingWidget(Button button, int y) {
-        if (y >= contentTop() && y <= contentBottom() - 20) addRenderableWidget(button);
+        if (y >= contentTop() + 22 && y <= contentBottom() - 20) addRenderableWidget(button);
     }
 
     private void addFooterWidgets() {
@@ -264,10 +292,10 @@ public final class ArsonScreen extends Screen {
     }
 
     private void selectFirstModuleIfNeeded() {
-        if (selectedModule != null && selectedModule.category() == selectedCategory && matches(selectedModule, query())) return;
+        if (selectedModule != null && selectedModule.category() == selectedCategory && matches(selectedModule, query()) && (!favoritesOnly || selectedModule.favorite())) return;
         selectedModule = null;
         for (Module module : ArsonClient.getInstance().modules().organized(selectedCategory)) {
-            if (matches(module, query())) {
+            if (matches(module, query()) && (!favoritesOnly || module.favorite())) {
                 selectedModule = module;
                 return;
             }
@@ -278,8 +306,16 @@ public final class ArsonScreen extends Screen {
         return searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
     }
 
+    private String settingQuery() {
+        return settingSearchBox == null ? "" : settingSearchBox.getValue().trim().toLowerCase(Locale.ROOT);
+    }
+
     private static boolean matches(Module module, String query) {
         return query.isEmpty() || module.name().toLowerCase(Locale.ROOT).contains(query) || module.id().toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private static boolean matchesSetting(Setting<?> setting, String query) {
+        return query.isEmpty() || setting.name().toLowerCase(Locale.ROOT).contains(query) || setting.id().toLowerCase(Locale.ROOT).contains(query);
     }
 
     private void beginStringEdit(StringSetting setting) {
@@ -403,6 +439,11 @@ public final class ArsonScreen extends Screen {
             if (handled) rebuildContentFromSearch();
             return handled;
         }
+        if (bindingModule == null && settingSearchBox != null && settingSearchBox.isFocused()) {
+            boolean handled = super.charTyped(codePoint, modifiers);
+            if (handled) rebuildContentFromSettingSearch();
+            return handled;
+        }
         return super.charTyped(codePoint, modifiers);
     }
 
@@ -491,9 +532,19 @@ public final class ArsonScreen extends Screen {
         }
     }
 
+    private void rebuildContentFromSettingSearch() {
+        String value = settingSearchBox == null ? "" : settingSearchBox.getValue();
+        rebuild();
+        if (settingSearchBox != null) {
+            settingSearchBox.setValue(value);
+            settingSearchBox.setFocused(true);
+            settingSearchBox.moveCursorToEnd(false);
+        }
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (mouseX >= settingsX() && mouseX <= panelX + panelWidth - 8 && mouseY >= contentTop() && mouseY <= contentBottom()) {
+        if (mouseX >= settingsX() && mouseX <= panelX + panelWidth - 8 && mouseY >= contentTop() + 20 && mouseY <= contentBottom()) {
             int direction = verticalAmount > 0 ? -1 : 1;
             settingsScroll = Math.max(0, Math.min(maxSettingsScroll, settingsScroll + direction * 24));
             rebuild();
@@ -528,10 +579,10 @@ public final class ArsonScreen extends Screen {
             categoryY += 27;
         }
 
-        int moduleY = top + 22;
+        int moduleY = top + 26;
         String query = query();
         for (Module module : ArsonClient.getInstance().modules().organized(selectedCategory)) {
-            if (!matches(module, query)) continue;
+            if (!matches(module, query) || (favoritesOnly && !module.favorite())) continue;
             if (module == selectedModule) graphics.fill(moduleX() + 2, moduleY - 1, moduleX() + MODULE_WIDTH - 2, moduleY + 22, 0x554C78FF);
             if (module.enabled()) graphics.fill(moduleX() + 2, moduleY - 1, moduleX() + 5, moduleY + 22, 0xFF55DD88);
             moduleY += 27;
@@ -540,28 +591,74 @@ public final class ArsonScreen extends Screen {
 
         if (selectedModule != null) {
             String group = "";
-            int groupY = top + 22 - settingsScroll;
+            int groupY = top + 22 - settingsScroll + 48;
+            String filter = settingQuery();
             for (Setting<?> setting : selectedModule.settings()) {
+                if (!matchesSetting(setting, filter)) continue;
                 String currentGroup = settingGroup(setting);
                 if (!currentGroup.equals(group)) {
                     group = currentGroup;
                     groupY += 22;
-                    if (groupY >= top && groupY <= contentBottom()) {
-                        graphics.text(font, group.toUpperCase(Locale.ROOT), settingsX() + 2, groupY - 1, 0xFF8E8E9A, true);
-                    }
+                    if (groupY >= top + 20 && groupY <= contentBottom()) graphics.text(font, group.toUpperCase(Locale.ROOT), settingsX() + 2, groupY - 1, 0xFF8E8E9A, true);
                 }
                 groupY += 25;
             }
         }
 
+        graphics.text(font, favoritesOnly ? "★ Favorites only" : "☆ All modules", moduleX() + 8, contentTop() + 3, 0xFFAAAAAA, false);
         graphics.text(font, "Profile", settingsX(), panelY + panelHeight - 72, 0xFF777783, false);
         if (editingString != null) graphics.text(font, "Editing: " + editingString.name(), settingsX(), panelY + panelHeight - 91, 0xFFFFAA55, false);
         if (editingColor != null) graphics.text(font, "Color: " + editingColor.name(), settingsX(), panelY + panelHeight - 91, 0xFFFFAA55, false);
         if (bindingModule != null) graphics.text(font, "Binding: " + bindingModule.name() + " — press a key", settingsX(), panelY + 48, 0xFFFFAA55, false);
         else if (maxSettingsScroll > 0) graphics.text(font, "Scroll settings", panelX + panelWidth - 88, panelY + 48, 0xFF777783, false);
 
+        if (mouseX >= settingsX() && mouseX <= panelX + panelWidth - 8 && mouseY >= contentTop() + 40 && mouseY <= contentBottom()) {
+            Setting<?> hovered = hoveredSetting(mouseY);
+            if (hovered != null) {
+                int tooltipWidth = Math.min(270, panelX + panelWidth - mouseX - 16);
+                graphics.fill(mouseX + 8, mouseY + 8, mouseX + 8 + tooltipWidth, mouseY + 34, 0xE0161820);
+                graphics.outline(mouseX + 8, mouseY + 8, tooltipWidth, 26, 0xFF4C4C56);
+                graphics.text(font, settingDescription(hovered), mouseX + 14, mouseY + 17, 0xFFE0E0E5, false);
+            }
+        }
+
         graphics.fill(panelX + panelWidth - 12, panelY + panelHeight - 12, panelX + panelWidth - 3, panelY + panelHeight - 3, 0xFF777777);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
+
+    private Setting<?> hoveredSetting(double mouseY) {
+        if (selectedModule == null) return null;
+        int y = contentTop() - settingsScroll + 48;
+        String previousGroup = "";
+        String filter = settingQuery();
+        for (Setting<?> setting : selectedModule.settings()) {
+            if (!matchesSetting(setting, filter)) continue;
+            String group = settingGroup(setting);
+            if (!group.equals(previousGroup)) {
+                y += 22;
+                previousGroup = group;
+            }
+            if (mouseY >= y && mouseY <= y + 20) return setting;
+            y += 25;
+        }
+        return null;
+    }
+
+    private static String settingDescription(Setting<?> setting) {
+        String name = setting.name();
+        String key = name.toLowerCase(Locale.ROOT);
+        if (key.contains("range")) return name + " controls how far the module searches or renders.";
+        if (key.contains("scan") || key.contains("interval")) return name + " controls how often cached data refreshes.";
+        if (key.contains("color")) return name + " controls the rendered color.";
+        if (key.contains("alpha")) return name + " controls transparency.";
+        if (key.contains("scale")) return name + " controls the displayed size.";
+        if (key.contains("background")) return name + " toggles or changes the background treatment.";
+        if (key.contains("outline")) return name + " controls the outline rendering.";
+        if (key.contains("fill")) return name + " controls the filled-area rendering.";
+        if (key.contains("width")) return name + " controls the rendered width.";
+        if (key.contains("style")) return name + " selects the visual rendering style.";
+        if (key.contains("target")) return name + " controls target selection behavior.";
+        return name + " controls this module's " + settingGroup(setting).toLowerCase(Locale.ROOT) + " behavior.";
     }
 
     @Override
