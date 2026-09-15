@@ -7,15 +7,20 @@ import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.settings.StringSetting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Visual editor for positioning and basic HUD presentation. */
+/** Visual editor for independently positioning and styling HUD elements. */
 public final class HudEditorScreen extends Screen {
+    private static final String[] ELEMENTS = {"watermark", "coordinates", "fps", "player-info", "world-info"};
+    private static final String[] LABELS = {"Watermark", "Coordinates", "FPS", "Player Info", "World Info"};
+
     private final Screen parent;
     private HudModule hud;
     private EditBox watermarkBox;
+    private String selected = "watermark";
     private boolean dragging;
     private double dragOffsetX;
     private double dragOffsetY;
@@ -28,30 +33,65 @@ public final class HudEditorScreen extends Screen {
     @Override
     protected void init() {
         hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
-        watermarkBox = new EditBox(font, 10, 10, 210, 20, Component.literal("Watermark"));
-        watermarkBox.setValue(hud == null ? "Arson V3" : hud.watermarkText());
+        if (hud == null) return;
+
+        watermarkBox = new EditBox(font, 10, 82, 180, 20, Component.literal("Watermark"));
+        watermarkBox.setValue(hud.watermarkText());
         watermarkBox.setMaxLength(32);
         watermarkBox.setHint(Component.literal("Watermark text..."));
         addRenderableWidget(watermarkBox);
-        addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.literal("Reset Position"), b -> {
-            if (hud != null) hud.setEditorPosition(6, 6);
+
+        for (int i = 0; i < ELEMENTS.length; i++) {
+            final int index = i;
+            addRenderableWidget(Button.builder(Component.literal(elementButtonText(index)), b -> {
+                selected = ELEMENTS[index];
+                rebuildButtons();
+            }).bounds(10 + i * 86, 50, 82, 20).build());
+        }
+
+        addRenderableWidget(Button.builder(Component.literal("Reset Selected"), b -> {
+            hud.resetElement(selected);
+            save();
         }).bounds(10, this.height - 30, 105, 20).build());
-        addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.literal("Grid: " + (hud != null && hud.gridSnap() ? "ON" : "OFF")), b -> {
-            if (hud != null) {
-                hud.setGridSnap(!hud.gridSnap());
-                b.setMessage(Component.literal("Grid: " + (hud.gridSnap() ? "ON" : "OFF")));
-            }
+        addRenderableWidget(Button.builder(Component.literal("Reset All"), b -> {
+            for (String element : ELEMENTS) hud.resetElement(element);
+            save();
         }).bounds(120, this.height - 30, 85, 20).build());
-        addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.literal("Done"), b -> onClose())
+        addRenderableWidget(Button.builder(Component.literal("Align: " + hud.elementAlignment(selected)), b -> {
+            hud.cycleAlignment(selected);
+            b.setMessage(Component.literal("Align: " + hud.elementAlignment(selected)));
+            save();
+        }).bounds(215, this.height - 30, 90, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Visible: " + (hud.elementVisible(selected) ? "ON" : "OFF")), b -> {
+            hud.setElementVisible(selected, !hud.elementVisible(selected));
+            b.setMessage(Component.literal("Visible: " + (hud.elementVisible(selected) ? "ON" : "OFF")));
+            save();
+        }).bounds(315, this.height - 30, 95, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Grid: " + (hud.gridSnap() ? "ON" : "OFF")), b -> {
+            hud.setGridSnap(!hud.gridSnap());
+            b.setMessage(Component.literal("Grid: " + (hud.gridSnap() ? "ON" : "OFF")));
+        }).bounds(420, this.height - 30, 85, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
                 .bounds(this.width - 80, this.height - 30, 70, 20).build());
+    }
+
+    private void rebuildButtons() {
+        // The selected element is reflected by the labels during the next screen init.
+        // Position/visibility changes are still immediate; avoid recreating widgets while iterating them.
+    }
+
+    private String elementButtonText(int index) {
+        String label = LABELS[index];
+        return ELEMENTS[index].equals(selected) ? "> " + label : label;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && hud != null && hitHud(mouseX, mouseY)) {
             dragging = true;
-            dragOffsetX = mouseX - hud.x() * hud.scale();
-            dragOffsetY = mouseY - hud.y() * hud.scale();
+            double[] position = position(selected);
+            dragOffsetX = mouseX - position[0] * hud.scale();
+            dragOffsetY = mouseY - position[1] * hud.scale();
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -60,7 +100,7 @@ public final class HudEditorScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (dragging && button == 0 && hud != null) {
-            hud.setEditorPosition((mouseX - dragOffsetX) / hud.scale(), (mouseY - dragOffsetY) / hud.scale());
+            hud.setEditorPosition(selected, (mouseX - dragOffsetX) / hud.scale(), (mouseY - dragOffsetY) / hud.scale());
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -77,48 +117,88 @@ public final class HudEditorScreen extends Screen {
     }
 
     private boolean hitHud(double mouseX, double mouseY) {
-        if (hud == null) return false;
-        int width = 90;
-        int rows = 1;
-        PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
-        WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
-        if (hud.showCoordinates()) rows++;
-        if (hud.showFps()) rows++;
-        if (playerInfo != null && playerInfo.enabled()) {
-            if (playerInfo.showHealth()) rows++;
-            if (playerInfo.showHunger()) rows++;
-            if (playerInfo.showArmor()) rows++;
-            if (playerInfo.showHeldItem()) rows++;
-        }
-        if (worldInfo != null && worldInfo.enabled()) {
-            if (worldInfo.showTime()) rows++;
-            if (worldInfo.showDimension()) rows++;
-            if (worldInfo.showWeather()) rows++;
-        }
-        int height = rows * hud.lineSpacing() + hud.padding() * 2;
-        double left = hud.x() * hud.scale() - hud.padding() * hud.scale();
-        double top = hud.y() * hud.scale() - hud.padding() * hud.scale();
-        double right = left + Math.max(width, font.width(hud.watermarkText())) * hud.scale() + hud.padding() * 2 * hud.scale();
-        double bottom = top + height * hud.scale();
+        if (hud == null || !hud.elementVisible(selected)) return false;
+        double[] position = position(selected);
+        int width = Math.max(55, selected.equals("watermark") ? font.width(hud.watermarkText()) : 55);
+        int height = selected.equals("player-info") ? playerInfoHeight() : selected.equals("world-info") ? worldInfoHeight() : hud.lineSpacing();
+        double left = alignedLeft(position[0], width, hud.elementAlignment(selected)) * hud.scale() - hud.padding() * hud.scale();
+        double top = position[1] * hud.scale() - hud.padding() * hud.scale();
+        double right = left + width * hud.scale() + hud.padding() * 2 * hud.scale();
+        double bottom = top + height * hud.scale() + hud.padding() * 2 * hud.scale();
         return mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom;
+    }
+
+    private double[] position(String element) {
+        return switch (element) {
+            case "coordinates" -> new double[]{hud.coordinatesX(), hud.coordinatesY()};
+            case "fps" -> new double[]{hud.fpsX(), hud.fpsY()};
+            case "player-info" -> new double[]{hud.playerInfoX(), hud.playerInfoY()};
+            case "world-info" -> new double[]{hud.worldInfoX(), hud.worldInfoY()};
+            default -> new double[]{hud.x(), hud.y()};
+        };
+    }
+
+    private double alignedLeft(double x, double width, String alignment) {
+        return switch (alignment == null ? "left" : alignment.toLowerCase(java.util.Locale.ROOT)) {
+            case "center" -> x - width / 2.0;
+            case "right" -> x - width;
+            default -> x;
+        };
+    }
+
+    private int playerInfoHeight() {
+        PlayerInfoModule module = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
+        int rows = 0;
+        if (module != null && module.enabled()) {
+            if (module.showHealth()) rows++;
+            if (module.showHunger()) rows++;
+            if (module.showArmor()) rows++;
+            if (module.showHeldItem()) rows++;
+        }
+        return Math.max(hud.lineSpacing(), rows * hud.lineSpacing());
+    }
+
+    private int worldInfoHeight() {
+        WorldInfoModule module = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
+        int rows = 0;
+        if (module != null && module.enabled()) {
+            if (module.showTime()) rows++;
+            if (module.showDimension()) rows++;
+            if (module.showWeather()) rows++;
+        }
+        return Math.max(hud.lineSpacing(), rows * hud.lineSpacing());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, width, height, 0xB0101014);
-        graphics.text(font, "HUD Editor — drag the HUD to move it", 230, 16, 0xFFFFFFFF, true);
+        graphics.text(font, "HUD Editor — select an element, then drag its box", 10, 16, 0xFFFFFFFF, true);
+        graphics.text(font, "Selected: " + selected + "  X=" + (int) position(selected)[0] + " Y=" + (int) position(selected)[1], 10, 32, 0xFFD0D0D0, false);
+        graphics.text(font, "Watermark text", 10, 72, 0xFFFFFFFF, false);
+
         if (hud != null) {
-            int left = (int) Math.round(hud.x() * hud.scale() - hud.padding() * hud.scale());
-            int top = (int) Math.round(hud.y() * hud.scale() - hud.padding() * hud.scale());
-            int textWidth = Math.max(120, font.width(hud.watermarkText()) + hud.padding() * 2);
-            int right = left + textWidth;
-            int bottom = top + Math.max(22, hud.lineSpacing() * 3);
-            graphics.fill(left, top, right, bottom, 0x50206080);
-            graphics.outline(left, top, right - left, bottom - top, 0xFFFFFFFF);
-            graphics.text(font, hud.watermarkText(), left + hud.padding(), top + hud.padding(), hud.textColor(), hud.showShadow());
-            graphics.text(font, "Drag here", left + hud.padding(), top + hud.padding() + hud.lineSpacing(), 0xFFFFFFFF, false);
+            for (int i = 0; i < ELEMENTS.length; i++) {
+                String element = ELEMENTS[i];
+                if (!hud.elementVisible(element)) continue;
+                drawPreviewElement(graphics, element, LABELS[i]);
+            }
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
+
+    private void drawPreviewElement(GuiGraphicsExtractor graphics, String element, String label) {
+        double[] pos = position(element);
+        int width = element.equals("watermark") ? Math.max(70, font.width(hud.watermarkText())) : 70;
+        int height = element.equals("player-info") ? playerInfoHeight() : element.equals("world-info") ? worldInfoHeight() : hud.lineSpacing();
+        int left = (int) Math.round(alignedLeft(pos[0], width, hud.elementAlignment(element)) * hud.scale() - hud.padding() * hud.scale());
+        int top = (int) Math.round(pos[1] * hud.scale() - hud.padding() * hud.scale());
+        int right = left + (int) Math.round(width * hud.scale() + hud.padding() * 2 * hud.scale());
+        int bottom = top + (int) Math.round(height * hud.scale() + hud.padding() * 2 * hud.scale());
+        int outline = element.equals(selected) ? 0xFFFFFFFF : 0xFF6A6A6A;
+        graphics.fill(left, top, right, bottom, element.equals(selected) ? 0x503A7890 : 0x30303038);
+        graphics.outline(left, top, right - left, bottom - top, outline);
+        String preview = element.equals("watermark") ? hud.watermarkText() : label;
+        graphics.text(font, preview, left + hud.padding(), top + hud.padding(), hud.textColor(), hud.showShadow());
     }
 
     private void save() {
@@ -136,6 +216,6 @@ public final class HudEditorScreen extends Screen {
     @Override
     public void onClose() {
         save();
-        minecraft.gui.setScreen(parent);
+        if (minecraft != null) minecraft.gui.setScreen(parent);
     }
 }
