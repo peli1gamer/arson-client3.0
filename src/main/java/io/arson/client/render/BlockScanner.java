@@ -10,11 +10,45 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Cached ore discovery with allocation-light block scanning. */
+/** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
+    private static final int CACHE_REFRESH_TICKS = 40;
+
+    private Object cachedLevel;
+    private long cachedTick = Long.MIN_VALUE;
+    private int cachedChunkX = Integer.MIN_VALUE;
+    private int cachedChunkZ = Integer.MIN_VALUE;
+    private int cachedConfigHash;
+    private List<BlockTarget> cachedTargets = List.of();
+
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
         if (client.level == null || client.player == null || !module.enabled()) return List.of();
 
+        long gameTime = client.level.getGameTime();
+        int chunkX = client.player.blockPosition().getX() >> 4;
+        int chunkZ = client.player.blockPosition().getZ() >> 4;
+        int configHash = configHash(module);
+
+        boolean worldChanged = cachedLevel != client.level;
+        boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
+        boolean configChanged = cachedConfigHash != configHash;
+        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
+
+        if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
+            return cachedTargets;
+        }
+
+        List<BlockTarget> result = scanWorld(client, module);
+        cachedTargets = List.copyOf(result);
+        cachedLevel = client.level;
+        cachedTick = gameTime;
+        cachedChunkX = chunkX;
+        cachedChunkZ = chunkZ;
+        cachedConfigHash = configHash;
+        return cachedTargets;
+    }
+
+    private static List<BlockTarget> scanWorld(Minecraft client, BlockESPModule module) {
         double playerX = client.player.getX();
         double playerY = client.player.getY();
         double playerZ = client.player.getZ();
@@ -59,7 +93,23 @@ public final class BlockScanner {
                 }
             }
         }
-        return List.copyOf(result);
+        return result;
+    }
+
+    private static int configHash(BlockESPModule module) {
+        int hash = 17;
+        hash = 31 * hash + Double.hashCode(module.range());
+        hash = 31 * hash + Boolean.hashCode(module.showDiamond());
+        hash = 31 * hash + Boolean.hashCode(module.showEmerald());
+        hash = 31 * hash + Boolean.hashCode(module.showGold());
+        hash = 31 * hash + Boolean.hashCode(module.showIron());
+        hash = 31 * hash + Boolean.hashCode(module.showCopper());
+        hash = 31 * hash + Boolean.hashCode(module.showCoal());
+        hash = 31 * hash + Boolean.hashCode(module.showRedstone());
+        hash = 31 * hash + Boolean.hashCode(module.showLapis());
+        hash = 31 * hash + Boolean.hashCode(module.showQuartz());
+        hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        return hash;
     }
 
     private static RenderStyleMatch match(Block block, BlockESPModule module) {
