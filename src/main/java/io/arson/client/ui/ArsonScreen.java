@@ -73,8 +73,10 @@ public final class ArsonScreen extends Screen {
         for (Module module : ArsonClient.getInstance().modules().organized(selectedCategory)) {
             if (!matches(module)) continue;
             Module current = module;
-            Button moduleButton = Button.builder(moduleLabel(current), button -> { current.toggle(); button.setMessage(moduleLabel(current)); saveConfig(); rebuild(); }).bounds(x, y, 365, 21).build();
+            Button moduleButton = Button.builder(moduleLabel(current), button -> { current.toggle(); button.setMessage(moduleLabel(current)); saveConfig(); rebuild(); }).bounds(x, y, 290, 21).build();
             addContentWidget(moduleButton, y, panelY);
+            Button bindButton = Button.builder(Component.literal(bindLabel(current)), button -> { bindingModule = current; button.setMessage(Component.literal("Press key")); }).bounds(x + 295, y, 70, 21).build();
+            addContentWidget(bindButton, y, panelY);
             y += 25; contentHeight += 25;
 
             if (collapsedModules.contains(current.id())) continue;
@@ -126,6 +128,7 @@ public final class ArsonScreen extends Screen {
     private void addContentWidget(Button button, int y, int panelY) { if (y >= panelY + CONTENT_TOP && y <= panelY + CONTENT_BOTTOM - 18) { addRenderableWidget(button); contentButtons.add(button); } }
     private void saveConfig() { if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules()); }
     private static int nextColor(int current) { for (int i = 0; i < COLOR_PRESETS.length; i++) if (COLOR_PRESETS[i] == current) return COLOR_PRESETS[(i + 1) % COLOR_PRESETS.length]; return COLOR_PRESETS[0]; }
+    private static String bindLabel(Module module) { return module.keyCode() == 0 ? "Bind" : "Key " + module.keyCode(); }
     private static Component moduleLabel(Module module) { return Component.literal((module.enabled() ? "[ON] " : "[OFF] ") + (module.settings().isEmpty() ? "" : "> ") + module.name()); }
     private static Component settingLabel(BooleanSetting setting) { return Component.literal("  " + setting.name() + ": " + (setting.enabled() ? "ON" : "OFF")); }
     private static Component settingLabel(DoubleSetting setting) { return Component.literal("  " + setting.name() + ": " + String.format(Locale.ROOT, "%.2f", setting.get())); }
