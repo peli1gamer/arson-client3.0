@@ -11,6 +11,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,7 @@ public final class ArsonScreen extends Screen {
     private final List<Button> contentButtons = new ArrayList<>();
     private int scrollOffset;
     private int maxScroll;
+    private Module bindingModule;
 
     public ArsonScreen(Screen parent) {
         super(Component.literal("Arson Client V3"));
@@ -55,6 +57,7 @@ public final class ArsonScreen extends Screen {
             Module.Category current = category;
             Button button = Button.builder(Component.literal(category.displayName()), b -> {
                 selectedCategory = current;
+                bindingModule = null;
                 scrollOffset = 0;
                 rebuild();
             }).bounds(categoryX, categoryY, 105, 20).build();
@@ -70,11 +73,19 @@ public final class ArsonScreen extends Screen {
         for (Module module : ArsonClient.getInstance().modules().all()) {
             if (module.category() != selectedCategory) continue;
             Module current = module;
+
             Button moduleButton = Button.builder(moduleLabel(current), button -> {
                 current.toggle();
                 button.setMessage(moduleLabel(current));
-            }).bounds(x, y, 365, 21).build();
+            }).bounds(x, y, 265, 21).build();
             addContentWidget(moduleButton, y, panelY);
+
+            Button bindButton = Button.builder(bindLabel(current), button -> {
+                bindingModule = current;
+                button.setMessage(Component.literal("Press a key..."));
+            }).bounds(x + 273, y, 92, 21).build();
+            addContentWidget(bindButton, y, panelY);
+
             y += 25;
             contentHeight += 25;
 
@@ -141,6 +152,11 @@ public final class ArsonScreen extends Screen {
         return Component.literal((module.enabled() ? "[ON] " : "[OFF] ") + module.name());
     }
 
+    private static Component bindLabel(Module module) {
+        if (module == null) return Component.literal("Bind");
+        return Component.literal(module.hasKeybind() ? "Key: " + module.keyCode() : "Bind");
+    }
+
     private static Component settingLabel(BooleanSetting setting) {
         return Component.literal("  " + setting.name() + ": " + (setting.enabled() ? "ON" : "OFF"));
     }
@@ -151,6 +167,27 @@ public final class ArsonScreen extends Screen {
 
     private static Component settingLabel(ColorSetting setting) {
         return Component.literal("  " + setting.name() + ": #" + String.format(Locale.ROOT, "%08X", setting.get()));
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (bindingModule != null) {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                bindingModule = null;
+                rebuild();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                bindingModule.setKeyCode(0);
+            } else {
+                bindingModule.setKeyCode(keyCode);
+            }
+            bindingModule = null;
+            saveConfig();
+            rebuild();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -176,7 +213,9 @@ public final class ArsonScreen extends Screen {
         graphics.text(this.font, "Arson Client V3", panelX + 18, panelY + 18, 0xFFFFFFFF, true);
         graphics.text(this.font, "Modules / Settings", panelX + 18, panelY + 34, 0xFFAAAAAA, false);
         graphics.text(this.font, selectedCategory.displayName(), panelX + 145, panelY + 40, 0xFFFFFFFF, true);
-        if (maxScroll > 0) {
+        if (bindingModule != null) {
+            graphics.text(this.font, "Binding: " + bindingModule.name() + " — press a key", panelX + 145, panelY + 48, 0xFFFFAA55, false);
+        } else if (maxScroll > 0) {
             graphics.text(this.font, "Scroll", panelX + 485, panelY + 40, 0xFFAAAAAA, false);
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
@@ -184,6 +223,7 @@ public final class ArsonScreen extends Screen {
 
     @Override
     public void onClose() {
+        bindingModule = null;
         saveConfig();
         this.minecraft.gui.setScreen(parent);
     }
