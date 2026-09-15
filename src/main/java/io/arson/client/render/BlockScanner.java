@@ -89,7 +89,7 @@ public final class BlockScanner {
                     result.add(new BlockTarget(
                             x, y, z,
                             x + 1.0, y + 1.0, z + 1.0,
-                            match.style(), Math.sqrt(distanceSquared)));
+                            match.style()));
                 }
             }
         }
