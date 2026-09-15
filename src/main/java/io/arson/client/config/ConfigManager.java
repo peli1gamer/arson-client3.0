@@ -22,6 +22,7 @@ import java.nio.file.StandardCopyOption;
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
+    private static final int CONFIG_VERSION = 2;
 
     private ConfigManager() {}
 
@@ -54,6 +55,9 @@ public final class ConfigManager {
             JsonElement parsed = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
             if (!parsed.isJsonObject()) return;
             JsonObject root = parsed.getAsJsonObject();
+            int version = readVersion(root);
+            if (version > CONFIG_VERSION) return;
+
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject()
                     ? root.getAsJsonObject("modules") : new JsonObject();
 
@@ -83,11 +87,22 @@ public final class ConfigManager {
         }
     }
 
+    private static int readVersion(JsonObject root) {
+        try {
+            JsonElement value = root.get("version");
+            return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1;
+        } catch (RuntimeException ignored) {
+            return 1;
+        }
+    }
+
     private static void saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent();
         if (directory == null) return;
         Path tempPath = path.resolveSibling(path.getFileName() + ".tmp");
+        Path backupPath = path.resolveSibling(path.getFileName() + ".bak");
         JsonObject root = new JsonObject();
+        root.addProperty("version", CONFIG_VERSION);
         JsonObject moduleRoot = new JsonObject();
         root.add("modules", moduleRoot);
 
@@ -110,6 +125,13 @@ public final class ConfigManager {
         try {
             Files.createDirectories(directory);
             Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);
+            if (Files.isRegularFile(path)) {
+                try {
+                    Files.copy(path, backupPath, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException ignored) {
+                    // The primary config can still be saved when a backup cannot be created.
+                }
+            }
             try {
                 Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException atomicMoveUnsupported) {
