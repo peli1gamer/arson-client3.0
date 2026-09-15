@@ -6,13 +6,15 @@ import io.arson.client.module.HudModule;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.WorldInfoModule;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Visual editor for positioning the HUD block. */
+/** Visual editor for positioning and basic HUD presentation. */
 public final class HudEditorScreen extends Screen {
     private final Screen parent;
     private HudModule hud;
+    private EditBox watermarkBox;
     private boolean dragging;
     private double dragOffsetX;
     private double dragOffsetY;
@@ -25,6 +27,11 @@ public final class HudEditorScreen extends Screen {
     @Override
     protected void init() {
         hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
+        watermarkBox = new EditBox(font, 10, 10, 210, 20, Component.literal("Watermark"));
+        watermarkBox.setValue(hud == null ? "Arson V3" : hud.watermarkText());
+        watermarkBox.setMaxLength(32);
+        watermarkBox.setHint(Component.literal("Watermark text..."));
+        addRenderableWidget(watermarkBox);
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.literal("Reset Position"), b -> {
             if (hud != null) hud.setEditorPosition(6, 6);
         }).bounds(10, this.height - 30, 105, 20).build());
@@ -90,7 +97,7 @@ public final class HudEditorScreen extends Screen {
         int height = rows * hud.lineSpacing() + hud.padding() * 2;
         double left = hud.x() * hud.scale() - hud.padding() * hud.scale();
         double top = hud.y() * hud.scale() - hud.padding() * hud.scale();
-        double right = left + width * hud.scale() + hud.padding() * 2 * hud.scale();
+        double right = left + Math.max(width, font.width(hud.watermarkText())) * hud.scale() + hud.padding() * 2 * hud.scale();
         double bottom = top + height * hud.scale();
         return mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom;
     }
@@ -98,21 +105,26 @@ public final class HudEditorScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, width, height, 0xB0101014);
-        graphics.text(font, "HUD Editor — drag the HUD to move it", 10, 10, 0xFFFFFFFF, true);
+        graphics.text(font, "HUD Editor — drag the HUD to move it", 230, 16, 0xFFFFFFFF, true);
         if (hud != null) {
             int left = (int) Math.round(hud.x() * hud.scale() - hud.padding() * hud.scale());
             int top = (int) Math.round(hud.y() * hud.scale() - hud.padding() * hud.scale());
-            int right = left + 120;
+            int textWidth = Math.max(120, font.width(hud.watermarkText()) + hud.padding() * 2);
+            int right = left + textWidth;
             int bottom = top + Math.max(22, hud.lineSpacing() * 3);
             graphics.fill(left, top, right, bottom, 0x50206080);
             graphics.outline(left, top, right - left, bottom - top, 0xFFFFFFFF);
-            graphics.text(font, "Arson V3", left + hud.padding(), top + hud.padding(), hud.textColor(), hud.showShadow());
+            graphics.text(font, hud.watermarkText(), left + hud.padding(), top + hud.padding(), hud.textColor(), hud.showShadow());
             graphics.text(font, "Drag here", left + hud.padding(), top + hud.padding() + hud.lineSpacing(), 0xFFFFFFFF, false);
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     private void save() {
+        if (hud != null && watermarkBox != null) hud.settings().stream()
+                .filter(setting -> setting.id().equals("watermark-text"))
+                .findFirst()
+                .ifPresent(setting -> setting.set(watermarkBox.getValue()));
         if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
     }
 
