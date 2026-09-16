@@ -31,8 +31,11 @@ class ModuleParityTest {
         ModuleManager manager = new ModuleManager(); manager.registerDefaults();
         assertNotNull(manager.get("fps")); assertNotNull(manager.get("player-coordinates")); assertNotNull(manager.get("player-direction"));
         assertNotNull(manager.get("world-clock")); assertNotNull(manager.get("world-environment")); assertNotNull(manager.get("inventory-info"));
+        assertNotNull(manager.get("player-vitals")); assertNotNull(manager.get("render-info"));
         assertTrue(manager.get("fps").description().contains("frames per second"));
         assertTrue(manager.get("world-environment").description().contains("dimension"));
+        assertTrue(manager.get("player-vitals").description().contains("experience"));
+        assertTrue(manager.get("render-info").description().contains("viewport"));
     }
 
     @Test
@@ -65,9 +68,10 @@ class ModuleParityTest {
 
     @Test
     void favoritesSortBeforeEnabledAndCanBeCounted() {
-        ModuleManager manager = new ModuleManager(); manager.registerDefaults(); Module sprint = manager.get("sprint"); Module performance = manager.get("performance");
+        ModuleManager manager = new ModuleManager(); ModuleManager manager2 = new ModuleManager(); manager.registerDefaults(); Module sprint = manager.get("sprint"); Module performance = manager.get("performance");
         assertNotNull(sprint); assertNotNull(performance); sprint.setFavorite(true); performance.setFavorite(true); assertEquals(2, manager.favoriteCount());
         assertEquals("performance", manager.organized(Module.Category.MISC).iterator().next().id());
+        assertEquals(0, manager2.favoriteCount());
     }
 
     @Test
