@@ -2,6 +2,7 @@ package io.arson.client;
 
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
+import io.arson.client.command.ArsonCommand;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.context.FeatureContext;
 import io.arson.client.module.AimAssistModule;
@@ -62,6 +63,7 @@ public final class ArsonClient implements ClientModInitializer {
         moduleManager.registerDefaults();
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.arson.open_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
+        ArsonCommand.register();
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "array_list"), ArrayListRenderer::render);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"), CombatInfoRenderer::render);
@@ -94,11 +96,13 @@ public final class ArsonClient implements ClientModInitializer {
             runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) ConfigManager.save(clientTick, moduleManager);
+            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
         });
         ConfigManager.load(client, moduleManager);
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
+
+    public void saveConfig() { ConfigManager.save(Minecraft.getInstance(), moduleManager); }
 
     private void runRuntimeSmoke(Minecraft client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
