@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 public final class ArsonScreen extends Screen {
+    private enum Theme { MIDNIGHT, GRAPHITE, CONTRAST }
     private final Screen parent;
     private Module.Category category=Module.Category.RENDER;
     private Module selected;
@@ -37,19 +38,26 @@ public final class ArsonScreen extends Screen {
     private final List<Button> moduleButtons=new ArrayList<>();
     private int panelX,panelY,panelW=900,panelH=540;
     private int scroll;
+    private boolean favoritesOnly;
+    private Theme theme=Theme.MIDNIGHT;
     public ArsonScreen(Screen parent){super(Component.literal("Arson Client V3"));this.parent=parent;}
     @Override protected void init(){panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);rebuild();}
+    private int headerColor(){return switch(theme){case MIDNIGHT->0xFF181820;case GRAPHITE->0xFF202428;case CONTRAST->0xFF101010;};}
+    private int accentColor(){return switch(theme){case MIDNIGHT->0xFF6C63FF;case GRAPHITE->0xFF8AA0B8;case CONTRAST->0xFFFFFFFF;};}
+    private int panelColor(){return switch(theme){case MIDNIGHT->0xE00F1015;case GRAPHITE->0xE016191C;case CONTRAST->0xEE050505;};}
     private void rebuild(){
-        String profileValue=profile==null?"":profile.getValue();
-        String searchValue=search==null?"":search.getValue();
+        String profileValue=profile==null?"":profile.getValue();String searchValue=search==null?"":search.getValue();
         clearWidgets();moduleButtons.clear();profile=null;editBox=null;
-        if(selected==null||selected.category()!=category)selected=ArsonClient.getInstance().modules().organized(category).stream().findFirst().orElse(null);
+        if(selected==null||selected.category()!=category|| (favoritesOnly&&!selected.favorite()))selected=ArsonClient.getInstance().modules().organized(category).stream().filter(m->!favoritesOnly||m.favorite()).findFirst().orElse(null);
         search=new EditBox(font,panelX+145,panelY+8,260,20,Component.literal("Search modules"));search.setHint(Component.literal("Search modules..."));search.setValue(searchValue);addRenderableWidget(search);
+        addRenderableWidget(Button.builder(Component.literal((favoritesOnly?"★ Favorites":"☆ Favorites")+" ("+ArsonClient.getInstance().modules().favoriteCount()+")"),b->{favoritesOnly=!favoritesOnly;scroll=0;rebuild();}).bounds(panelX+415,panelY+8,120,20).build());
+        addRenderableWidget(Button.builder(Component.literal("Theme: "+theme.name()),b->{theme=Theme.values()[(theme.ordinal()+1)%Theme.values().length];rebuild();}).bounds(panelX+540,panelY+8,105,20).build());
         int y=panelY+42;for(Module.Category c:Module.Category.values()){Module.Category chosen=c;addRenderableWidget(Button.builder(Component.literal(chosen.displayName()+" ("+ArsonClient.getInstance().modules().categoryCount(chosen)+")"),b->{category=chosen;selected=null;scroll=0;rebuild();}).bounds(panelX+8,y,122,22).build());y+=26;}
         refreshModuleButtons();
         if(selected!=null){
             addRenderableWidget(Button.builder(Component.literal(selected.enabled()?"Disable Module":"Enable Module"),b->toggleSelected()).bounds(panelX+385,panelY+50,300,22).build());
-            addRenderableWidget(Button.builder(Component.literal(bindingModule==selected?"Press a key...":"Keybind: "+keyName(selected.keyCode())),b->{bindingModule=selected;rebuild();}).bounds(panelX+385,panelY+76,300,22).build());
+            addRenderableWidget(Button.builder(Component.literal(selected.favorite()?"★ Favorited":"☆ Add to Favorites"),b->{selected.setFavorite(!selected.favorite());saveConfig();rebuild();}).bounds(panelX+385,panelY+76,145,22).build());
+            addRenderableWidget(Button.builder(Component.literal(bindingModule==selected?"Press a key...":"Keybind: "+keyName(selected.keyCode())),b->{bindingModule=selected;rebuild();}).bounds(panelX+535,panelY+76,150,22).build());
             addSettingWidgets();
         }
         int footer=panelY+panelH-34;
@@ -59,30 +67,22 @@ public final class ArsonScreen extends Screen {
         if(editingString!=null||editingColor!=null)addEditBox();
         if(editingString==null&&editingColor==null){profile=new EditBox(font,panelX+485,footer,120,22,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(panelX+610,footer,55,22).build());addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(panelX+670,footer,55,22).build());}
     }
-    private void refreshModuleButtons(){for(Button button:moduleButtons)removeWidget(button);moduleButtons.clear();int y=panelY+48;String q=search==null?"":search.getValue().trim().toLowerCase(Locale.ROOT);for(Module module:ArsonClient.getInstance().modules().organized(category)){if(!q.isEmpty()&&!module.name().toLowerCase(Locale.ROOT).contains(q)&&!module.id().toLowerCase(Locale.ROOT).contains(q))continue;Module chosen=module;Button button=Button.builder(Component.literal((module.enabled()?"● ":"○ ")+module.name()),b->{selected=chosen;scroll=0;rebuild();}).bounds(panelX+145,y,225,22).build();moduleButtons.add(button);addRenderableWidget(button);y+=25;if(y>panelY+panelH-65)break;}}
+    private void refreshModuleButtons(){for(Button button:moduleButtons)removeWidget(button);moduleButtons.clear();int y=panelY+48;String q=search==null?"":search.getValue().trim().toLowerCase(Locale.ROOT);for(Module module:ArsonClient.getInstance().modules().organized(category)){if(favoritesOnly&&!module.favorite())continue;String haystack=(module.name()+" "+module.id()+" "+module.description()).toLowerCase(Locale.ROOT);if(!q.isEmpty()&&!haystack.contains(q))continue;Module chosen=module;Button button=Button.builder(Component.literal((module.favorite()?"★ ":"  ")+(module.enabled()?"● ":"○ ")+module.name()),b->{selected=chosen;scroll=0;rebuild();}).bounds(panelX+145,y,225,22).build();moduleButtons.add(button);addRenderableWidget(button);y+=25;if(y>panelY+panelH-65)break;}}
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
     private static String keyName(int keyCode){if(keyCode<=0)return"None";String name=GLFW.glfwGetKeyName(keyCode,0);return name!=null?name.toUpperCase(Locale.ROOT):"KEY "+keyCode;}
     private void addSettingWidgets(){
-        int x=panelX+385,y=panelY+105-scroll,bottom=panelY+panelH-55;
-        String groupId=null;
+        int x=panelX+385,y=panelY+105-scroll,bottom=panelY+panelH-55;String groupId=null;
         for(Setting<?> setting:selected.settings()){
-            if(!setting.visible())continue;
-            SettingGroup group=setting.group();
+            if(!setting.visible())continue;SettingGroup group=setting.group();
             if(group!=null&&!group.id().equals(groupId)){groupId=group.id();if(y>=panelY+100&&y<=bottom){addRenderableWidget(Button.builder(Component.literal("▸ "+group.name()),b->{}).bounds(x,y,300,20).build());y+=22;if(!group.description().isBlank())y+=8;}}
             if(y<panelY+100){y+=27;continue;}if(y>bottom)break;
-            if(setting instanceof BooleanSetting b){
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(b.enabled()?"ON":"OFF")),x1->{b.set(!b.enabled());saveConfig();rebuild();}).bounds(x,y,235,22).build());
-            }else if(setting instanceof DoubleSetting d){
-                DoubleSettingSlider slider=new DoubleSettingSlider(x,y,235,22,d,this::saveConfig);addRenderableWidget(slider);
-            }else if(setting instanceof EnumSetting<?> e){
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(e.get())),b->{e.cycle(1);saveConfig();rebuild();}).bounds(x,y,235,22).build());
-            }else if(setting instanceof ColorSetting c){
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",c.get())),b->{editingColor=c;editingString=null;rebuild();}).bounds(x,y,235,22).build());
-            }else if(setting instanceof StringSetting s){
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+s.get()),b->{editingString=s;editingColor=null;rebuild();}).bounds(x,y,235,22).build());
-            }else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),x1->{}).bounds(x,y,235,22).build());
-            addRenderableWidget(Button.builder(Component.literal("Reset"),b->{setting.reset();NotificationCenter.push(setting.name(),"Reset to default");saveConfig();rebuild();}).bounds(x+240,y,60,22).build());
-            y+=27;
+            if(setting instanceof BooleanSetting b)addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(b.enabled()?"ON":"OFF")),x1->{b.set(!b.enabled());saveConfig();rebuild();}).bounds(x,y,235,22).build());
+            else if(setting instanceof DoubleSetting d)addRenderableWidget(new DoubleSettingSlider(x,y,235,22,d,this::saveConfig));
+            else if(setting instanceof EnumSetting<?> e)addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(e.get())),b->{e.cycle(1);saveConfig();rebuild();}).bounds(x,y,235,22).build());
+            else if(setting instanceof ColorSetting c)addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",c.get())),b->{editingColor=c;editingString=null;rebuild();}).bounds(x,y,235,22).build());
+            else if(setting instanceof StringSetting s)addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+s.get()),b->{editingString=s;editingColor=null;rebuild();}).bounds(x,y,235,22).build());
+            else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),x1->{}).bounds(x,y,235,22).build());
+            addRenderableWidget(Button.builder(Component.literal("Reset"),b->{setting.reset();NotificationCenter.push(setting.name(),"Reset to default");saveConfig();rebuild();}).bounds(x+240,y,60,22).build());y+=27;
         }
     }
     private static String prettyEnum(Object value){if(value==null)return"None";String raw=value.toString().toLowerCase(Locale.ROOT);StringBuilder out=new StringBuilder();for(String part:raw.split("_")){if(part.isEmpty())continue;if(out.length()>0)out.append(' ');out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));}return out.toString();}
@@ -94,6 +94,6 @@ public final class ArsonScreen extends Screen {
     @Override public boolean keyPressed(KeyEvent event){if(bindingModule!=null){if(event.key()==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}bindingModule.setKeyCode(event.key());NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(event.key()));bindingModule=null;saveConfig();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}boolean handled=super.keyPressed(event);if(search!=null&&search.isFocused())refreshModuleButtons();return handled;}
     @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused())refreshModuleButtons();return handled;}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontalAmount,double verticalAmount){if(selected!=null){scroll=Math.max(0,scroll+(verticalAmount>0?-27:27));rebuild();return true;}return super.mouseScrolled(mouseX,mouseY,horizontalAmount,verticalAmount);}
-    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(panelX,panelY,panelX+panelW,panelY+panelH,0xE00F1015);graphics.fill(panelX,panelY,panelX+panelW,panelY+34,0xFF181820);graphics.drawString(font,"Arson Client V3",panelX+12,panelY+11,0xFFFFFFFF);graphics.drawString(font,"Enabled: "+ArsonClient.getInstance().modules().enabledCount(),panelX+panelW-105,panelY+11,0xFFAAAAAA);graphics.renderOutline(panelX,panelY,panelW,panelH,0xFF4C4C56);if(selected!=null){graphics.drawString(font,selected.name(),panelX+385,panelY+35,0xFFAAAAAA);String description=selected.description();if(!description.isBlank())graphics.drawString(font,description,panelX+385,panelY+22,0xFF777777);}super.render(graphics,mouseX,mouseY,delta);}
+    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(panelX,panelY,panelX+panelW,panelY+panelH,panelColor());graphics.fill(panelX,panelY,panelX+panelW,panelY+34,headerColor());graphics.drawString(font,"Arson Client V3",panelX+12,panelY+11,0xFFFFFFFF);graphics.drawString(font,"Enabled: "+ArsonClient.getInstance().modules().enabledCount(),panelX+panelW-175,panelY+11,0xFFAAAAAA);graphics.drawString(font,"Favorites: "+ArsonClient.getInstance().modules().favoriteCount(),panelX+panelW-95,panelY+11,accentColor());graphics.renderOutline(panelX,panelY,panelW,panelH,accentColor());if(selected!=null){graphics.drawString(font,selected.name(),panelX+385,panelY+35,accentColor());String description=selected.description();if(!description.isBlank())graphics.drawString(font,description,panelX+385,panelY+22,0xFFAAAAAA);}super.render(graphics,mouseX,mouseY,delta);}
     @Override public void onClose(){bindingModule=null;saveConfig();minecraft.setScreen(parent);}
 }

@@ -16,14 +16,15 @@ public final class ModuleManager {
     public void registerDefaults(){
         register(new ClientInfoModule());register(new SprintModule());register(new PerformanceModule());
         register(new ContainerESPModule());register(new EntityESPModule());register(new ItemESPModule());register(new EntityInfoModule());register(new EntityTracerModule());register(new BlockESPModule());
-        register(new HudModule());register(new HudLayoutModule());register(new ArrayListModule());register(new CombatInfoModule());register(new TargetingModule());register(new AimAssistModule());register(new HoverTotemModule());register(new AutoTotemModule());register(new FriendsModule());register(new TotemPopCounterModule());register(new AttributeSwapModule());register(new PlayerInfoModule());register(new WorldInfoModule());
+        register(new HudModule());register(new HudLayoutModule());register(new ArrayListModule());register(new CombatInfoModule());register(new TargetingModule());register(new AimAssistModule());register(new HoverTotemModule());register(new AutoTotemModule());register(new FriendsModule());register(new TotemPopCounterModule());register(new AttributeSwapModule());register(new PlayerInfoModule());register(new PlayerCoordinatesModule());register(new WorldInfoModule());register(new WorldClockModule());
         register(new CombatStatusModule());register(new PlayerStatusModule());register(new MovementStatusModule());register(new RenderProfileModule());register(new WorldStatusModule());register(new StorageStatusModule());register(new UtilityStatusModule());
         register(GameStateModule.create());register(ScreenInfoModule.create());
     }
     public Module get(String id){return modules.get(id);} public Collection<Module> all(){return new ArrayList<>(modules.values());}
-    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:modules.values())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::enabled).reversed().thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
+    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:modules.values())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
     public int categoryCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category)count++;return count;}
     public int enabledCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category&&module.enabled())count++;return count;}
+    public int favoriteCount(){int count=0;for(Module module:modules.values())if(module.favorite())count++;return count;}
     public int enabledCount(){int count=0;for(Module module:modules.values())if(module.enabled())count++;return count;} public void tick(Minecraft client){for(Module module:modules.values())module.tick(client);}
     public enum DisplayMode{COMPACT,DETAILED} public enum RenderMode{STANDARD,HIGH_CONTRAST,MINIMAL}
     private static final class ClientInfoModule extends Module{private ClientInfoModule(){super("client-info","Client Info",Category.MISC,"Shows client/version metadata used by the local HUD.");setting(new BooleanSetting("show-version","Show Version",true));}}
