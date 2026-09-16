@@ -14,6 +14,7 @@ import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ItemESPModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.notification.NotificationCenter;
 import io.arson.client.platform.FabricFeatureContextAdapter;
 import io.arson.client.platform.FeatureContextAdapter;
 import io.arson.client.render.AimAssistRenderStage;
@@ -90,6 +91,7 @@ public final class ArsonClient implements ClientModInitializer {
             while (openMenuKey.consumeClick()) {
                 Screen current = clientTick.screen;
                 clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
+                NotificationCenter.push("Arson", current instanceof ArsonScreen ? "GUI closed" : "GUI opened");
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
@@ -127,7 +129,10 @@ public final class ArsonClient implements ClientModInitializer {
             int keyCode = module.keyCode();
             if (keyCode <= 0) continue;
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
-            if (consumeModuleKeyPress(moduleKeyStates, module, down)) module.toggle();
+            if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
+                module.toggle();
+                NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
+            }
         }
     }
     public ModuleManager modules() { return moduleManager; }
