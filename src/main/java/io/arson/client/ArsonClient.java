@@ -41,13 +41,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
-
 import java.util.HashMap;
 import java.util.Map;
 
 public final class ArsonClient implements ClientModInitializer {
     public static final String MOD_ID = "arson";
-
     private static ArsonClient instance;
     private ModuleManager moduleManager;
     private KeyMapping openMenuKey;
@@ -55,18 +53,14 @@ public final class ArsonClient implements ClientModInitializer {
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
     private final Map<Integer, Boolean> moduleKeyStates = new HashMap<>();
-
     public static ArsonClient getInstance() { return instance; }
 
-    @Override
-    public void onInitializeClient() {
+    @Override public void onInitializeClient() {
         instance = this;
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
-
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
-        openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping("key.arson.open_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
-
+        openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.arson.open_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "array_list"), ArrayListRenderer::render);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"), CombatInfoRenderer::render);
@@ -77,52 +71,31 @@ public final class ArsonClient implements ClientModInitializer {
         contextAdapter.initialize(featureContext);
         worldRenderBridge = new WorldRenderBridge(featureContext, contextAdapter);
 
-        StorageRenderProfile storageProfile = new StorageRenderProfile();
-        StorageOverlay storageOverlay = new StorageOverlay(storageProfile);
-        ContainerESPModule containerESP = (ContainerESPModule) moduleManager.get("container-esp");
-        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), containerESP));
-
+        StorageOverlay storageOverlay = new StorageOverlay(new StorageRenderProfile());
+        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), (ContainerESPModule) moduleManager.get("container-esp")));
         EntityScanner entityScanner = new EntityScanner();
-        EntityESPModule entityESP = (EntityESPModule) moduleManager.get("entity-esp");
-        worldRenderBridge.register(new EntityRenderStage(client, entityScanner, entityESP));
-
-        ItemESPModule itemESP = (ItemESPModule) moduleManager.get("item-esp");
-        worldRenderBridge.register(new ItemRenderStage(client, entityScanner, itemESP));
-
-        EntityInfoModule entityInfo = (EntityInfoModule) moduleManager.get("entity-info");
-        worldRenderBridge.register(new EntityInfoStage(client, entityScanner, entityInfo));
-
-        EntityTracerModule entityTracers = (EntityTracerModule) moduleManager.get("entity-tracers");
-        worldRenderBridge.register(new EntityTracerStage(client, entityScanner, entityTracers));
-
-        BlockESPModule blockESP = (BlockESPModule) moduleManager.get("block-esp");
-        worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), blockESP));
-
-        AimAssistModule aimAssist = (AimAssistModule) moduleManager.get("aim-assist");
-        worldRenderBridge.register(new AimAssistRenderStage(client, aimAssist));
+        worldRenderBridge.register(new EntityRenderStage(client, entityScanner, (EntityESPModule) moduleManager.get("entity-esp")));
+        worldRenderBridge.register(new ItemRenderStage(client, entityScanner, (ItemESPModule) moduleManager.get("item-esp")));
+        worldRenderBridge.register(new EntityInfoStage(client, entityScanner, (EntityInfoModule) moduleManager.get("entity-info")));
+        worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
+        worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
+        worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             contextAdapter.tick(featureContext);
             while (openMenuKey.consumeClick()) {
                 Screen current = clientTick.screen;
-                if (current instanceof ArsonScreen) clientTick.setScreen(null);
-                else clientTick.setScreen(new ArsonScreen(current));
+                clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
         });
-
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) {
-                ConfigManager.save(clientTick, moduleManager);
-            }
+            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) ConfigManager.save(clientTick, moduleManager);
         });
-
         ConfigManager.load(client, moduleManager);
-
-        Component startup = Component.literal("Arson V3 initialized");
-        if (client.player != null) client.player.displayClientMessage(startup, true);
+        if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
 
     private void processModuleKeybinds(Minecraft client) {
@@ -137,7 +110,6 @@ public final class ArsonClient implements ClientModInitializer {
             if (down && !wasDown) module.toggle();
         }
     }
-
     public ModuleManager modules() { return moduleManager; }
     public WorldRenderBridge worldRenderBridge() { return worldRenderBridge; }
     public FeatureContext featureContext() { return featureContext; }
