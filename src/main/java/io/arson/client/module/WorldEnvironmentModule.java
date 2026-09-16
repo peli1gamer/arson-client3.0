@@ -1,7 +1,6 @@
 package io.arson.client.module;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.Registries;
 
 /** Tracks local dimension and biome identifiers for information HUDs. */
 public final class WorldEnvironmentModule extends Module {
@@ -22,9 +21,8 @@ public final class WorldEnvironmentModule extends Module {
         }
         dimension = client.level.dimension().toString();
         var holder = client.level.getBiome(client.player.blockPosition());
-        biome = client.level.registryAccess().getOrThrow(Registries.BIOME)
-                .getKey(holder.value())
-                .map(Object::toString)
+        biome = holder.unwrapKey()
+                .map(key -> key.location().toString())
                 .orElse("unknown");
     }
 
