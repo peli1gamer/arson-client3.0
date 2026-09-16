@@ -3,6 +3,7 @@ package io.arson.client.render;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.InventoryInfoModule;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.notification.NotificationCenter;
@@ -23,13 +24,22 @@ public final class HudRenderer {
         if (hud == null || !hud.enabled()) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
+        InventoryInfoModule inventoryInfo = (InventoryInfoModule) ArsonClient.getInstance().modules().get("inventory-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
         float globalScale = (float) hud.scale();
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
         if (hud.showCoordinates()) drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())});
         if (hud.showFps()) drawElement(graphics, client, hud, layout, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getFps()});
-        if (hud.showPlayerInfo() && playerInfo != null && playerInfo.enabled()) { java.util.ArrayList<String> rows = new java.util.ArrayList<>(); if (playerInfo.showHealth()) rows.add(String.format(java.util.Locale.ROOT, "Health %.1f/%.1f", client.player.getHealth(), client.player.getMaxHealth())); if (playerInfo.showHunger()) rows.add("Food " + client.player.getFoodData().getFoodLevel()); if (playerInfo.showArmor()) rows.add(armor(client)); if (playerInfo.showHeldItem()) { ItemStack stack = client.player.getMainHandItem(); rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString()); } drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new)); }
+        if (hud.showPlayerInfo() && playerInfo != null && playerInfo.enabled()) {
+            java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+            if (playerInfo.showHealth()) rows.add(String.format(java.util.Locale.ROOT, "Health %.1f/%.1f", client.player.getHealth(), client.player.getMaxHealth()));
+            if (playerInfo.showHunger()) rows.add("Food " + client.player.getFoodData().getFoodLevel());
+            if (playerInfo.showArmor()) rows.add(armor(client));
+            if (playerInfo.showHeldItem()) { ItemStack stack = client.player.getMainHandItem(); rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString()); }
+            if (playerInfo.showInventory() && inventoryInfo != null && inventoryInfo.enabled()) rows.add(inventoryInfo.formatted() + "  Slot " + inventoryInfo.selectedSlot());
+            drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
+        }
         if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) { java.util.ArrayList<String> rows = new java.util.ArrayList<>(); if (worldInfo.showTime()) { long dayTime = Math.floorMod(client.level.getDayTime(), 24000L); long hours = (dayTime / 1000L + 6L) % 24L; long minutes = Math.round((dayTime % 1000L) * 60.0 / 1000.0); if (minutes == 60) { minutes = 0; hours = (hours + 1) % 24; } rows.add(String.format(java.util.Locale.ROOT, "Time %02d:%02d", hours, minutes)); } if (worldInfo.showDimension()) rows.add("Dimension " + client.level.dimension().identifier()); if (worldInfo.showWeather()) rows.add("Weather " + (client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear")); drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new)); }
         graphics.pose().popMatrix();
     }
