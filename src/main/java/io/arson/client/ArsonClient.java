@@ -53,6 +53,7 @@ public final class ArsonClient implements ClientModInitializer {
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
     private final Map<Integer, Boolean> moduleKeyStates = new HashMap<>();
+    private int runtimeSmokeTick;
     public static ArsonClient getInstance() { return instance; }
 
     @Override public void onInitializeClient() {
@@ -90,12 +91,22 @@ public final class ArsonClient implements ClientModInitializer {
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
+            runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) ConfigManager.save(clientTick, moduleManager);
         });
         ConfigManager.load(client, moduleManager);
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
+    }
+
+    private void runRuntimeSmoke(Minecraft client) {
+        int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
+        if (limit <= 0) return;
+        runtimeSmokeTick++;
+        if (runtimeSmokeTick == 20) client.setScreen(new ArsonScreen(client.screen));
+        if (runtimeSmokeTick == 50) client.setScreen(null);
+        if (runtimeSmokeTick >= limit) client.stop();
     }
 
     private void processModuleKeybinds(Minecraft client) {
