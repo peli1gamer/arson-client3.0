@@ -10,6 +10,7 @@ import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.Setting;
+import io.arson.client.settings.SettingGroup;
 import io.arson.client.settings.StringSetting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -64,15 +65,16 @@ public final class ArsonScreen extends Screen {
     private static String keyName(int keyCode){if(keyCode<=0)return"None";String name=GLFW.glfwGetKeyName(keyCode,0);return name!=null?name.toUpperCase(Locale.ROOT):"KEY "+keyCode;}
     private void addSettingWidgets(){
         int x=panelX+385,y=panelY+105-scroll,bottom=panelY+panelH-55;
+        String groupId=null;
         for(Setting<?> setting:selected.settings()){
             if(!setting.visible())continue;
+            SettingGroup group=setting.group();
+            if(group!=null&&!group.id().equals(groupId)){groupId=group.id();if(y>=panelY+100&&y<=bottom){addRenderableWidget(Button.builder(Component.literal("▸ "+group.name()),b->{}).bounds(x,y,300,20).build());y+=22;if(!group.description().isBlank())y+=8;}}
             if(y<panelY+100){y+=27;continue;}if(y>bottom)break;
             if(setting instanceof BooleanSetting b){
                 addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(b.enabled()?"ON":"OFF")),x1->{b.set(!b.enabled());saveConfig();rebuild();}).bounds(x,y,235,22).build());
             }else if(setting instanceof DoubleSetting d){
-                addRenderableWidget(Button.builder(Component.literal("−"),b->{d.decrement();saveConfig();rebuild();}).bounds(x,y,30,22).build());
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.format(Locale.ROOT,"%.2f",d.get())),b->{d.increment();saveConfig();rebuild();}).bounds(x+31,y,174,22).build());
-                addRenderableWidget(Button.builder(Component.literal("+"),b->{d.increment();saveConfig();rebuild();}).bounds(x+206,y,29,22).build());
+                DoubleSettingSlider slider=new DoubleSettingSlider(x,y,235,22,d,this::saveConfig);addRenderableWidget(slider);
             }else if(setting instanceof EnumSetting<?> e){
                 addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(e.get())),b->{e.cycle(1);saveConfig();rebuild();}).bounds(x,y,235,22).build());
             }else if(setting instanceof ColorSetting c){
