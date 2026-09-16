@@ -33,7 +33,7 @@ public final class WorldRenderBridge {
         if (registered) return;
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             frame++;
-            if (contextAdapter != null) contextAdapter.render(featureContext, frame, context.tickDelta());
+            if (contextAdapter != null) contextAdapter.render(featureContext, frame, context.tickCounter().getGameTimeDeltaPartialTick(false));
             for (WorldRenderStage stage : stages) stage.render(context);
         });
         registered = true;
