@@ -34,11 +34,11 @@ public final class ConfigManager {
         saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
     }
 
-    public static void saveProfile(Minecraft client, ModuleManager modules, String profileName) {
+    public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName);
-        if (safeName.isEmpty()) return;
+        if (safeName.isEmpty()) return false;
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
-        saveToPath(directory.resolve(safeName + ".json"), modules);
+        return saveToPath(directory.resolve(safeName + ".json"), modules);
     }
 
     public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
@@ -92,9 +92,9 @@ public final class ConfigManager {
         }
     }
 
-    static void saveToPath(Path path, ModuleManager modules) {
+    static boolean saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent();
-        if (directory == null) return;
+        if (directory == null) return false;
         Path tempPath = path.resolveSibling(path.getFileName() + ".tmp");
         Path backupPath = path.resolveSibling(path.getFileName() + ".bak");
         JsonObject root = new JsonObject();
@@ -133,8 +133,10 @@ public final class ConfigManager {
             } catch (IOException atomicMoveUnsupported) {
                 Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
             }
+            return true;
         } catch (IOException ignored) {
             try { Files.deleteIfExists(tempPath); } catch (IOException ignoredCleanup) { }
+            return false;
         }
     }
 
