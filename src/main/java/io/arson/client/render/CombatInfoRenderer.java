@@ -6,6 +6,9 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
 
 /** Renders nearby combat target and weapon information without automating combat. */
@@ -19,7 +22,7 @@ public final class CombatInfoRenderer {
         CombatInfoModule module = (CombatInfoModule) ArsonClient.getInstance().modules().get("combat-info");
         if (module == null || !module.enabled()) return;
 
-        LivingEntity target = findTarget(client, module.range());
+        LivingEntity target = findTarget(client, module);
         ItemStack held = client.player.getMainHandItem();
         String weapon = held.isEmpty() ? "Hand" : held.getHoverName().getString();
         String durability = module.showDurability() && held.isDamageableItem()
@@ -84,13 +87,14 @@ public final class CombatInfoRenderer {
         graphics.pose().popMatrix();
     }
 
-    private static LivingEntity findTarget(Minecraft client, double range) {
+    private static LivingEntity findTarget(Minecraft client, CombatInfoModule module) {
+        double range = module.range();
         double maxDistance = range * range;
         LivingEntity best = null;
         double bestDistance = maxDistance;
         for (LivingEntity entity : client.level.getEntitiesOfClass(LivingEntity.class,
                 client.player.getBoundingBox().inflate(range),
-                entity -> entity != client.player && entity.isAlive() && !entity.isSpectator())) {
+                entity -> entity != client.player && entity.isAlive() && !entity.isSpectator() && allowed(entity, module))) {
             double distance = client.player.distanceToSqr(entity);
             if (distance < bestDistance) {
                 bestDistance = distance;
@@ -98,6 +102,13 @@ public final class CombatInfoRenderer {
             }
         }
         return best;
+    }
+
+    private static boolean allowed(LivingEntity entity, CombatInfoModule module) {
+        if (entity instanceof Player) return module.showPlayers();
+        if (entity instanceof Animal) return module.showAnimals();
+        if (entity instanceof Mob) return module.showMobs();
+        return false;
     }
 
     private static String format(float value) {
