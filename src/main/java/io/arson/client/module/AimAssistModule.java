@@ -86,10 +86,20 @@ public final class AimAssistModule extends Module {
         if (entity == null || entity == client.player || !entity.isAlive() || entity.isRemoved()) return false;
         if (client.player.distanceToSqr(entity) > range.get() * range.get()) return false;
         if (visibleOnly.enabled() && !client.player.hasLineOfSight(entity)) return false;
-        if (entity instanceof Player) return players.enabled();
+        if (entity instanceof Player player) {
+            FriendsModule friends = friendsModule();
+            if (friends != null && friends.isFriend(player)) return false;
+            return players.enabled();
+        }
         if (entity instanceof Monster) return monsters.enabled();
         if (entity instanceof Animal) return animals.enabled();
         return false;
+    }
+
+    private FriendsModule friendsModule() {
+        if (io.arson.client.ArsonClient.getInstance() == null) return null;
+        Module module = io.arson.client.ArsonClient.getInstance().modules().get("friends");
+        return module instanceof FriendsModule friends ? friends : null;
     }
 
     private boolean inCrosshairGate(Minecraft client, LivingEntity entity) {
