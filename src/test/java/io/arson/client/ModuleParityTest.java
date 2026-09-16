@@ -29,6 +29,19 @@ class ModuleParityTest {
     }
 
     @Test
+    void expandedInformationSurfaceContainsConcreteTelemetryModules() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        assertNotNull(manager.get("fps"));
+        assertNotNull(manager.get("player-coordinates"));
+        assertNotNull(manager.get("player-direction"));
+        assertNotNull(manager.get("world-clock"));
+        assertNotNull(manager.get("world-environment"));
+        assertTrue(manager.get("fps").description().contains("frames per second"));
+        assertTrue(manager.get("world-environment").description().contains("dimension"));
+    }
+
+    @Test
     void moduleKeybindIsMutableAndResettableForGuiCustomization() {
         ModuleManager manager = new ModuleManager();
         manager.registerDefaults();
@@ -54,6 +67,19 @@ class ModuleParityTest {
 
         Module first = manager.organized(Module.Category.MOVEMENT).iterator().next();
         assertEquals("sprint", first.id());
+    }
+
+    @Test
+    void favoritesSortBeforeEnabledAndCanBeCounted() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        Module sprint = manager.get("sprint");
+        Module performance = manager.get("performance");
+        assertNotNull(sprint); assertNotNull(performance);
+        sprint.setFavorite(true);
+        performance.setFavorite(true);
+        assertEquals(2, manager.favoriteCount());
+        assertEquals("performance", manager.organized(Module.Category.MISC).iterator().next().id());
     }
 
     @Test
