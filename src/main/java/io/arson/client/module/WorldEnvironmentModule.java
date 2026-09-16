@@ -22,7 +22,7 @@ public final class WorldEnvironmentModule extends Module {
         dimension = client.level.dimension().toString();
         var holder = client.level.getBiome(client.player.blockPosition());
         biome = holder.unwrapKey()
-                .map(key -> key.location().toString())
+                .map(key -> key.identifier().toString())
                 .orElse("unknown");
     }
 
