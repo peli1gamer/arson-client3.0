@@ -37,6 +37,7 @@ jobs:
           unzip -t "$JAR"
           unzip -l "$JAR" | tee build/jar-contents.txt
           sha256sum "$JAR" | tee build/jar-sha256.txt
+          printf '%s\n' "$JAR" > build/artifact-path.txt
           printf 'ARTIFACT=%s\n' "$JAR" >> "$GITHUB_ENV"
 
       - name: Upload verified artifact
@@ -47,4 +48,29 @@ jobs:
             ${{ env.ARTIFACT }}
             build/jar-contents.txt
             build/jar-sha256.txt
+            build/artifact-path.txt
             build/test-results/test/**
+
+  independent-verification:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: arson-client-verified
+          path: verified
+
+      - name: Independently inspect and hash JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR=$(find verified -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+          test -n "$JAR"
+          unzip -t "$JAR"
+          sha256sum "$JAR" | tee verified/independent-sha256.txt
+          test -s verified/jar-sha256.txt
+          EXPECTED=$(awk '{print $1}' verified/jar-sha256.txt)
+          ACTUAL=$(awk '{print $1}' verified/independent-sha256.txt)
+          test "$EXPECTED" = "$ACTUAL"
+          test -f verified/jar-contents.txt
