@@ -19,11 +19,12 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import java.util.Locale;
 
-/** Functional 1.21.11 ClickGUI: categories, modules, settings, profiles and HUD access. */
+/** Functional 1.21.11 ClickGUI: categories, search, module state, settings, keybinds, profiles and HUD access. */
 public final class ArsonScreen extends Screen {
     private final Screen parent;
     private Module.Category category = Module.Category.RENDER;
     private Module selected;
+    private Module bindingModule;
     private EditBox search;
     private EditBox profile;
     private StringSetting editingString;
@@ -52,6 +53,7 @@ public final class ArsonScreen extends Screen {
         }
         if (selected != null) {
             addRenderableWidget(Button.builder(Component.literal(selected.enabled() ? "Disable Module" : "Enable Module"), b -> { selected.toggle(); saveConfig(); rebuild(); }).bounds(panelX + 385, panelY + 50, 300, 22).build());
+            addRenderableWidget(Button.builder(Component.literal(bindingModule == selected ? "Press a key..." : "Keybind: " + keyName(selected.keyCode())), b -> { bindingModule = selected; rebuild(); }).bounds(panelX + 385, panelY + 76, 300, 22).build());
             addSettingWidgets();
         }
         int footer = panelY + panelH - 34;
@@ -67,12 +69,18 @@ public final class ArsonScreen extends Screen {
         }
     }
 
+    private static String keyName(int keyCode) {
+        if (keyCode <= 0) return "None";
+        String name = GLFW.glfwGetKeyName(keyCode, 0);
+        return name != null ? name.toUpperCase(Locale.ROOT) : "KEY " + keyCode;
+    }
+
     private void addSettingWidgets() {
-        int x = panelX + 385, y = panelY + 78 - scroll, bottom = panelY + panelH - 55;
+        int x = panelX + 385, y = panelY + 105 - scroll, bottom = panelY + panelH - 55;
         for (Setting<?> setting : selected.settings()) {
-            if (y < panelY + 73) { y += 27; continue; } if (y > bottom) break;
+            if (y < panelY + 100) { y += 27; continue; } if (y > bottom) break;
             if (setting instanceof BooleanSetting b) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + (b.enabled() ? "ON" : "OFF")), x1 -> { b.set(!b.enabled()); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
-            else if (setting instanceof DoubleSetting d) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", d.get())), x1 -> { d.set(Math.min(d.max(), d.get() + d.step())); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
+            else if (setting instanceof DoubleSetting d) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", d.get())), x1 -> { d.set(d.get() >= d.max() ? d.min() : Math.min(d.max(), d.get() + d.step())); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
             else if (setting instanceof ColorSetting c) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": #" + String.format(Locale.ROOT, "%08X", c.get())), x1 -> { editingColor = c; editingString = null; rebuild(); }).bounds(x, y, 300, 22).build());
             else if (setting instanceof StringSetting s) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + s.get()), x1 -> { editingString = s; editingColor = null; rebuild(); }).bounds(x, y, 300, 22).build());
             y += 27;
@@ -94,7 +102,14 @@ public final class ArsonScreen extends Screen {
     private void saveProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); }
     private void loadProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) { ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); rebuild(); } }
 
-    @Override public boolean keyPressed(KeyEvent event) { if (event.key() == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; } return super.keyPressed(event); }
+    @Override public boolean keyPressed(KeyEvent event) {
+        if (bindingModule != null) {
+            if (event.key() == GLFW.GLFW_KEY_ESCAPE) { bindingModule = null; rebuild(); return true; }
+            bindingModule.setKeyCode(event.key()); bindingModule = null; saveConfig(); rebuild(); return true;
+        }
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; }
+        return super.keyPressed(event);
+    }
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) { return super.mouseClicked(event, doubleClick); }
     @Override public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) { if (selected != null) { scroll = Math.max(0, scroll + (verticalAmount > 0 ? -27 : 27)); rebuild(); return true; } return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount); }
 
@@ -103,5 +118,5 @@ public final class ArsonScreen extends Screen {
         graphics.drawString(font, "Arson Client V3", panelX + 12, panelY + 11, 0xFFFFFFFF); graphics.drawString(font, "Enabled: " + ArsonClient.getInstance().modules().enabledCount(), panelX + panelW - 105, panelY + 11, 0xFFAAAAAA);
         graphics.renderOutline(panelX, panelY, panelW, panelH, 0xFF4C4C56); if (selected != null) graphics.drawString(font, selected.name(), panelX + 385, panelY + 35, 0xFFAAAAAA); super.render(graphics, mouseX, mouseY, delta);
     }
-    @Override public void onClose() { saveConfig(); minecraft.setScreen(parent); }
+    @Override public void onClose() { bindingModule = null; saveConfig(); minecraft.setScreen(parent); }
 }
