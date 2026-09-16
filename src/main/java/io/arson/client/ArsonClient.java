@@ -3,6 +3,7 @@ package io.arson.client;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
+import io.arson.client.module.AimAssistModule;
 import io.arson.client.module.BlockESPModule;
 import io.arson.client.module.ContainerESPModule;
 import io.arson.client.module.EntityESPModule;
@@ -11,6 +12,7 @@ import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ItemESPModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.render.AimAssistRenderStage;
 import io.arson.client.render.ArrayListRenderer;
 import io.arson.client.render.BlockRenderStage;
 import io.arson.client.render.BlockScanner;
@@ -49,9 +51,7 @@ public final class ArsonClient implements ClientModInitializer {
     private WorldRenderBridge worldRenderBridge;
     private final Map<Integer, Boolean> moduleKeyStates = new HashMap<>();
 
-    public static ArsonClient getInstance() {
-        return instance;
-    }
+    public static ArsonClient getInstance() { return instance; }
 
     @Override
     public void onInitializeClient() {
@@ -59,29 +59,12 @@ public final class ArsonClient implements ClientModInitializer {
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
 
-        KeyMapping.Category category = KeyMapping.Category.register(
-                Identifier.fromNamespaceAndPath(MOD_ID, "main")
-        );
+        KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
+        openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping("key.arson.open_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
 
-        openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping(
-                "key.arson.open_menu",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_RIGHT_SHIFT,
-                category
-        ));
-
-        HudElementRegistry.addLast(
-                Identifier.fromNamespaceAndPath(MOD_ID, "hud"),
-                HudRenderer::render
-        );
-        HudElementRegistry.addLast(
-                Identifier.fromNamespaceAndPath(MOD_ID, "array_list"),
-                ArrayListRenderer::render
-        );
-        HudElementRegistry.addLast(
-                Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"),
-                CombatInfoRenderer::render
-        );
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "array_list"), ArrayListRenderer::render);
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"), CombatInfoRenderer::render);
 
         worldRenderBridge = new WorldRenderBridge();
         Minecraft client = Minecraft.getInstance();
@@ -89,8 +72,7 @@ public final class ArsonClient implements ClientModInitializer {
         StorageRenderProfile storageProfile = new StorageRenderProfile();
         StorageOverlay storageOverlay = new StorageOverlay(storageProfile);
         ContainerESPModule containerESP = (ContainerESPModule) moduleManager.get("container-esp");
-        worldRenderBridge.register(new StorageRenderStage(
-                client, storageOverlay, new StorageScanner(), containerESP));
+        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), containerESP));
 
         EntityScanner entityScanner = new EntityScanner();
         EntityESPModule entityESP = (EntityESPModule) moduleManager.get("entity-esp");
@@ -108,18 +90,17 @@ public final class ArsonClient implements ClientModInitializer {
         BlockESPModule blockESP = (BlockESPModule) moduleManager.get("block-esp");
         worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), blockESP));
 
+        AimAssistModule aimAssist = (AimAssistModule) moduleManager.get("aim-assist");
+        worldRenderBridge.register(new AimAssistRenderStage(client, aimAssist));
+
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             while (openMenuKey.consumeClick()) {
                 Screen current = clientTick.gui.screen();
-                if (current instanceof ArsonScreen) {
-                    clientTick.gui.setScreen(null);
-                } else {
-                    clientTick.gui.setScreen(new ArsonScreen(current));
-                }
+                if (current instanceof ArsonScreen) clientTick.gui.setScreen(null);
+                else clientTick.gui.setScreen(new ArsonScreen(current));
             }
-
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
         });
@@ -133,34 +114,22 @@ public final class ArsonClient implements ClientModInitializer {
         ConfigManager.load(client, moduleManager);
 
         Component startup = Component.literal("Arson V3 initialized");
-        if (client.player != null) {
-            client.player.displayClientMessage(startup, true);
-        }
+        if (client.player != null) client.player.displayClientMessage(startup, true);
     }
 
     private void processModuleKeybinds(Minecraft client) {
-        if (client.getWindow() == null) return;
-        if (client.screen != null) return;
-
+        if (client.getWindow() == null || client.screen != null) return;
         long window = client.getWindow().handle();
         for (Module module : moduleManager.all()) {
             int keyCode = module.keyCode();
             if (keyCode <= 0) continue;
-
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
             boolean wasDown = moduleKeyStates.getOrDefault(keyCode, false);
             moduleKeyStates.put(keyCode, down);
-            if (down && !wasDown) {
-                module.toggle();
-            }
+            if (down && !wasDown) module.toggle();
         }
     }
 
-    public ModuleManager modules() {
-        return moduleManager;
-    }
-
-    public WorldRenderBridge worldRenderBridge() {
-        return worldRenderBridge;
-    }
+    public ModuleManager modules() { return moduleManager; }
+    public WorldRenderBridge worldRenderBridge() { return worldRenderBridge; }
 }
