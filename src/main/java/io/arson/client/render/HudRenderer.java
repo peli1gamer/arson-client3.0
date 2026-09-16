@@ -4,6 +4,7 @@ import io.arson.client.ArsonClient;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.WorldInfoModule;
+import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,6 +16,7 @@ public final class HudRenderer {
     private HudRenderer() {}
     public static void render(GuiGraphics graphics, DeltaTracker tickCounter) {
         Minecraft client = Minecraft.getInstance();
+        renderNotifications(graphics, client);
         if (client.player == null || client.level == null) return;
         HudModule hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
         if (hud == null || !hud.enabled()) return;
@@ -41,6 +43,19 @@ public final class HudRenderer {
             drawElement(graphics, client, hud, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
         graphics.pose().popMatrix();
+    }
+    private static void renderNotifications(GuiGraphics graphics, Minecraft client) {
+        var notifications = NotificationCenter.active(System.currentTimeMillis());
+        int y = 10;
+        for (NotificationCenter.Notification notification : notifications) {
+            int width = Math.max(180, Math.max(client.font.width(notification.title()), client.font.width(notification.message())) + 24);
+            int x = client.getWindow().getGuiScaledWidth() - width - 10;
+            graphics.fill(x, y, x + width, y + 38, 0xE0181820);
+            graphics.renderOutline(x, y, width, 38, 0xFF555566);
+            graphics.drawString(client.font, notification.title(), x + 8, y + 6, 0xFFFFFFFF);
+            graphics.drawString(client.font, notification.message(), x + 8, y + 20, 0xFFD0D0D0);
+            y += 43;
+        }
     }
     private static void drawElement(GuiGraphics graphics, Minecraft client, HudModule hud, String element, int x, int y, String[] rows) {
         if (rows.length == 0) return;
