@@ -15,11 +15,13 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** 1.21.11 HUD editor with multi-selection, alignment, anchoring and clipboard-style editing. */
+/** 1.21.11 HUD editor with multi-selection, relative anchor math and compatible cross-element clipboard editing. */
 public final class HudEditorScreen extends Screen {
     private static final String[] ELEMENTS={"watermark","coordinates","fps","player-info","world-info","array-list"};
     private final Screen parent; private HudModule hud; private ArrayListModule arrayList;
@@ -56,22 +58,27 @@ public final class HudEditorScreen extends Screen {
     private double[] position(String e){if("array-list".equals(e))return new double[]{arrayList.x(),arrayList.y()};return switch(e){case "coordinates"->new double[]{hud.coordinatesX(),hud.coordinatesY()};case "fps"->new double[]{hud.fpsX(),hud.fpsY()};case "player-info"->new double[]{hud.playerInfoX(),hud.playerInfoY()};case "world-info"->new double[]{hud.worldInfoX(),hud.worldInfoY()};default->new double[]{hud.x(),hud.y()};};}
     private void setPosition(String e,double x,double y){if("array-list".equals(e)){arrayList.setEditorPosition(x,y);return;}hud.setEditorPosition(e,x,y);}
     private boolean hit(String e,double x,double y){if(!visible(e))return false;double[]p=position(e);double s="array-list".equals(e)?arrayList.scale():hud.scale()*hud.elementScale(e);return x>=p[0]-8&&x<=p[0]+190*s&&y>=p[1]-8&&y<=p[1]+35*s;}
-    private Snapshot snapshot(String e){if("array-list".equals(e)||hud==null)return null;return new Snapshot(visible(e),position(e)[0],position(e)[1],hud.elementScale(e),hud.elementBackground(e),hud.elementAlignment(e),hud.elementColor(e));}
+    private Snapshot snapshot(String e){if("array-list".equals(e)||hud==null)return null;return new Snapshot(e,visible(e),position(e)[0],position(e)[1],hud.elementScale(e),hud.elementBackground(e),hud.elementAlignment(e),hud.elementColor(e));}
     private void copySelected(){clipboard.clear();for(String e:selection.elements()){Snapshot s=snapshot(e);if(s!=null)clipboard.put(e,s);}}
-    private void pasteSelected(){if(clipboard.isEmpty()||hud==null)return;for(String e:selection.elements()){Snapshot s=clipboard.get(e);if(s!=null)applySnapshot(e,s);}}
-    private void duplicateSelected(){if(selection.size()!=1)return;String source=selection.elements().iterator().next();Snapshot s=snapshot(source);if(s==null)return;for(String target:ELEMENTS){if(target.equals(source)||selection.contains(target)||"array-list".equals(target))continue;applySnapshot(target,new Snapshot(s.visible,s.x+12,s.y+12,s.scale,s.background,s.alignment,s.color));selection.select(target,false);break;}}
+    private void pasteSelected(){if(clipboard.isEmpty()||hud==null)return;List<Snapshot> values=new ArrayList<>(clipboard.values());for(String target:selection.elements()){if("array-list".equals(target))continue;Snapshot source=clipboard.get(target);if(source==null)source=values.get(0);if(source!=null&&HudClipboardCompatible.isCompatible(source.source,target))applySnapshot(target,source);}}
+    private void duplicateSelected(){if(selection.size()!=1)return;String source=selection.elements().iterator().next();Snapshot s=snapshot(source);if(s==null)return;for(String target:ELEMENTS){if(target.equals(source)||selection.contains(target)||"array-list".equals(target))continue;if(HudClipboardCompatible.isCompatible(source,target)){applySnapshot(target,new Snapshot(source, s.visible,s.x+12,s.y+12,s.scale,s.background,s.alignment,s.color));selection.select(target,false);break;}}}
     private void applySnapshot(String e,Snapshot s){if(s==null||"array-list".equals(e))return;hud.setElementVisible(e,s.visible);hud.setEditorPosition(e,s.x,s.y);for(Setting<?> setting:hud.settings()){
             if(setting instanceof DoubleSetting d&&d.id().equals(e+"-scale"))d.set(s.scale);
             else if(setting instanceof BooleanSetting b&&b.id().equals(e+"-background"))b.set(s.background);
             else if(setting instanceof ColorSetting c&&c.id().equals(e+"-color"))c.set(s.color);
             else if(setting instanceof io.arson.client.settings.StringSetting str&&str.id().equals(e+"-align"))str.set(s.alignment);
         }}
-    private void anchorSelected(){int mode=(int)((System.currentTimeMillis()/1800L)%9);for(String e:selection.elements()){if("array-list".equals(e))continue;double w=190,h=35,s=hud.scale()*hud.elementScale(e);double x=8,y=42;switch(mode){case 1->x=width/2.0;case 2->x=Math.max(8,width-w*s-8);case 3->{x=8;y=height/2.0;}case 4->{x=width/2.0;y=height/2.0;}case 5->{x=Math.max(8,width-w*s-8);y=height/2.0;}case 6->{x=8;y=Math.max(42,height-h*s-42);}case 7->{x=width/2.0;y=Math.max(42,height-h*s-42);}case 8->{x=Math.max(8,width-w*s-8);y=Math.max(42,height-h*s-42);}default->{} }setPosition(e,x,y);}}
+    private void anchorSelected(){int mode=(int)((System.currentTimeMillis()/1800L)%9);HudAnchorConstraint.Anchor anchor=HudAnchorConstraint.Anchor.values()[mode];for(String e:selection.elements()){if("array-list".equals(e))continue;double w=190,h=35,s=hud.scale()*hud.elementScale(e);double[] p=HudAnchorConstraint.resolve(anchor,width,height,w*s,h*s,8,42);setPosition(e,p[0],p[1]);}}
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.button()==0){for(String e:ELEMENTS)if(hit(e,event.x(),event.y())){selection.select(e,event.hasShiftDown());double[]p=position(e);offsetX=event.x()-p[0];offsetY=event.y()-p[1];dragging=true;return true;}}return super.mouseClicked(event,doubleClick);}
     @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0){double x=event.x()-offsetX,y=event.y()-offsetY;if(selection.size()>0){String anchor=selection.elements().iterator().next();double[] a=position(anchor);double dx=x-a[0],dy=y-a[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}}return true;}return super.mouseDragged(event,dragX,dragY);}
     @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;save();return true;}return super.mouseReleased(event);}
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
     @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(0,0,width,height,0x66000000);graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);graphics.drawString(font,"Shift-click group | drag | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);for(String e:selection.elements())if(visible(e)){double[]p=position(e);int x=(int)p[0],y=(int)p[1];graphics.renderOutline(x-4,y-4,190,35,0xFF55AAFF);graphics.drawString(font,e,x,y+6,0xFFFFFFFF);}super.render(graphics,mouseX,mouseY,delta);}
     @Override public void onClose(){save();minecraft.setScreen(parent);}
-    private record Snapshot(boolean visible,double x,double y,double scale,boolean background,String alignment,int color){}
+    private record Snapshot(String source,boolean visible,double x,double y,double scale,boolean background,String alignment,int color){}
+    static final class HudClipboardCompatible {
+        private HudClipboardCompatible() {}
+        static boolean isCompatible(String source,String target){return source!=null&&target!=null&&!source.equals("array-list")&&!target.equals("array-list")&&STANDARD.contains(source)&&STANDARD.contains(target);}
+        private static final Set<String> STANDARD=Set.of("watermark","coordinates","fps","player-info","world-info");
+    }
 }
