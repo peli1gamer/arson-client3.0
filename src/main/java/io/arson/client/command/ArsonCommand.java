@@ -18,42 +18,25 @@ public final class ArsonCommand {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher,registryAccess)->dispatcher.register(ClientCommandManager.literal("arson")
             .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|toggle|info|settings|reset>, category <list|info>, config <save|load>, profile <list|save|load|delete>, plus legacy list/toggle/info/settings/reset/save.");return 1;}))
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
-            .then(moduleCommands())
-            .then(categoryCommands())
-            .then(configCommands())
-            .then(profileCommands())
-            .then(toggleCommand())
-            .then(infoCommand())
-            .then(settingsCommand())
-            .then(resetCommand())
+            .then(moduleCommands()).then(categoryCommands()).then(configCommands()).then(profileCommands())
+            .then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand())
             .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
         ));
     }
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> moduleCommands(){
-        return ClientCommandManager.literal("module")
-            .then(ClientCommandManager.literal("list").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,raw+": "+ArsonClient.getInstance().modules().organized(c).stream().map(Module::id).toList());return 1;})).executes(ctx->{feedback(ctx,"Modules: "+ArsonClient.getInstance().modules().all().stream().map(Module::id).toList());return 1;}))
-            .then(toggleCommand())
-            .then(infoCommand())
-            .then(settingsCommand())
-            .then(resetCommand());
-    }
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> categoryCommands(){
-        return ClientCommandManager.literal("category")
-            .then(ClientCommandManager.literal("list").executes(ctx->{StringBuilder out=new StringBuilder();for(Module.Category c:Module.Category.values()){if(out.length()>0)out.append(" | ");out.append(c.name().toLowerCase()).append("=").append(ArsonClient.getInstance().modules().categoryCount(c)).append("/").append(ArsonClient.getInstance().modules().enabledCount(c));}feedback(ctx,out.toString());return 1;}))
-            .then(ClientCommandManager.literal("info").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,c.displayName()+": "+ArsonClient.getInstance().modules().categoryCount(c)+" modules, "+ArsonClient.getInstance().modules().enabledCount(c)+" enabled.");return 1;})));
-    }
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> configCommands(){
-        return ClientCommandManager.literal("config")
-            .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
-            .then(ClientCommandManager.literal("load").executes(ctx->{ArsonClient.getInstance().loadConfig();feedback(ctx,"Arson config loaded.");return 1;}));
-    }
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> profileCommands(){
-        return ClientCommandManager.literal("profile")
-            .then(ClientCommandManager.literal("list").executes(ctx->{var profiles=ConfigManager.listProfiles(Minecraft.getInstance());feedback(ctx,profiles.isEmpty()?"No saved profiles.":"Profiles: "+profiles);return 1;}))
-            .then(ClientCommandManager.literal("save").then(ClientCommandManager.argument("name",StringArgumentType.word()).executes(ctx->{String n=StringArgumentType.getString(ctx,"name");boolean ok=ConfigManager.saveProfile(Minecraft.getInstance(),ArsonClient.getInstance().modules(),n);feedback(ctx,ok?"Profile saved: "+n:"Invalid profile name");return ok?1:0;})))
-            .then(ClientCommandManager.literal("load").then(ClientCommandManager.argument("name",StringArgumentType.word()).suggests((ctx,b)->{for(String n:ConfigManager.listProfiles(Minecraft.getInstance()))b.suggest(n);return b.buildFuture();}).executes(ctx->{String n=StringArgumentType.getString(ctx,"name");boolean ok=ConfigManager.loadProfile(Minecraft.getInstance(),ArsonClient.getInstance().modules(),n);feedback(ctx,ok?"Profile loaded: "+n:"Profile not found or invalid");return ok?1:0;})))
-            .then(ClientCommandManager.literal("delete").then(ClientCommandManager.argument("name",StringArgumentType.word()).suggests((ctx,b)->{for(String n:ConfigManager.listProfiles(Minecraft.getInstance()))b.suggest(n);return b.buildFuture();}).executes(ctx->{String n=StringArgumentType.getString(ctx,"name");boolean ok=ConfigManager.deleteProfile(Minecraft.getInstance(),n);feedback(ctx,ok?"Profile deleted: "+n:"Profile not found or invalid");return ok?1:0;})));
-    }
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> moduleCommands(){return ClientCommandManager.literal("module")
+        .then(ClientCommandManager.literal("list").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,raw+": "+ArsonClient.getInstance().modules().organized(c).stream().map(Module::id).toList());return 1;})).executes(ctx->{feedback(ctx,"Modules: "+ArsonClient.getInstance().modules().all().stream().map(Module::id).toList());return 1;}))
+        .then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand());}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> categoryCommands(){return ClientCommandManager.literal("category")
+        .then(ClientCommandManager.literal("list").executes(ctx->{StringBuilder out=new StringBuilder();for(Module.Category c:Module.Category.values()){if(out.length()>0)out.append(" | ");out.append(c.name().toLowerCase()).append("=").append(ArsonClient.getInstance().modules().categoryCount(c)).append("/").append(ArsonClient.getInstance().modules().enabledCount(c));}feedback(ctx,out.toString());return 1;}))
+        .then(ClientCommandManager.literal("info").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,c.displayName()+": "+ArsonClient.getInstance().modules().categoryCount(c)+" modules, "+ArsonClient.getInstance().modules().enabledCount(c)+" enabled.");return 1;})));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> configCommands(){return ClientCommandManager.literal("config")
+        .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
+        .then(ClientCommandManager.literal("load").executes(ctx->{ConfigManager.load(Minecraft.getInstance(),ArsonClient.getInstance().modules());feedback(ctx,"Arson config loaded.");return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> profileCommands(){return ClientCommandManager.literal("profile")
+        .then(ClientCommandManager.literal("list").executes(ctx->{var profiles=ConfigManager.listProfiles(Minecraft.getInstance());feedback(ctx,profiles.isEmpty()?"No saved profiles.":"Profiles: "+profiles);return 1;}))
+        .then(ClientCommandManager.literal("save").then(ClientCommandManager.argument("name",StringArgumentType.word()).executes(ctx->{String n=StringArgumentType.getString(ctx,"name");boolean ok=ConfigManager.saveProfile(Minecraft.getInstance(),ArsonClient.getInstance().modules(),n);feedback(ctx,ok?"Profile saved: "+n:"Invalid profile name");return ok?1:0;})))
+        .then(ClientCommandManager.literal("load").then(ClientCommandManager.argument("name",StringArgumentType.word()).suggests((ctx,b)->{for(String n:ConfigManager.listProfiles(Minecraft.getInstance()))b.suggest(n);return b.buildFuture();}).executes(ctx->{String n=StringArgumentType.getString(ctx,"name");boolean ok=ConfigManager.loadProfile(Minecraft.getInstance(),ArsonClient.getInstance().modules(),n);feedback(ctx,ok?"Profile loaded: "+n:"Profile not found or invalid");return ok?1:0;})))
+        .then(ClientCommandManager.literal("delete").then(ClientCommandManager.argument("name",StringArgumentType.word()).suggests((ctx,b)->{for(String n:ConfigManager.listProfiles(Minecraft.getInstance()))b.suggest(n);return b.buildFuture();}).executes(ctx->{String n=StringArgumentType.getString(ctx,"name");boolean ok=ConfigManager.deleteProfile(Minecraft.getInstance(),n);feedback(ctx,ok?"Profile deleted: "+n:"Profile not found or invalid");return ok?1:0;})));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(){return ClientCommandManager.literal("toggle").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.toggle();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": "+(m.enabled()?"enabled":"disabled"));return 1;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> infoCommand(){return ClientCommandManager.literal("info").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;feedback(ctx,m.help());return 1;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingsCommand(){return ClientCommandManager.literal("settings").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;StringBuilder out=new StringBuilder(m.name()+": ");for(int i=0;i<m.settings().size();i++){if(i>0)out.append(", ");var s=m.settings().get(i);out.append(s.id()).append("=").append(s.get());if(!s.description().isBlank())out.append(" [").append(s.description()).append("]");}if(m.settings().isEmpty())out.append("no settings");feedback(ctx,out.toString());return 1;}));}
