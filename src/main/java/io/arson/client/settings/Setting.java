@@ -10,6 +10,7 @@ public abstract class Setting<T> {
     private T value;
     private String description = "";
     private BooleanSupplier visibility = () -> true;
+    private SettingGroup group;
 
     protected Setting(String id, String name, T defaultValue) {
         this.id = Objects.requireNonNull(id);
@@ -27,5 +28,8 @@ public abstract class Setting<T> {
     public String description() { return description; }
     public Setting<T> description(String value) { description = value == null ? "" : value; return this; }
     public Setting<T> visibleWhen(BooleanSupplier predicate) { visibility = Objects.requireNonNull(predicate); return this; }
-    public boolean visible() { return visibility.getAsBoolean(); }
+    public Setting<T> dependsOn(BooleanSupplier predicate) { return visibleWhen(predicate); }
+    public boolean visible() { return visibility.getAsBoolean() && (group == null || group.visible()); }
+    public SettingGroup group() { return group; }
+    public Setting<T> group(SettingGroup value) { group = Objects.requireNonNull(value); value.add(this); return this; }
 }
