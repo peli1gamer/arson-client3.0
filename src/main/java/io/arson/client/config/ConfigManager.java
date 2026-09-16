@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
@@ -36,6 +38,22 @@ public final class ConfigManager {
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
         save(client, modules); return true;
+    }
+    public static List<String> listProfiles(Minecraft client) {
+        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+        if (!Files.isDirectory(directory)) return List.of();
+        ArrayList<String> result = new ArrayList<>();
+        try (var stream = Files.list(directory)) {
+            stream.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".json"))
+                .map(path -> path.getFileName().toString().substring(0, path.getFileName().toString().length() - 5))
+                .sorted(String.CASE_INSENSITIVE_ORDER).forEach(result::add);
+        } catch (IOException ignored) {}
+        return List.copyOf(result);
+    }
+    public static boolean deleteProfile(Minecraft client, String profileName) {
+        String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
+        Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
+        try { return Files.deleteIfExists(path); } catch (IOException ignored) { return false; }
     }
     static boolean loadFromPath(Path path, ModuleManager modules) {
         if (!Files.isRegularFile(path)) return false;
@@ -66,41 +84,24 @@ public final class ConfigManager {
             return true;
         } catch (Exception ignored) { return false; }
     }
-    private static void setEnum(EnumSetting<?> setting, String value) {
-        for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; }
-    }
+    private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
     @SuppressWarnings({"rawtypes", "unchecked"}) private static void setEnumUnchecked(EnumSetting setting, Enum value) { setting.set(value); }
-    private static int readVersion(JsonObject root) {
-        try { JsonElement value = root.get("version"); return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1; }
-        catch (RuntimeException ignored) { return 1; }
-    }
+    private static int readVersion(JsonObject root) { try { JsonElement value = root.get("version"); return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1; } catch (RuntimeException ignored) { return 1; } }
     static boolean saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent(); if (directory == null) return false;
         Path tempPath = path.resolveSibling(path.getFileName() + ".tmp"), backupPath = path.resolveSibling(path.getFileName() + ".bak");
         JsonObject root = new JsonObject(); root.addProperty("version", CONFIG_VERSION); JsonObject moduleRoot = new JsonObject(); root.add("modules", moduleRoot);
         for (Module module : modules.all()) {
-            JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("keyCode", module.keyCode());
-            JsonObject settings = new JsonObject();
-            for (Setting<?> setting : module.settings()) {
-                Object value = setting.get();
-                if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool);
-                else if (value instanceof Number number) settings.addProperty(setting.id(), number);
-                else if (value instanceof String text) settings.addProperty(setting.id(), text);
-                else if (value instanceof Enum<?> select) settings.addProperty(setting.id(), select.name());
-            }
+            JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("keyCode", module.keyCode()); JsonObject settings = new JsonObject();
+            for (Setting<?> setting : module.settings()) { Object value = setting.get(); if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool); else if (value instanceof Number number) settings.addProperty(setting.id(), number); else if (value instanceof String text) settings.addProperty(setting.id(), text); else if (value instanceof Enum<?> select) settings.addProperty(setting.id(), select.name()); }
             data.add("settings", settings); moduleRoot.add(module.id(), data);
         }
         try {
             Files.createDirectories(directory); Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);
             if (Files.isRegularFile(path)) try { Files.copy(path, backupPath, StandardCopyOption.REPLACE_EXISTING); } catch (IOException ignored) {}
-            try { Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE); }
-            catch (IOException ignored) { Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING); }
+            try { Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE); } catch (IOException ignored) { Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING); }
             return true;
         } catch (IOException ignored) { try { Files.deleteIfExists(tempPath); } catch (IOException ignoredCleanup) {} return false; }
     }
-    static String sanitizeProfileName(String name) {
-        if (name == null) return ""; StringBuilder result = new StringBuilder();
-        for (int i = 0; i < name.length() && result.length() < 32; i++) { char c = name.charAt(i); if (Character.isLetterOrDigit(c) || c == '-' || c == '_') result.append(c); }
-        return result.toString();
-    }
+    static String sanitizeProfileName(String name) { if (name == null) return ""; StringBuilder result = new StringBuilder(); for (int i = 0; i < name.length() && result.length() < 32; i++) { char c = name.charAt(i); if (Character.isLetterOrDigit(c) || c == '-' || c == '_') result.append(c); } return result.toString(); }
 }
