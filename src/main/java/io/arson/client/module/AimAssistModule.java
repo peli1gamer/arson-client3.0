@@ -68,7 +68,7 @@ public final class AimAssistModule extends Module {
         return switch (mode) {
             case "hold right click", "right click" -> client.options.keyUse.isDown();
             case "hold left click", "left click" -> client.options.keyAttack.isDown();
-            case "hold key", "key" -> keyCode() > 0 && InputConstants.isKeyDown(client.getWindow().getWindow(), keyCode());
+            case "hold key", "key" -> keyCode() > 0 && InputConstants.isKeyDown(client.getWindow(), keyCode());
             default -> true;
         };
     }
