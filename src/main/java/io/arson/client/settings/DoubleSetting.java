@@ -11,14 +11,14 @@ public final class DoubleSetting extends Setting<Double> {
         this.min = min;
         this.max = max;
         this.step = step;
+        set(defaultValue);
     }
 
-    @Override
-    public void set(Double value) {
-        super.set(Math.max(min, Math.min(max, value)));
-    }
-
+    @Override public void set(Double value) { super.set(Math.max(min, Math.min(max, value))); }
     public double min() { return min; }
     public double max() { return max; }
     public double step() { return step; }
+    public void increment() { set(get() + step); }
+    public void decrement() { set(get() - step); }
+    public double normalized() { return max == min ? 0.0 : (get() - min) / (max - min); }
 }
