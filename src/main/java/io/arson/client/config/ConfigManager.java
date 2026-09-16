@@ -92,6 +92,15 @@ public final class ConfigManager {
         }
     }
 
+    private static int readVersion(JsonObject root) {
+        try {
+            JsonElement value = root.get("version");
+            return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1;
+        } catch (RuntimeException ignored) {
+            return 1;
+        }
+    }
+
     static boolean saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent();
         if (directory == null) return false;
