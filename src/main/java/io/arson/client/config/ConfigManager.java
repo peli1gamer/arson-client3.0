@@ -41,22 +41,25 @@ public final class ConfigManager {
         saveToPath(directory.resolve(safeName + ".json"), modules);
     }
 
-    public static void loadProfile(Minecraft client, ModuleManager modules, String profileName) {
+    public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName);
-        if (safeName.isEmpty()) return;
+        if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
-        loadFromPath(path, modules);
+        if (!loadFromPath(path, modules)) return false;
+        // A loaded profile becomes the live configuration immediately, so its state survives a restart.
+        save(client, modules);
+        return true;
     }
 
-    private static void loadFromPath(Path path, ModuleManager modules) {
-        if (!Files.isRegularFile(path)) return;
+    static boolean loadFromPath(Path path, ModuleManager modules) {
+        if (!Files.isRegularFile(path)) return false;
 
         try {
             JsonElement parsed = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
-            if (!parsed.isJsonObject()) return;
+            if (!parsed.isJsonObject()) return false;
             JsonObject root = parsed.getAsJsonObject();
             int version = readVersion(root);
-            if (version > CONFIG_VERSION) return;
+            if (version > CONFIG_VERSION) return false;
 
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject()
                     ? root.getAsJsonObject("modules") : new JsonObject();
@@ -82,21 +85,14 @@ public final class ConfigManager {
                     }
                 }
             }
+            return true;
         } catch (Exception ignored) {
             // Config is optional; never make startup dependent on it.
+            return false;
         }
     }
 
-    private static int readVersion(JsonObject root) {
-        try {
-            JsonElement value = root.get("version");
-            return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1;
-        } catch (RuntimeException ignored) {
-            return 1;
-        }
-    }
-
-    private static void saveToPath(Path path, ModuleManager modules) {
+    static void saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent();
         if (directory == null) return;
         Path tempPath = path.resolveSibling(path.getFileName() + ".tmp");
@@ -142,7 +138,7 @@ public final class ConfigManager {
         }
     }
 
-    private static String sanitizeProfileName(String name) {
+    static String sanitizeProfileName(String name) {
         if (name == null) return "";
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < name.length() && result.length() < 32; i++) {
