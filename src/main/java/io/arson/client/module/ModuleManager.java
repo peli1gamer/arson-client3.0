@@ -21,7 +21,7 @@ public final class ModuleManager {
         register(GameStateModule.create());register(ScreenInfoModule.create());
     }
     public Module get(String id){return modules.get(id);} public Collection<Module> all(){return new ArrayList<>(modules.values());}
-    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:modules.values())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Module::enabled).reversed().thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
+    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:modules.values())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
     public int categoryCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category)count++;return count;}
     public int enabledCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category&&module.enabled())count++;return count;}
     public int favoriteCount(){int count=0;for(Module module:modules.values())if(module.favorite())count++;return count;}
