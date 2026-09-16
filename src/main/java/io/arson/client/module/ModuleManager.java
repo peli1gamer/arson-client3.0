@@ -33,6 +33,7 @@ public final class ModuleManager {
         register(new ArrayListModule());
         register(new CombatInfoModule());
         register(new TargetingModule());
+        register(new AimAssistModule());
         register(new PlayerInfoModule());
         register(new WorldInfoModule());
     }
