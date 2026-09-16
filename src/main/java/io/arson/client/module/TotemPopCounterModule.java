@@ -3,6 +3,7 @@ package io.arson.client.module;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
@@ -55,9 +56,9 @@ public final class TotemPopCounterModule extends Module {
         lastPopTick.put(uuid, client.level.getGameTime());
 
         if (chat.enabled()) {
-            String name = player.getGameProfile().name();
+            String name = player.getName().getString();
             String message = name + " popped " + count + " totem" + (count == 1 ? "" : "s");
-            client.gui.getChat().addMessage(net.minecraft.network.chat.Component.literal(message));
+            client.player.displayClientMessage(Component.literal(message), false);
         }
     }
 
