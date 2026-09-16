@@ -2,6 +2,7 @@ package io.arson.client.module;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.StringSetting;
 import net.minecraft.client.Minecraft;
@@ -16,10 +17,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.Comparator;
 import java.util.Random;
 
-/**
- * Crosshair-focused aim assistance. The screen gate is configurable in pixels;
- * the default is a 15x15 pixel box centered on the crosshair.
- */
+/** Crosshair-focused aim assistance with configurable target highlighting. */
 public final class AimAssistModule extends Module {
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 5.0, 1.0, 16.0, 0.5));
     private final DoubleSetting fov = setting(new DoubleSetting("fov", "FOV", 180.0, 1.0, 360.0, 1.0));
@@ -41,34 +39,28 @@ public final class AimAssistModule extends Module {
     private final StringSetting activation = setting(new StringSetting("activation", "Activation", "Always"));
     private final StringSetting aimPoint = setting(new StringSetting("aim-point", "Aim Point", "Closest"));
 
+    private final BooleanSetting highlightTarget = setting(new BooleanSetting("highlight-target", "Highlight Target", true));
+    private final ColorSetting highlightColor = setting(new ColorSetting("highlight-color", "Highlight Color", 0xFFFF4040));
+    private final BooleanSetting highlightFill = setting(new BooleanSetting("highlight-fill", "Highlight Fill", false));
+    private final BooleanSetting highlightOutline = setting(new BooleanSetting("highlight-outline", "Highlight Outline", true));
+    private final DoubleSetting highlightFillAlpha = setting(new DoubleSetting("highlight-fill-alpha", "Fill Alpha", 0.18, 0.0, 1.0, 0.01));
+    private final DoubleSetting highlightOutlineAlpha = setting(new DoubleSetting("highlight-outline-alpha", "Outline Alpha", 1.0, 0.0, 1.0, 0.01));
+    private final DoubleSetting highlightLineWidth = setting(new DoubleSetting("highlight-line-width", "Outline Width", 2.0, 0.5, 8.0, 0.5));
+    private final DoubleSetting highlightExpand = setting(new DoubleSetting("highlight-expand", "Box Expand", 0.02, 0.0, 0.25, 0.01));
+
     private final Random random = new Random();
     private LivingEntity target;
 
-    public AimAssistModule() {
-        super("aim-assist", "Aim Assist", Category.COMBAT);
-    }
+    public AimAssistModule() { super("aim-assist", "Aim Assist", Category.COMBAT); }
 
-    @Override
-    protected void onDisable() {
-        target = null;
-    }
+    @Override protected void onDisable() { target = null; }
 
-    @Override
-    protected void onTick(Minecraft client) {
-        if (client.player == null || client.level == null || !isActivated(client)) {
-            target = null;
-            return;
-        }
-
+    @Override protected void onTick(Minecraft client) {
+        if (client.player == null || client.level == null || !isActivated(client)) { target = null; return; }
         LivingEntity selected = chooseTarget(client);
-        if (selected == null) {
-            target = null;
-            return;
-        }
+        if (selected == null) { target = null; return; }
         target = selected;
-
-        Vec3 point = aimPoint(client, target);
-        rotateTowards(client, point);
+        rotateTowards(client, aimPoint(client, target));
     }
 
     private boolean isActivated(Minecraft client) {
@@ -84,25 +76,16 @@ public final class AimAssistModule extends Module {
     private LivingEntity chooseTarget(Minecraft client) {
         AABB search = client.player.getBoundingBox().inflate(range.get());
         LivingEntity locked = target;
-
-        if (sticky.enabled() && locked != null && isValid(client, locked) && inCrosshairGate(client, locked)) {
-            return locked;
-        }
-
-        return client.level.getEntitiesOfClass(LivingEntity.class, search,
-                entity -> isValid(client, entity) && inCrosshairGate(client, entity))
-            .stream()
-            .min(Comparator
-                .comparingDouble((LivingEntity entity) -> crosshairDistance(client, entity))
-                .thenComparingDouble(entity -> client.player.distanceToSqr(entity)))
-            .orElse(null);
+        if (sticky.enabled() && locked != null && isValid(client, locked) && inCrosshairGate(client, locked)) return locked;
+        return client.level.getEntitiesOfClass(LivingEntity.class, search, entity -> isValid(client, entity) && inCrosshairGate(client, entity))
+                .stream().min(Comparator.comparingDouble((LivingEntity entity) -> crosshairDistance(client, entity))
+                .thenComparingDouble(entity -> client.player.distanceToSqr(entity))).orElse(null);
     }
 
     private boolean isValid(Minecraft client, LivingEntity entity) {
         if (entity == null || entity == client.player || !entity.isAlive() || entity.isRemoved()) return false;
         if (client.player.distanceToSqr(entity) > range.get() * range.get()) return false;
         if (visibleOnly.enabled() && !client.player.hasLineOfSight(entity)) return false;
-
         if (entity instanceof Player) return players.enabled();
         if (entity instanceof Monster) return monsters.enabled();
         if (entity instanceof Animal) return animals.enabled();
@@ -114,7 +97,9 @@ public final class AimAssistModule extends Module {
         double[] angles = anglesTo(client, point);
         double yawPixels = pixelsFromYaw(client, Math.abs(Mth.wrapDegrees(angles[0] - client.player.getYRot())));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getXRot()));
-        return yawPixels <= crosshairWidth.get() * 0.5 && pitchPixels <= crosshairHeight.get() * 0.5;
+        double halfW = crosshairWidth.get() * 0.5;
+        double halfH = crosshairHeight.get() * 0.5;
+        return yawPixels <= halfW && pitchPixels <= halfH;
     }
 
     private double crosshairDistance(Minecraft client, LivingEntity entity) {
@@ -135,68 +120,55 @@ public final class AimAssistModule extends Module {
     }
 
     private Vec3 closestPointOnBox(Vec3 origin, AABB box) {
-        double x = Mth.clamp(origin.x, box.minX, box.maxX);
-        double y = Mth.clamp(origin.y, box.minY, box.maxY);
-        double z = Mth.clamp(origin.z, box.minZ, box.maxZ);
-        return new Vec3(x, y, z);
+        return new Vec3(Mth.clamp(origin.x, box.minX, box.maxX), Mth.clamp(origin.y, box.minY, box.maxY), Mth.clamp(origin.z, box.minZ, box.maxZ));
     }
 
     private double[] anglesTo(Minecraft client, Vec3 point) {
         Vec3 eye = client.player.getEyePosition();
-        double dx = point.x - eye.x;
-        double dy = point.y - eye.y;
-        double dz = point.z - eye.z;
+        double dx = point.x - eye.x, dy = point.y - eye.y, dz = point.z - eye.z;
         double horizontal = Math.sqrt(dx * dx + dz * dz);
-        double yaw = Math.toDegrees(Math.atan2(dz, dx)) - 90.0;
-        double pitch = -Math.toDegrees(Math.atan2(dy, horizontal));
-        return new double[]{yaw, pitch};
+        return new double[]{Math.toDegrees(Math.atan2(dz, dx)) - 90.0, -Math.toDegrees(Math.atan2(dy, horizontal))};
     }
 
     private void rotateTowards(Minecraft client, Vec3 point) {
         double[] desired = anglesTo(client, point);
         double yawDelta = Mth.wrapDegrees(desired[0] - client.player.getYRot());
         double pitchDelta = desired[1] - client.player.getXRot();
-
         if (randomize.enabled() && randomNoise.get() > 0) {
             yawDelta += (random.nextDouble() - 0.5) * randomNoise.get() * 2.0;
             pitchDelta += (random.nextDouble() - 0.5) * randomNoise.get() * 2.0;
         }
-
         if (instant.enabled()) {
-            client.player.setYRot((float) (client.player.getYRot() + yawDelta));
-            client.player.setXRot((float) Mth.clamp(client.player.getXRot() + pitchDelta, -90.0, 90.0));
+            client.player.setYRot((float)(client.player.getYRot() + yawDelta));
+            client.player.setXRot((float)Mth.clamp(client.player.getXRot() + pitchDelta, -90.0, 90.0));
             return;
         }
-
-        double step = speed.get();
-        yawDelta = clampDelta(yawDelta, Math.min(maxRotation.get(), step));
-        pitchDelta = clampDelta(pitchDelta, Math.min(maxRotation.get(), step));
-
-        client.player.setYRot(client.player.getYRot() + (float) yawDelta);
-        client.player.setXRot((float) Mth.clamp(client.player.getXRot() + pitchDelta, -90.0, 90.0));
-    }
-
-    private double clampDelta(double delta, double limit) {
-        return Mth.clamp(delta, -limit, limit);
+        double limit = Math.min(maxRotation.get(), speed.get());
+        client.player.setYRot(client.player.getYRot() + (float)Mth.clamp(yawDelta, -limit, limit));
+        client.player.setXRot((float)Mth.clamp(client.player.getXRot() + Mth.clamp(pitchDelta, -limit, limit), -90.0, 90.0));
     }
 
     private double pixelsFromYaw(Minecraft client, double degrees) {
-        int width = Math.max(1, client.getWindow().getGuiScaledWidth());
-        double fovDegrees = client.options.fov().get();
-        return degrees / Math.max(0.01, fovDegrees) * width;
+        return degrees / Math.max(0.01, client.options.fov().get()) * Math.max(1, client.getWindow().getGuiScaledWidth());
     }
 
     private double pixelsFromPitch(Minecraft client, double degrees) {
-        int height = Math.max(1, client.getWindow().getGuiScaledHeight());
-        double verticalFov = verticalFov(client);
-        return degrees / Math.max(0.01, verticalFov) * height;
+        return degrees / Math.max(0.01, verticalFov(client)) * Math.max(1, client.getWindow().getGuiScaledHeight());
     }
 
     private double verticalFov(Minecraft client) {
         double horizontal = Math.toRadians(client.options.fov().get());
-        double aspect = (double) client.getWindow().getGuiScaledWidth() / Math.max(1, client.getWindow().getGuiScaledHeight());
+        double aspect = (double)client.getWindow().getGuiScaledWidth() / Math.max(1, client.getWindow().getGuiScaledHeight());
         return Math.toDegrees(2.0 * Math.atan(Math.tan(horizontal * 0.5) / Math.max(0.01, aspect)));
     }
 
     public LivingEntity target() { return target; }
+    public boolean highlightTarget() { return highlightTarget.enabled(); }
+    public int highlightColor() { return highlightColor.get(); }
+    public boolean highlightFill() { return highlightFill.enabled(); }
+    public boolean highlightOutline() { return highlightOutline.enabled(); }
+    public double highlightFillAlpha() { return highlightFillAlpha.get(); }
+    public double highlightOutlineAlpha() { return highlightOutlineAlpha.get(); }
+    public double highlightLineWidth() { return highlightLineWidth.get(); }
+    public double highlightExpand() { return highlightExpand.get(); }
 }
