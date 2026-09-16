@@ -21,7 +21,9 @@ jobs:
       - name: Focused integration tests
         run: gradle test --no-daemon --stacktrace
       - name: Fabric client runtime smoke test
-        run: timeout --signal=TERM --kill-after=15s 120s gradle runClient -Darson.runtimeSmokeTicks=80 --no-daemon --stacktrace
+        env:
+          JAVA_TOOL_OPTIONS: -Darson.runtimeSmokeTicks=80
+        run: timeout --signal=TERM --kill-after=15s 120s gradle runClient --no-daemon --stacktrace
       - name: Complete build and remap
         run: gradle build --no-daemon --stacktrace
       - name: Inspect packaged JAR
