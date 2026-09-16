@@ -6,10 +6,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(AbstractContainerScreen.class)
-public abstract class AbstractContainerScreenMixin {
+public abstract class AbstractContainerScreenMixin implements HandledScreenAccessor {
     @Shadow
     protected Slot hoveredSlot;
 
+    @Override
     public Slot arson$getHoveredSlot() {
         return hoveredSlot;
     }
