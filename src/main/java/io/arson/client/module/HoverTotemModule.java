@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import io.arson.client.mixin.HandledScreenAccessor;
+import io.arson.client.accessor.HandledScreenAccessor;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
 import net.minecraft.client.Minecraft;
