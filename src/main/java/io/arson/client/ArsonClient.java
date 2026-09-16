@@ -52,7 +52,7 @@ public final class ArsonClient implements ClientModInitializer {
     private WorldRenderBridge worldRenderBridge;
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
-    private final Map<Integer, Boolean> moduleKeyStates = new HashMap<>();
+    private final Map<String, Boolean> moduleKeyStates = new HashMap<>();
     private int runtimeSmokeTick;
     public static ArsonClient getInstance() { return instance; }
 
@@ -109,6 +109,13 @@ public final class ArsonClient implements ClientModInitializer {
         if (runtimeSmokeTick >= limit) client.stop();
     }
 
+    static boolean consumeModuleKeyPress(Map<String, Boolean> keyStates, Module module, boolean down) {
+        String id = module.id();
+        boolean wasDown = keyStates.getOrDefault(id, false);
+        keyStates.put(id, down);
+        return down && !wasDown;
+    }
+
     private void processModuleKeybinds(Minecraft client) {
         if (client.getWindow() == null || client.screen != null) return;
         long window = client.getWindow().handle();
@@ -116,9 +123,7 @@ public final class ArsonClient implements ClientModInitializer {
             int keyCode = module.keyCode();
             if (keyCode <= 0) continue;
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
-            boolean wasDown = moduleKeyStates.getOrDefault(keyCode, false);
-            moduleKeyStates.put(keyCode, down);
-            if (down && !wasDown) module.toggle();
+            if (consumeModuleKeyPress(moduleKeyStates, module, down)) module.toggle();
         }
     }
     public ModuleManager modules() { return moduleManager; }
