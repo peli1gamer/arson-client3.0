@@ -18,7 +18,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
@@ -46,7 +45,7 @@ public final class ArsonScreen extends Screen {
         clearWidgets();moduleButtons.clear();profile=null;editBox=null;
         if(selected==null||selected.category()!=category)selected=ArsonClient.getInstance().modules().organized(category).stream().findFirst().orElse(null);
         search=new EditBox(font,panelX+145,panelY+8,260,20,Component.literal("Search modules"));search.setHint(Component.literal("Search modules..."));search.setValue(searchValue);addRenderableWidget(search);
-        int y=panelY+42;for(Module.Category c:Module.Category.values()){Module.Category chosen=c;addRenderableWidget(Button.builder(Component.literal(c.displayName()),b->{category=chosen;selected=null;scroll=0;rebuild();}).bounds(panelX+8,y,122,22).build());y+=26;}
+        int y=panelY+42;for(Module.Category c:Module.Category.values()){Module.Category chosen=c;addRenderableWidget(Button.builder(Component.literal(chosen.displayName()+" ("+ArsonClient.getInstance().modules().categoryCount(chosen)+")"),b->{category=chosen;selected=null;scroll=0;rebuild();}).bounds(panelX+8,y,122,22).build());y+=26;}
         refreshModuleButtons();
         if(selected!=null){
             addRenderableWidget(Button.builder(Component.literal(selected.enabled()?"Disable Module":"Enable Module"),b->toggleSelected()).bounds(panelX+385,panelY+50,300,22).build());
@@ -94,8 +93,7 @@ public final class ArsonScreen extends Screen {
     private void loadProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
     @Override public boolean keyPressed(KeyEvent event){if(bindingModule!=null){if(event.key()==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}bindingModule.setKeyCode(event.key());NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(event.key()));bindingModule=null;saveConfig();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}boolean handled=super.keyPressed(event);if(search!=null&&search.isFocused())refreshModuleButtons();return handled;}
     @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused())refreshModuleButtons();return handled;}
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.button()==1){for(Button button:moduleButtons)if(button.isMouseOver(event.x(),event.y())){String text=button.getMessage().getString();for(Module module:ArsonClient.getInstance().modules().organized(category))if(text.endsWith(module.name())){selected=module;toggleSelected();return true;}}}return super.mouseClicked(event,doubleClick);}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontalAmount,double verticalAmount){if(selected!=null){scroll=Math.max(0,scroll+(verticalAmount>0?-27:27));rebuild();return true;}return super.mouseScrolled(mouseX,mouseY,horizontalAmount,verticalAmount);}
-    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(panelX,panelY,panelX+panelW,panelY+panelH,0xE00F1015);graphics.fill(panelX,panelY,panelX+panelW,panelY+34,0xFF181820);graphics.drawString(font,"Arson Client V3",panelX+12,panelY+11,0xFFFFFFFF);graphics.drawString(font,"Enabled: "+ArsonClient.getInstance().modules().enabledCount(),panelX+panelW-105,panelY+11,0xFFAAAAAA);graphics.renderOutline(panelX,panelY,panelW,panelH,0xFF4C4C56);if(selected!=null){graphics.drawString(font,selected.name(),panelX+385,panelY+35,0xFFAAAAAA);String description=selected.settings().stream().filter(Setting::visible).map(Setting::description).filter(s->!s.isBlank()).findFirst().orElse("");if(!description.isBlank())graphics.drawString(font,description,panelX+385,panelY+22,0xFF777777);}super.render(graphics,mouseX,mouseY,delta);}
+    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(panelX,panelY,panelX+panelW,panelY+panelH,0xE00F1015);graphics.fill(panelX,panelY,panelX+panelW,panelY+34,0xFF181820);graphics.drawString(font,"Arson Client V3",panelX+12,panelY+11,0xFFFFFFFF);graphics.drawString(font,"Enabled: "+ArsonClient.getInstance().modules().enabledCount(),panelX+panelW-105,panelY+11,0xFFAAAAAA);graphics.renderOutline(panelX,panelY,panelW,panelH,0xFF4C4C56);if(selected!=null){graphics.drawString(font,selected.name(),panelX+385,panelY+35,0xFFAAAAAA);String description=selected.description();if(!description.isBlank())graphics.drawString(font,description,panelX+385,panelY+22,0xFF777777);}super.render(graphics,mouseX,mouseY,delta);}
     @Override public void onClose(){bindingModule=null;saveConfig();minecraft.setScreen(parent);}
 }
