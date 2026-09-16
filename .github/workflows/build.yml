@@ -68,8 +68,11 @@ jobs:
           test -n "$JAR"
           unzip -t "$JAR"
           sha256sum "$JAR" | tee verified/independent-sha256.txt
-          test -s verified/jar-sha256.txt
-          EXPECTED=$(awk '{print $1}' verified/jar-sha256.txt)
+          HASH_FILE=$(find verified -maxdepth 2 -type f -name 'jar-sha256.txt' | head -n 1)
+          CONTENTS_FILE=$(find verified -maxdepth 2 -type f -name 'jar-contents.txt' | head -n 1)
+          test -n "$HASH_FILE"
+          test -n "$CONTENTS_FILE"
+          EXPECTED=$(awk '{print $1}' "$HASH_FILE")
           ACTUAL=$(awk '{print $1}' verified/independent-sha256.txt)
           test "$EXPECTED" = "$ACTUAL"
-          test -f verified/jar-contents.txt
+          test -f "$CONTENTS_FILE"
