@@ -3,6 +3,7 @@ name: Build Arson Client
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,5 +21,30 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build
-        run: gradle build --no-daemon
+      - name: Focused integration tests
+        run: gradle test --no-daemon --stacktrace
+
+      - name: Complete build and remap
+        run: gradle build --no-daemon --stacktrace
+
+      - name: Inspect packaged JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+          test -n "$JAR"
+          test -s "$JAR"
+          unzip -t "$JAR"
+          unzip -l "$JAR" | tee build/jar-contents.txt
+          sha256sum "$JAR" | tee build/jar-sha256.txt
+          printf 'ARTIFACT=%s\n' "$JAR" >> "$GITHUB_ENV"
+
+      - name: Upload verified artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arson-client-verified
+          path: |
+            ${{ env.ARTIFACT }}
+            build/jar-contents.txt
+            build/jar-sha256.txt
+            build/test-results/test/**
