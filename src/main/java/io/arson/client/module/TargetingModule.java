@@ -29,7 +29,11 @@ public final class TargetingModule extends Module {
         if (entity == null || entity == self) return false;
         if (ignoreDead.enabled() && (!entity.isAlive() || entity.isRemoved())) return false;
         if (ignoreInvisible.enabled() && entity.isInvisible()) return false;
-        if (entity instanceof Player) return players.enabled();
+        if (entity instanceof Player player) {
+            FriendsModule friends = friendsModule();
+            if (friends != null && friends.isFriend(player)) return false;
+            return players.enabled();
+        }
         if (entity instanceof Monster) return monsters.enabled();
         if (entity instanceof Animal) return animals.enabled();
         return false;
@@ -44,5 +48,11 @@ public final class TargetingModule extends Module {
                 .stream()
                 .min(Comparator.comparingDouble(client.player::distanceToSqr))
                 .orElse(null);
+    }
+
+    private FriendsModule friendsModule() {
+        if (io.arson.client.ArsonClient.getInstance() == null) return null;
+        Module module = io.arson.client.ArsonClient.getInstance().modules().get("friends");
+        return module instanceof FriendsModule friends ? friends : null;
     }
 }
