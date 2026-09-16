@@ -27,7 +27,7 @@ public final class FriendsModule extends Module {
     public boolean isFriend(Player player) {
         if (player == null || !protectFriends()) return false;
         rebuildCache();
-        return cachedNames.contains(player.getGameProfile().name().toLowerCase(Locale.ROOT));
+        return cachedNames.contains(player.getName().getString().toLowerCase(Locale.ROOT));
     }
 
     public void addFriend(String name) {
