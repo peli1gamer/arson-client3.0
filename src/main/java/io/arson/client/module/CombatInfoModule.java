@@ -7,6 +7,9 @@ import io.arson.client.settings.DoubleSetting;
 /** Non-automating combat target and weapon information HUD. */
 public final class CombatInfoModule extends Module {
     private final BooleanSetting showTarget = setting(new BooleanSetting("show-target", "Show Target", true));
+    private final BooleanSetting showPlayers = setting(new BooleanSetting("show-players", "Players", true));
+    private final BooleanSetting showMobs = setting(new BooleanSetting("show-mobs", "Mobs", true));
+    private final BooleanSetting showAnimals = setting(new BooleanSetting("show-animals", "Animals", true));
     private final BooleanSetting showHeldItem = setting(new BooleanSetting("show-held-item", "Show Held Item", true));
     private final BooleanSetting showDurability = setting(new BooleanSetting("show-durability", "Show Durability", true));
     private final BooleanSetting showAttackCooldown = setting(new BooleanSetting("show-attack-cooldown", "Show Attack Cooldown", true));
@@ -32,6 +35,9 @@ public final class CombatInfoModule extends Module {
     }
 
     public boolean showTarget() { return showTarget.enabled(); }
+    public boolean showPlayers() { return showPlayers.enabled(); }
+    public boolean showMobs() { return showMobs.enabled(); }
+    public boolean showAnimals() { return showAnimals.enabled(); }
     public boolean showHeldItem() { return showHeldItem.enabled(); }
     public boolean showDurability() { return showDurability.enabled(); }
     public boolean showAttackCooldown() { return showAttackCooldown.enabled(); }
