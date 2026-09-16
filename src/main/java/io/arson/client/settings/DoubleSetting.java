@@ -14,7 +14,12 @@ public final class DoubleSetting extends Setting<Double> {
         set(defaultValue);
     }
 
-    @Override public void set(Double value) { super.set(Math.max(min, Math.min(max, value))); }
+    @Override public void set(Double value) {
+        if (value == null || value.isNaN() || value.isInfinite()) return;
+        double clamped = Math.max(min, Math.min(max, value));
+        double snapped = min + Math.round((clamped - min) / step) * step;
+        super.set(Math.max(min, Math.min(max, snapped)));
+    }
     public double min() { return min; }
     public double max() { return max; }
     public double step() { return step; }
