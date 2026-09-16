@@ -35,6 +35,7 @@ public final class ModuleManager {
         register(new TargetingModule());
         register(new AimAssistModule());
         register(new HoverTotemModule());
+        register(new AutoTotemModule());
         register(new FriendsModule());
         register(new TotemPopCounterModule());
         register(new AttributeSwapModule());
