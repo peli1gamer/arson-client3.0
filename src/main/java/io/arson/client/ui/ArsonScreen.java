@@ -4,6 +4,7 @@ import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.Module;
+import io.arson.client.notification.NotificationCenter;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
@@ -13,13 +14,16 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
-/** Functional 1.21.11 ClickGUI: categories, search, module state, settings, keybinds, profiles and HUD access. */
+/** Functional 1.21.11 ClickGUI: categories, live search, module state, settings, keybinds, profiles and HUD access. */
 public final class ArsonScreen extends Screen {
     private final Screen parent;
     private Module.Category category = Module.Category.RENDER;
@@ -30,6 +34,7 @@ public final class ArsonScreen extends Screen {
     private StringSetting editingString;
     private ColorSetting editingColor;
     private EditBox editBox;
+    private final List<Button> moduleButtons = new ArrayList<>();
     private int panelX, panelY, panelW = 900, panelH = 540;
     private int scroll;
 
@@ -39,6 +44,7 @@ public final class ArsonScreen extends Screen {
     private void rebuild() {
         String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
+        moduleButtons.clear();
         profile = null;
         editBox = null;
         if (selected == null || selected.category() != category) selected = ArsonClient.getInstance().modules().organized(category).stream().findFirst().orElse(null);
@@ -46,13 +52,9 @@ public final class ArsonScreen extends Screen {
         search.setHint(Component.literal("Search modules...")); addRenderableWidget(search);
         int y = panelY + 42;
         for (Module.Category c : Module.Category.values()) { Module.Category chosen = c; addRenderableWidget(Button.builder(Component.literal(c.displayName()), b -> { category = chosen; selected = null; scroll = 0; rebuild(); }).bounds(panelX + 8, y, 122, 22).build()); y += 26; }
-        y = panelY + 48; String q = search.getValue().toLowerCase(Locale.ROOT);
-        for (Module module : ArsonClient.getInstance().modules().organized(category)) {
-            if (!q.isEmpty() && !module.name().toLowerCase(Locale.ROOT).contains(q) && !module.id().contains(q)) continue;
-            Module chosen = module; addRenderableWidget(Button.builder(Component.literal((module.enabled() ? "● " : "○ ") + module.name()), b -> { selected = chosen; scroll = 0; rebuild(); }).bounds(panelX + 145, y, 225, 22).build()); y += 25; if (y > panelY + panelH - 65) break;
-        }
+        refreshModuleButtons();
         if (selected != null) {
-            addRenderableWidget(Button.builder(Component.literal(selected.enabled() ? "Disable Module" : "Enable Module"), b -> { selected.toggle(); saveConfig(); rebuild(); }).bounds(panelX + 385, panelY + 50, 300, 22).build());
+            addRenderableWidget(Button.builder(Component.literal(selected.enabled() ? "Disable Module" : "Enable Module"), b -> toggleSelected()).bounds(panelX + 385, panelY + 50, 300, 22).build());
             addRenderableWidget(Button.builder(Component.literal(bindingModule == selected ? "Press a key..." : "Keybind: " + keyName(selected.keyCode())), b -> { bindingModule = selected; rebuild(); }).bounds(panelX + 385, panelY + 76, 300, 22).build());
             addSettingWidgets();
         }
@@ -69,6 +71,27 @@ public final class ArsonScreen extends Screen {
         }
     }
 
+    private void refreshModuleButtons() {
+        for (Button button : moduleButtons) removeWidget(button);
+        moduleButtons.clear();
+        int y = panelY + 48;
+        String q = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
+        for (Module module : ArsonClient.getInstance().modules().organized(category)) {
+            if (!q.isEmpty() && !module.name().toLowerCase(Locale.ROOT).contains(q) && !module.id().toLowerCase(Locale.ROOT).contains(q)) continue;
+            Module chosen = module;
+            Button button = Button.builder(Component.literal((module.enabled() ? "● " : "○ ") + module.name()), b -> { selected = chosen; scroll = 0; rebuild(); }).bounds(panelX + 145, y, 225, 22).build();
+            moduleButtons.add(button); addRenderableWidget(button); y += 25;
+            if (y > panelY + panelH - 65) break;
+        }
+    }
+
+    private void toggleSelected() {
+        if (selected == null) return;
+        selected.toggle();
+        NotificationCenter.push(selected.name(), selected.enabled() ? "Enabled" : "Disabled");
+        saveConfig(); rebuild();
+    }
+
     private static String keyName(int keyCode) {
         if (keyCode <= 0) return "None";
         String name = GLFW.glfwGetKeyName(keyCode, 0);
@@ -79,10 +102,14 @@ public final class ArsonScreen extends Screen {
         int x = panelX + 385, y = panelY + 105 - scroll, bottom = panelY + panelH - 55;
         for (Setting<?> setting : selected.settings()) {
             if (y < panelY + 100) { y += 27; continue; } if (y > bottom) break;
-            if (setting instanceof BooleanSetting b) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + (b.enabled() ? "ON" : "OFF")), x1 -> { b.set(!b.enabled()); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
-            else if (setting instanceof DoubleSetting d) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", d.get())), x1 -> { d.set(d.get() >= d.max() ? d.min() : Math.min(d.max(), d.get() + d.step())); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
-            else if (setting instanceof ColorSetting c) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": #" + String.format(Locale.ROOT, "%08X", c.get())), x1 -> { editingColor = c; editingString = null; rebuild(); }).bounds(x, y, 300, 22).build());
-            else if (setting instanceof StringSetting s) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + s.get()), x1 -> { editingString = s; editingColor = null; rebuild(); }).bounds(x, y, 300, 22).build());
+            Button control;
+            if (setting instanceof BooleanSetting b) control = Button.builder(Component.literal(setting.name() + ": " + (b.enabled() ? "ON" : "OFF")), x1 -> { b.set(!b.enabled()); saveConfig(); rebuild(); }).bounds(x, y, 235, 22).build();
+            else if (setting instanceof DoubleSetting d) control = Button.builder(Component.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", d.get())), x1 -> { d.set(d.get() >= d.max() ? d.min() : Math.min(d.max(), d.get() + d.step())); saveConfig(); rebuild(); }).bounds(x, y, 235, 22).build();
+            else if (setting instanceof ColorSetting c) control = Button.builder(Component.literal(setting.name() + ": #" + String.format(Locale.ROOT, "%08X", c.get())), x1 -> { editingColor = c; editingString = null; rebuild(); }).bounds(x, y, 235, 22).build();
+            else if (setting instanceof StringSetting s) control = Button.builder(Component.literal(setting.name() + ": " + s.get()), x1 -> { editingString = s; editingColor = null; rebuild(); }).bounds(x, y, 235, 22).build();
+            else control = Button.builder(Component.literal(setting.name() + ": " + String.valueOf(setting.get())), x1 -> {}).bounds(x, y, 235, 22).build();
+            addRenderableWidget(control);
+            addRenderableWidget(Button.builder(Component.literal("Reset"), b -> { setting.reset(); NotificationCenter.push(setting.name(), "Reset to default"); saveConfig(); rebuild(); }).bounds(x + 240, y, 60, 22).build());
             y += 27;
         }
     }
@@ -93,24 +120,58 @@ public final class ArsonScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Apply"), b -> applyEdit()).bounds(panelX + 600, panelY + panelH - 62, 60, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> { editingString = null; editingColor = null; editBox = null; rebuild(); }).bounds(panelX + 665, panelY + panelH - 62, 65, 22).build());
     }
-
     private void applyEdit() {
-        if (editBox != null) { if (editingString != null) editingString.set(editBox.getValue()); else if (editingColor != null) { try { editingColor.set((int) Long.parseLong(editBox.getValue().replace("#", ""), 16)); } catch (NumberFormatException ignored) { } } saveConfig(); }
+        if (editBox != null) {
+            if (editingString != null) editingString.set(editBox.getValue());
+            else if (editingColor != null) {
+                try {
+                    String raw = editBox.getValue().trim().replace("#", "");
+                    if (raw.length() == 6) raw = "FF" + raw;
+                    if (raw.length() != 8) throw new NumberFormatException("ARGB must be 6 or 8 hex digits");
+                    editingColor.set((int) Long.parseLong(raw, 16));
+                } catch (NumberFormatException ignored) {
+                    NotificationCenter.push("Invalid color", "Use RRGGBB or AARRGGBB");
+                    return;
+                }
+            }
+            saveConfig();
+        }
         editingString = null; editingColor = null; editBox = null; rebuild();
     }
     private void saveConfig() { if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules()); }
-    private void saveProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); }
-    private void loadProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) { ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); rebuild(); } }
+    private void saveProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) { ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); NotificationCenter.push("Profile", "Saved " + profile.getValue()); } }
+    private void loadProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) { ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); NotificationCenter.push("Profile", "Loaded " + profile.getValue()); rebuild(); } }
 
     @Override public boolean keyPressed(KeyEvent event) {
         if (bindingModule != null) {
             if (event.key() == GLFW.GLFW_KEY_ESCAPE) { bindingModule = null; rebuild(); return true; }
-            bindingModule.setKeyCode(event.key()); bindingModule = null; saveConfig(); rebuild(); return true;
+            bindingModule.setKeyCode(event.key()); NotificationCenter.push(bindingModule.name(), "Keybind set to " + keyName(event.key())); bindingModule = null; saveConfig(); rebuild(); return true;
         }
         if (event.key() == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; }
-        return super.keyPressed(event);
+        boolean handled = super.keyPressed(event);
+        if (search != null && search.isFocused()) refreshModuleButtons();
+        return handled;
     }
-    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) { return super.mouseClicked(event, doubleClick); }
+
+    @Override public boolean charTyped(CharacterEvent event) {
+        boolean handled = super.charTyped(event);
+        if (search != null && search.isFocused()) refreshModuleButtons();
+        return handled;
+    }
+
+    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 1) {
+            for (Button button : moduleButtons) {
+                if (button.isMouseOver(event.x(), event.y())) {
+                    String text = button.getMessage().getString();
+                    for (Module module : ArsonClient.getInstance().modules().organized(category)) {
+                        if (text.endsWith(module.name())) { selected = module; toggleSelected(); return true; }
+                    }
+                }
+            }
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
     @Override public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) { if (selected != null) { scroll = Math.max(0, scroll + (verticalAmount > 0 ? -27 : 27)); rebuild(); return true; } return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount); }
 
     @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
