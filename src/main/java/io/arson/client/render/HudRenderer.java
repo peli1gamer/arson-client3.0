@@ -5,6 +5,9 @@ import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.InventoryInfoModule;
 import io.arson.client.module.PlayerInfoModule;
+import io.arson.client.module.PlayerVitalsModule;
+import io.arson.client.module.RenderInfoModule;
+import io.arson.client.module.WorldEnvironmentModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
@@ -24,8 +27,11 @@ public final class HudRenderer {
         if (hud == null || !hud.enabled()) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
+        PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
         InventoryInfoModule inventoryInfo = (InventoryInfoModule) ArsonClient.getInstance().modules().get("inventory-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
+        WorldEnvironmentModule worldEnvironment = (WorldEnvironmentModule) ArsonClient.getInstance().modules().get("world-environment");
+        RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
         float globalScale = (float) hud.scale();
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
@@ -38,9 +44,35 @@ public final class HudRenderer {
             if (playerInfo.showArmor()) rows.add(armor(client));
             if (playerInfo.showHeldItem()) { ItemStack stack = client.player.getMainHandItem(); rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString()); }
             if (playerInfo.showInventory() && inventoryInfo != null && inventoryInfo.enabled()) rows.add(inventoryInfo.formatted() + "  Slot " + inventoryInfo.selectedSlot());
+            if (playerVitals != null && playerVitals.enabled()) {
+                rows.add(String.format(java.util.Locale.ROOT, "Saturation %.1f  Armor %d", playerVitals.saturation(), playerVitals.armor()));
+                rows.add(playerVitals.formattedExperience());
+                rows.add(playerVitals.formattedAir());
+                rows.add("State " + (playerVitals.sprinting() ? "Sprinting" : "Walking") + (playerVitals.sneaking() ? "  Sneaking" : ""));
+            }
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
-        if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) { java.util.ArrayList<String> rows = new java.util.ArrayList<>(); if (worldInfo.showTime()) { long dayTime = Math.floorMod(client.level.getDayTime(), 24000L); long hours = (dayTime / 1000L + 6L) % 24L; long minutes = Math.round((dayTime % 1000L) * 60.0 / 1000.0); if (minutes == 60) { minutes = 0; hours = (hours + 1) % 24; } rows.add(String.format(java.util.Locale.ROOT, "Time %02d:%02d", hours, minutes)); } if (worldInfo.showDimension()) rows.add("Dimension " + client.level.dimension().identifier()); if (worldInfo.showWeather()) rows.add("Weather " + (client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear")); drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new)); }
+        if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
+            java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+            if (worldInfo.showTime()) {
+                long dayTime = Math.floorMod(client.level.getDayTime(), 24000L);
+                long hours = (dayTime / 1000L + 6L) % 24L;
+                long minutes = Math.round((dayTime % 1000L) * 60.0 / 1000.0);
+                if (minutes == 60) { minutes = 0; hours = (hours + 1) % 24; }
+                rows.add(String.format(java.util.Locale.ROOT, "Time %02d:%02d", hours, minutes));
+            }
+            if (worldInfo.showDimension()) rows.add("Dimension " + client.level.dimension().identifier());
+            if (worldInfo.showWeather()) rows.add("Weather " + (client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear"));
+            if (worldEnvironment != null && worldEnvironment.enabled()) {
+                rows.add("Biome " + worldEnvironment.biome());
+                if (worldEnvironment.showWeather()) rows.add("Local Weather " + worldEnvironment.weather());
+                if (worldEnvironment.showDifficulty()) rows.add("Difficulty " + worldEnvironment.difficulty());
+                if (worldEnvironment.showChunk()) rows.add("Chunk " + worldEnvironment.chunkX() + ", " + worldEnvironment.chunkZ());
+                if (worldEnvironment.showLight()) rows.add("Block Light " + worldEnvironment.blockLight());
+            }
+            if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
+            drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
+        }
         graphics.pose().popMatrix();
     }
     private static void renderNotifications(GuiGraphics graphics, Minecraft client) {
