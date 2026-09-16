@@ -19,6 +19,15 @@ public final class ArsonApi {
         return List.copyOf(ArsonClient.getInstance().modules().all());
     }
 
+    public static List<Module> modules(Module.Category category) {
+        if (ArsonClient.getInstance() == null || category == null) return List.of();
+        return List.copyOf(ArsonClient.getInstance().modules().organized(category));
+    }
+
+    public static List<Module> favorites() {
+        return modules().stream().filter(Module::favorite).toList();
+    }
+
     public static boolean setEnabled(String id, boolean enabled) {
         Optional<Module> module = module(id);
         if (module.isEmpty()) return false;
