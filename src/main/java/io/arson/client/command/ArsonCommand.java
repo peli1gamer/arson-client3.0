@@ -3,6 +3,7 @@ package io.arson.client.command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.Module;
+import io.arson.client.notification.NotificationCenter;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.minecraft.network.chat.Component;
@@ -17,7 +18,9 @@ public final class ArsonCommand {
                 .then(ClientCommandManager.literal("list")
                     .executes(ctx -> {
                         int enabled = ArsonClient.getInstance().modules().enabledCount();
-                        ctx.getSource().sendFeedback(Component.literal("Arson: " + ArsonClient.getInstance().modules().all().size() + " modules, " + enabled + " enabled."));
+                        String message = "Arson: " + ArsonClient.getInstance().modules().all().size() + " modules, " + enabled + " enabled.";
+                        ctx.getSource().sendFeedback(Component.literal(message));
+                        NotificationCenter.push("Arson", message);
                         return enabled;
                     }))
                 .then(ClientCommandManager.literal("toggle")
@@ -30,17 +33,23 @@ public final class ArsonCommand {
                             String id = StringArgumentType.getString(ctx, "module");
                             Module module = ArsonClient.getInstance().modules().get(id);
                             if (module == null) {
-                                ctx.getSource().sendError(Component.literal("Unknown module: " + id));
+                                String message = "Unknown module: " + id;
+                                ctx.getSource().sendError(Component.literal(message));
+                                NotificationCenter.push("Arson", message);
                                 return 0;
                             }
                             module.toggle();
-                            ctx.getSource().sendFeedback(Component.literal(module.name() + ": " + (module.enabled() ? "enabled" : "disabled")));
+                            String message = module.name() + ": " + (module.enabled() ? "enabled" : "disabled");
+                            ctx.getSource().sendFeedback(Component.literal(message));
+                            NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
                             return module.enabled() ? 1 : 0;
                         })))
                 .then(ClientCommandManager.literal("save")
                     .executes(ctx -> {
                         ArsonClient.getInstance().saveConfig();
-                        ctx.getSource().sendFeedback(Component.literal("Arson config saved."));
+                        String message = "Arson config saved.";
+                        ctx.getSource().sendFeedback(Component.literal(message));
+                        NotificationCenter.push("Arson", message);
                         return 1;
                     }))
         ));
