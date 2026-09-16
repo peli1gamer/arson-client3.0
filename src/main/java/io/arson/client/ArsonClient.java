@@ -3,6 +3,7 @@ package io.arson.client;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.config.ConfigManager;
+import io.arson.client.context.FeatureContext;
 import io.arson.client.module.AimAssistModule;
 import io.arson.client.module.BlockESPModule;
 import io.arson.client.module.ContainerESPModule;
@@ -12,6 +13,8 @@ import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ItemESPModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.platform.FabricFeatureContextAdapter;
+import io.arson.client.platform.FeatureContextAdapter;
 import io.arson.client.render.AimAssistRenderStage;
 import io.arson.client.render.ArrayListRenderer;
 import io.arson.client.render.BlockRenderStage;
@@ -49,6 +52,8 @@ public final class ArsonClient implements ClientModInitializer {
     private ModuleManager moduleManager;
     private KeyMapping openMenuKey;
     private WorldRenderBridge worldRenderBridge;
+    private FeatureContext featureContext;
+    private FeatureContextAdapter contextAdapter;
     private final Map<Integer, Boolean> moduleKeyStates = new HashMap<>();
 
     public static ArsonClient getInstance() { return instance; }
@@ -66,8 +71,11 @@ public final class ArsonClient implements ClientModInitializer {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "array_list"), ArrayListRenderer::render);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"), CombatInfoRenderer::render);
 
-        worldRenderBridge = new WorldRenderBridge();
         Minecraft client = Minecraft.getInstance();
+        featureContext = new FeatureContext();
+        contextAdapter = new FabricFeatureContextAdapter(client);
+        contextAdapter.initialize(featureContext);
+        worldRenderBridge = new WorldRenderBridge(featureContext, contextAdapter);
 
         StorageRenderProfile storageProfile = new StorageRenderProfile();
         StorageOverlay storageOverlay = new StorageOverlay(storageProfile);
@@ -92,14 +100,14 @@ public final class ArsonClient implements ClientModInitializer {
 
         AimAssistModule aimAssist = (AimAssistModule) moduleManager.get("aim-assist");
         worldRenderBridge.register(new AimAssistRenderStage(client, aimAssist));
-
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
+            contextAdapter.tick(featureContext);
             while (openMenuKey.consumeClick()) {
-                Screen current = clientTick.gui.screen();
-                if (current instanceof ArsonScreen) clientTick.gui.setScreen(null);
-                else clientTick.gui.setScreen(new ArsonScreen(current));
+                Screen current = clientTick.screen;
+                if (current instanceof ArsonScreen) clientTick.setScreen(null);
+                else clientTick.setScreen(new ArsonScreen(current));
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
@@ -132,4 +140,5 @@ public final class ArsonClient implements ClientModInitializer {
 
     public ModuleManager modules() { return moduleManager; }
     public WorldRenderBridge worldRenderBridge() { return worldRenderBridge; }
+    public FeatureContext featureContext() { return featureContext; }
 }
