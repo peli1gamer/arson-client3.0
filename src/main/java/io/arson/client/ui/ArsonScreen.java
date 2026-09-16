@@ -139,8 +139,18 @@ public final class ArsonScreen extends Screen {
         editingString = null; editingColor = null; editBox = null; rebuild();
     }
     private void saveConfig() { if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules()); }
-    private void saveProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) { ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); NotificationCenter.push("Profile", "Saved " + profile.getValue()); } }
-    private void loadProfile() { if (minecraft != null && profile != null && !profile.getValue().isBlank()) { ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue()); NotificationCenter.push("Profile", "Loaded " + profile.getValue()); rebuild(); } }
+    private void saveProfile() {
+        if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
+        if (ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) NotificationCenter.push("Profile", "Saved " + profile.getValue());
+        else NotificationCenter.push("Profile", "Invalid profile name");
+    }
+    private void loadProfile() {
+        if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
+        if (ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) {
+            NotificationCenter.push("Profile", "Loaded " + profile.getValue());
+            rebuild();
+        } else NotificationCenter.push("Profile", "Profile not found or invalid");
+    }
 
     @Override public boolean keyPressed(KeyEvent event) {
         if (bindingModule != null) {
