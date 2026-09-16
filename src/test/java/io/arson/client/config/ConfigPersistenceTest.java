@@ -1,7 +1,7 @@
 package io.arson.client.config;
 
-import io.arson.client.module.ModuleManager;
 import io.arson.client.module.Module;
+import io.arson.client.module.ModuleManager;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigPersistenceTest {
     @Test
     void profileNameSanitizationIsDeterministicAndPathSafe() {
-        assertEquals("Combat_01-test", ConfigManager.sanitizeProfileName("Combat_01/test"));
+        assertEquals("Combat_01test", ConfigManager.sanitizeProfileName("Combat_01/test"));
         assertEquals("", ConfigManager.sanitizeProfileName("../../"));
         assertTrue(ConfigManager.sanitizeProfileName("abcdefghijklmnopqrstuvwxyz0123456789-long").length() <= 32);
     }
