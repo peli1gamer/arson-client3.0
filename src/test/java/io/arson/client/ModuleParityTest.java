@@ -65,7 +65,7 @@ class ModuleParityTest {
 
     @Test
     void favoritesSortBeforeEnabledAndCanBeCounted() {
-        ModuleManager manager = new ModuleManager(); ModuleManager.registerDefaults(); Module sprint = manager.get("sprint"); Module performance = manager.get("performance");
+        ModuleManager manager = new ModuleManager(); manager.registerDefaults(); Module sprint = manager.get("sprint"); Module performance = manager.get("performance");
         assertNotNull(sprint); assertNotNull(performance); sprint.setFavorite(true); performance.setFavorite(true); assertEquals(2, manager.favoriteCount());
         assertEquals("performance", manager.organized(Module.Category.MISC).iterator().next().id());
     }
