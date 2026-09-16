@@ -151,7 +151,17 @@ public final class HudModule extends Module {
         switch (element) { case "watermark" -> { x.set(px); y.set(py); } case "coordinates" -> { coordinatesX.set(px); coordinatesY.set(py); } case "fps" -> { fpsX.set(px); fpsY.set(py); } case "player-info" -> { playerInfoX.set(px); playerInfoY.set(py); } case "world-info" -> { worldInfoX.set(px); worldInfoY.set(py); } default -> throw new IllegalArgumentException("Unknown HUD element: " + element); }
     }
     public void setEditorPosition(double newX, double newY) { setEditorPosition("watermark", newX, newY); }
-    public void resetElement(String element) { switch (element) { case "watermark" -> setEditorPosition(element, 6, 6); case "coordinates" -> setEditorPosition(element, 6, 28); case "fps" -> setEditorPosition(element, 6, 39); case "player-info" -> setEditorPosition(element, 6, 50); case "world-info" -> setEditorPosition(element, 6, 94); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); } }
+    public void resetElement(String element) {
+        // Reset means restore the declared defaults exactly; editor grid snapping must not alter defaults.
+        switch (element) {
+            case "watermark" -> { x.set(x.defaultValue()); y.set(y.defaultValue()); }
+            case "coordinates" -> { coordinatesX.set(coordinatesX.defaultValue()); coordinatesY.set(coordinatesY.defaultValue()); }
+            case "fps" -> { fpsX.set(fpsX.defaultValue()); fpsY.set(fpsY.defaultValue()); }
+            case "player-info" -> { playerInfoX.set(playerInfoX.defaultValue()); playerInfoY.set(playerInfoY.defaultValue()); }
+            case "world-info" -> { worldInfoX.set(worldInfoX.defaultValue()); worldInfoY.set(worldInfoY.defaultValue()); }
+            default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
+        }
+    }
 
     public void applyPreset(String preset) {
         switch (preset.toLowerCase(java.util.Locale.ROOT)) {
