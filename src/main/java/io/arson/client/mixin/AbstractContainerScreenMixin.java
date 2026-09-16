@@ -1,5 +1,6 @@
 package io.arson.client.mixin;
 
+import io.arson.client.accessor.HandledScreenAccessor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
