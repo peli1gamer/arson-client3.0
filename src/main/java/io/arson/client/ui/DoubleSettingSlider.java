@@ -1,7 +1,6 @@
 package io.arson.client.ui;
 
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
@@ -49,12 +48,5 @@ public final class DoubleSettingSlider extends AbstractSliderButton {
         updateMessage();
         changed.run();
         return true;
-    }
-
-    @Override public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        super.renderWidget(graphics, mouseX, mouseY, delta);
-        int usable = Math.max(1, width - 8);
-        int fill = (int) Math.round(usable * setting.normalized());
-        graphics.fill(getX() + 4, getY() + height - 3, getX() + 4 + fill, getY() + height - 1, 0xFF55AAFF);
     }
 }
