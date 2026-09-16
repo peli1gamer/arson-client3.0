@@ -31,5 +31,10 @@ public abstract class Setting<T> {
     public Setting<T> dependsOn(BooleanSupplier predicate) { return visibleWhen(predicate); }
     public boolean visible() { return visibility.getAsBoolean() && (group == null || group.visible()); }
     public SettingGroup group() { return group; }
-    public Setting<T> group(SettingGroup value) { group = Objects.requireNonNull(value); value.add(this); return this; }
+    @SuppressWarnings("unchecked")
+    public <S extends Setting<T>> S group(SettingGroup value) {
+        group = Objects.requireNonNull(value);
+        value.add(this);
+        return (S) this;
+    }
 }
