@@ -34,6 +34,7 @@ public final class ModuleManager {
         register(new CombatInfoModule());
         register(new TargetingModule());
         register(new AimAssistModule());
+        register(new HoverTotemModule());
         register(new PlayerInfoModule());
         register(new WorldInfoModule());
     }
