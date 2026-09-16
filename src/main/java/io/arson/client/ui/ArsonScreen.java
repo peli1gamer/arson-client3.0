@@ -36,7 +36,10 @@ public final class ArsonScreen extends Screen {
     @Override protected void init() { panelX = Math.max(8, (width - panelW) / 2); panelY = Math.max(8, (height - panelH) / 2); rebuild(); }
 
     private void rebuild() {
+        String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
+        profile = null;
+        editBox = null;
         if (selected == null || selected.category() != category) selected = ArsonClient.getInstance().modules().organized(category).stream().findFirst().orElse(null);
         search = new EditBox(font, panelX + 145, panelY + 8, 260, 20, Component.literal("Search modules"));
         search.setHint(Component.literal("Search modules...")); addRenderableWidget(search);
@@ -47,24 +50,27 @@ public final class ArsonScreen extends Screen {
             if (!q.isEmpty() && !module.name().toLowerCase(Locale.ROOT).contains(q) && !module.id().contains(q)) continue;
             Module chosen = module; addRenderableWidget(Button.builder(Component.literal((module.enabled() ? "● " : "○ ") + module.name()), b -> { selected = chosen; scroll = 0; rebuild(); }).bounds(panelX + 145, y, 225, 22).build()); y += 25; if (y > panelY + panelH - 65) break;
         }
-        if (selected != null) addSettingWidgets();
+        if (selected != null) {
+            addRenderableWidget(Button.builder(Component.literal(selected.enabled() ? "Disable Module" : "Enable Module"), b -> { selected.toggle(); saveConfig(); rebuild(); }).bounds(panelX + 385, panelY + 50, 300, 22).build());
+            addSettingWidgets();
+        }
         int footer = panelY + panelH - 34;
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveConfig()).bounds(panelX + panelW - 150, footer, 65, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose()).bounds(panelX + panelW - 78, footer, 65, 22).build());
         Module hud = ArsonClient.getInstance().modules().get("hud");
         if (hud instanceof HudModule) addRenderableWidget(Button.builder(Component.literal("HUD Editor"), b -> minecraft.setScreen(new HudEditorScreen(this))).bounds(panelX + 375, footer, 100, 22).build());
         if (editingString != null || editingColor != null) addEditBox();
-        if (profile == null && editingString == null && editingColor == null) {
-            profile = new EditBox(font, panelX + 485, footer, 120, 22, Component.literal("Profile")); profile.setHint(Component.literal("profile")); addRenderableWidget(profile);
+        if (editingString == null && editingColor == null) {
+            profile = new EditBox(font, panelX + 485, footer, 120, 22, Component.literal("Profile")); profile.setHint(Component.literal("profile")); profile.setValue(profileValue); addRenderableWidget(profile);
             addRenderableWidget(Button.builder(Component.literal("Load"), b -> loadProfile()).bounds(panelX + 610, footer, 55, 22).build());
             addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveProfile()).bounds(panelX + 670, footer, 55, 22).build());
         }
     }
 
     private void addSettingWidgets() {
-        int x = panelX + 385, y = panelY + 50 - scroll, bottom = panelY + panelH - 55;
+        int x = panelX + 385, y = panelY + 78 - scroll, bottom = panelY + panelH - 55;
         for (Setting<?> setting : selected.settings()) {
-            if (y < panelY + 45) { y += 27; continue; } if (y > bottom) break;
+            if (y < panelY + 73) { y += 27; continue; } if (y > bottom) break;
             if (setting instanceof BooleanSetting b) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + (b.enabled() ? "ON" : "OFF")), x1 -> { b.set(!b.enabled()); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
             else if (setting instanceof DoubleSetting d) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", d.get())), x1 -> { d.set(Math.min(d.max(), d.get() + d.step())); saveConfig(); rebuild(); }).bounds(x, y, 300, 22).build());
             else if (setting instanceof ColorSetting c) addRenderableWidget(Button.builder(Component.literal(setting.name() + ": #" + String.format(Locale.ROOT, "%08X", c.get())), x1 -> { editingColor = c; editingString = null; rebuild(); }).bounds(x, y, 300, 22).build());
