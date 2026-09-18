@@ -27,4 +27,5 @@ public final class ClickGuiPreferencesModule extends Module {
     public boolean enabledOnly() { return enabledOnly.enabled(); }
     public void setEnabledOnly(boolean value) { enabledOnly.set(value); }
     public double panelScale() { return panelScale.get(); }
+    public void setPanelScale(double value) { panelScale.set(value); }
 }
