@@ -21,6 +21,7 @@ import io.arson.client.module.RenderFrameInfoModule;
 import io.arson.client.module.RenderInfoModule;
 import io.arson.client.module.RenderTargetInfoModule;
 import io.arson.client.module.RenderDisplayInfoModule;
+import io.arson.client.module.RenderViewportInfoModule;
 import io.arson.client.module.RenderCameraInfoModule;
 import io.arson.client.module.WorldDetailsModule;
 import io.arson.client.module.WorldEnvironmentModule;
