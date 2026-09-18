@@ -3,6 +3,7 @@ package io.arson.client.ui;
 import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
 import io.arson.client.notification.NotificationCenter;
 import io.arson.client.settings.BooleanSetting;
@@ -43,7 +44,10 @@ public final class ArsonScreen extends Screen {
     private Theme theme=Theme.MIDNIGHT;
     private boolean alphabetical;
     public ArsonScreen(Screen parent){super(Component.literal("Arson Client V3"));this.parent=parent;}
-    @Override protected void init(){panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);rebuild();}
+    @Override protected void init(){syncPreferences();panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);rebuild();}
+    private ClickGuiPreferencesModule preferences(){Module m=ArsonClient.getInstance().modules().get("clickgui-preferences");return m instanceof ClickGuiPreferencesModule p?p:null;}
+    private void syncPreferences(){ClickGuiPreferencesModule p=preferences();if(p==null)return;theme=Theme.valueOf(p.theme().name());alphabetical=p.alphabetical();favoritesOnly=p.favoritesOnly();enabledOnly=p.enabledOnly();}
+    private void savePreferences(){ClickGuiPreferencesModule p=preferences();if(p==null)return;p.setAlphabetical(alphabetical);p.setFavoritesOnly(favoritesOnly);p.setEnabledOnly(enabledOnly);if(!p.theme().name().equals(theme.name()))p.cycleTheme();ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}
     private int headerColor(){return switch(theme){case MIDNIGHT->0xFF181820;case GRAPHITE->0xFF202428;case CONTRAST->0xFF101010;};}
     private int accentColor(){return switch(theme){case MIDNIGHT->0xFF6C63FF;case GRAPHITE->0xFF8AA0B8;case CONTRAST->0xFFFFFFFF;};}
     private int panelColor(){return switch(theme){case MIDNIGHT->0xE00F1015;case GRAPHITE->0xE016191C;case CONTRAST->0xEE050505;};}
@@ -52,11 +56,11 @@ public final class ArsonScreen extends Screen {
         clearWidgets();moduleButtons.clear();profile=null;editBox=null;
         if(selected==null||selected.category()!=category||(favoritesOnly&&!selected.favorite())||(enabledOnly&&!selected.enabled()))selected=ArsonClient.getInstance().modules().organized(category).stream().filter(m->(!favoritesOnly||m.favorite())&&(!enabledOnly||m.enabled())).findFirst().orElse(null);
         search=new EditBox(font,panelX+145,panelY+8,245,20,Component.literal("Search modules"));search.setHint(Component.literal("Search modules..."));search.setValue(searchValue);addRenderableWidget(search);
-        addRenderableWidget(Button.builder(Component.literal((favoritesOnly?"★ Favorites":"☆ Favorites")+" ("+ArsonClient.getInstance().modules().favoriteCount()+")"),b->{favoritesOnly=!favoritesOnly;scroll=0;rebuild();}).bounds(panelX+395,panelY+8,120,20).build());
-        addRenderableWidget(Button.builder(Component.literal((enabledOnly?"● Enabled":"○ Enabled")+" ("+ArsonClient.getInstance().modules().enabledCount()+")"),b->{enabledOnly=!enabledOnly;scroll=0;rebuild();}).bounds(panelX+520,panelY+8,110,20).build());
-        addRenderableWidget(Button.builder(Component.literal("Clear Filters"),b->{favoritesOnly=false;enabledOnly=false;alphabetical=false;if(search!=null)search.setValue("");scroll=0;rebuild();}).bounds(panelX+8,panelY+8,125,20).build());
-        addRenderableWidget(Button.builder(Component.literal("Theme: "+theme.name()),b->{theme=Theme.values()[(theme.ordinal()+1)%Theme.values().length];rebuild();}).bounds(panelX+635,panelY+8,105,20).build());
-        addRenderableWidget(Button.builder(Component.literal(alphabetical?"Sort: A-Z":"Sort: Smart"),b->{alphabetical=!alphabetical;rebuild();}).bounds(panelX+745,panelY+8,95,20).build());
+        addRenderableWidget(Button.builder(Component.literal((favoritesOnly?"★ Favorites":"☆ Favorites")+" ("+ArsonClient.getInstance().modules().favoriteCount()+")"),b->{favoritesOnly=!favoritesOnly;savePreferences();scroll=0;rebuild();}).bounds(panelX+395,panelY+8,120,20).build());
+        addRenderableWidget(Button.builder(Component.literal((enabledOnly?"● Enabled":"○ Enabled")+" ("+ArsonClient.getInstance().modules().enabledCount()+")"),b->{enabledOnly=!enabledOnly;savePreferences();scroll=0;rebuild();}).bounds(panelX+520,panelY+8,110,20).build());
+        addRenderableWidget(Button.builder(Component.literal("Clear Filters"),b->{favoritesOnly=false;enabledOnly=false;alphabetical=false;if(search!=null)search.setValue("");savePreferences();scroll=0;rebuild();}).bounds(panelX+8,panelY+8,125,20).build());
+        addRenderableWidget(Button.builder(Component.literal("Theme: "+theme.name()),b->{theme=Theme.values()[(theme.ordinal()+1)%Theme.values().length];savePreferences();rebuild();}).bounds(panelX+635,panelY+8,105,20).build());
+        addRenderableWidget(Button.builder(Component.literal(alphabetical?"Sort: A-Z":"Sort: Smart"),b->{alphabetical=!alphabetical;savePreferences();rebuild();}).bounds(panelX+745,panelY+8,95,20).build());
         int y=panelY+42;for(Module.Category c:Module.Category.values()){Module.Category chosen=c;addRenderableWidget(Button.builder(Component.literal(chosen.displayName()+" ("+ArsonClient.getInstance().modules().categoryCount(chosen)+")"),b->{category=chosen;selected=null;scroll=0;rebuild();}).bounds(panelX+8,y,122,22).build());y+=26;}
         refreshModuleButtons();
         if(selected!=null){
