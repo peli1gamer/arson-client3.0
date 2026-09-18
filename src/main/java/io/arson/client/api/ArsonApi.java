@@ -60,6 +60,7 @@ public final class ArsonApi {
         while (prefs.theme() != theme) prefs.cycleTheme();
         save(); return true;
     }
+    public static boolean setClickGuiPanelScale(double scale) { if (ArsonClient.getInstance() == null || Double.isNaN(scale) || Double.isInfinite(scale) || scale < 0.75 || scale > 1.25) return false; Module module = ArsonClient.getInstance().modules().get("clickgui-preferences"); if (!(module instanceof ClickGuiPreferencesModule prefs)) return false; prefs.setPanelScale(scale); save(); return true; }
     public static boolean setClickGuiFilters(boolean favoritesOnly, boolean enabledOnly, boolean alphabetical) {
         if (ArsonClient.getInstance() == null) return false;
         Module module = ArsonClient.getInstance().modules().get("clickgui-preferences");
