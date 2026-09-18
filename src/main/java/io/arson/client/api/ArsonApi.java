@@ -4,6 +4,7 @@ import io.arson.client.ArsonClient;
 import io.arson.client.module.Module;
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 /** Stable public facade for addons that need Arson module discovery/control. */
 public final class ArsonApi {
@@ -12,6 +13,19 @@ public final class ArsonApi {
     public static List<Module> modules() { return ArsonClient.getInstance() == null ? List.of() : List.copyOf(ArsonClient.getInstance().modules().all()); }
     public static List<Module> modules(Module.Category category) { if (ArsonClient.getInstance() == null || category == null) return List.of(); return List.copyOf(ArsonClient.getInstance().modules().organized(category)); }
     public static List<Module> favorites() { return modules().stream().filter(Module::favorite).toList(); }
+    /** Stable case-insensitive discovery surface for addons and integrations. */
+    public static List<Module> search(String query) {
+        if (query == null || query.isBlank()) return List.of();
+        String needle = query.trim().toLowerCase(Locale.ROOT);
+        return modules().stream().filter(m -> m.id().toLowerCase(Locale.ROOT).contains(needle) || m.name().toLowerCase(Locale.ROOT).contains(needle) || m.description().toLowerCase(Locale.ROOT).contains(needle)).toList();
+    }
+    public static int setFavorite(Module.Category category, boolean favorite) {
+        if (ArsonClient.getInstance() == null || category == null) return 0;
+        int changed = 0;
+        for (Module module : modules(category)) if (module.favorite() != favorite) { module.setFavorite(favorite); changed++; }
+        if (changed > 0) save();
+        return changed;
+    }
     public static int categoryCount(Module.Category category) { return ArsonClient.getInstance() == null || category == null ? 0 : ArsonClient.getInstance().modules().categoryCount(category); }
     public static int enabledCount() { return ArsonClient.getInstance() == null ? 0 : ArsonClient.getInstance().modules().enabledCount(); }
     public static int enabledCount(Module.Category category) { return ArsonClient.getInstance() == null || category == null ? 0 : ArsonClient.getInstance().modules().enabledCount(category); }
