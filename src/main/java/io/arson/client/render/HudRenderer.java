@@ -2,6 +2,7 @@ package io.arson.client.render;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.CameraInfoModule;
+import io.arson.client.module.ClientPerformanceInfoModule;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.InventoryInfoModule;
@@ -44,6 +45,7 @@ public final class HudRenderer {
         RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
         CameraInfoModule cameraInfo = (CameraInfoModule) ArsonClient.getInstance().modules().get("camera-info");
         RenderDisplayInfoModule displayInfo = (RenderDisplayInfoModule) ArsonClient.getInstance().modules().get("render-display-info");
+        ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
         float globalScale = (float) hud.scale();
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
@@ -86,6 +88,7 @@ public final class HudRenderer {
             if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
             if (cameraInfo != null && cameraInfo.enabled()) rows.add(cameraInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
+            if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
         graphics.pose().popMatrix();
