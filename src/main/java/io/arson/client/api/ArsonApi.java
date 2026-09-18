@@ -1,6 +1,7 @@
 package io.arson.client.api;
 
 import io.arson.client.ArsonClient;
+import io.arson.client.module.HudModule;
 import io.arson.client.module.Module;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,23 @@ public final class ArsonApi {
         for (Module module : modules(category)) if (module.favorite() != favorite) { module.setFavorite(favorite); changed++; }
         if (changed > 0) save();
         return changed;
+    }
+    public static boolean applyHudPreset(String preset) {
+        if (ArsonClient.getInstance() == null || preset == null || preset.isBlank()) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof HudModule hud)) return false;
+        try { hud.applyPreset(preset); save(); return true; }
+        catch (IllegalArgumentException ignored) { return false; }
+    }
+    public static boolean setHudRowFormat(HudModule.RowFormat format) {
+        if (ArsonClient.getInstance() == null || format == null) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof HudModule hud)) return false;
+        for (var setting : hud.settings()) if (setting.id().equals("row-format") && setting instanceof io.arson.client.settings.EnumSetting<?> select) {
+            @SuppressWarnings({"rawtypes", "unchecked"}) io.arson.client.settings.EnumSetting raw = select;
+            raw.set(format); save(); return true;
+        }
+        return false;
     }
     public static int categoryCount(Module.Category category) { return ArsonClient.getInstance() == null || category == null ? 0 : ArsonClient.getInstance().modules().categoryCount(category); }
     public static int enabledCount() { return ArsonClient.getInstance() == null ? 0 : ArsonClient.getInstance().modules().enabledCount(); }
