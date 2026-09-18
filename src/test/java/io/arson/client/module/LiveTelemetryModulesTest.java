@@ -29,6 +29,25 @@ class LiveTelemetryModulesTest {
     }
 
     @Test
+    void viewportTelemetryHasSafeInitialStateAndFormatting() {
+        RenderViewportInfoModule module = new RenderViewportInfoModule();
+        assertEquals("render-viewport-info", module.id());
+        assertEquals(Module.Category.RENDER, module.category());
+        assertEquals(0, module.guiWidth());
+        assertEquals(0, module.guiHeight());
+        assertFalse(module.screenOpen());
+        assertTrue(module.formatted().contains("Viewport GUI 0x0"));
+    }
+
+    @Test
+    void managerRegistersViewportTelemetryInRenderCategory() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        assertNotNull(manager.get("render-viewport-info"));
+        assertEquals(Module.Category.RENDER, manager.get("render-viewport-info").category());
+    }
+
+    @Test
     void newModulesAreRegisteredAndCategoryControlsPersistThroughApi() {
         ModuleManager manager = new ModuleManager();
         manager.registerDefaults();
