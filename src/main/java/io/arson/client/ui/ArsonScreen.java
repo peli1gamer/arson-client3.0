@@ -61,6 +61,7 @@ public final class ArsonScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal(selected.favorite()?"★ Favorited":"☆ Add to Favorites"),b->{selected.setFavorite(!selected.favorite());saveConfig();rebuild();}).bounds(panelX+385,panelY+76,145,22).build());
             addRenderableWidget(Button.builder(Component.literal(bindingModule==selected?"Press a key...":"Keybind: "+keyName(selected.keyCode())),b->{bindingModule=selected;rebuild();}).bounds(panelX+535,panelY+76,150,22).build());
             addRenderableWidget(Button.builder(Component.literal("Reset Module"),b->{selected.resetToDefaults();NotificationCenter.push(selected.name(),"Module reset to defaults");saveConfig();rebuild();}).bounds(panelX+385,panelY+102,100,22).build());
+            addRenderableWidget(Button.builder(Component.literal("Reset Settings"),b->{selected.resetSettings();NotificationCenter.push(selected.name(),"Settings reset to defaults");saveConfig();rebuild();}).bounds(panelX+490,panelY+102,110,22).build());
             addSettingWidgets();
         }
         int footer=panelY+panelH-34;
