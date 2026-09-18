@@ -54,6 +54,33 @@ class ModuleParityTest {
     }
 
     @Test
+    void moduleSearchFindsByNameIdAndDescription() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        assertTrue(manager.search("viewport").stream().anyMatch(m -> m.id().equals("render-viewport-info")));
+        assertTrue(manager.search("experience").stream().anyMatch(m -> m.id().equals("player-experience-info")));
+        assertTrue(manager.search("no-such-module").isEmpty());
+    }
+
+    @Test
+    void hudRowFormatIsARealPersistentSetting() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        HudModule hud = (HudModule) manager.get("hud");
+        assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
+        var setting = hud.settings().stream().filter(s -> s.id().equals("row-format")).findFirst().orElseThrow();
+        assertEquals(HudModule.RowFormat.STACKED, setting.get());
+        assertEquals(HudModule.RowFormat.STACKED, setting.defaultValue());
+    }
+
+    @Test
+    void publicApiHandlesNullSafeHudPresetInput() {
+        assertFalse(ArsonApi.applyHudPreset(null));
+        assertFalse(ArsonApi.applyHudPreset(""));
+        assertFalse(ArsonApi.setHudRowFormat(null));
+    }
+
+    @Test
     void moduleKeybindIsMutableAndResettableForGuiCustomization() {
         ModuleManager manager = new ModuleManager(); manager.registerDefaults(); Module sprint = manager.get("sprint");
         assertNotNull(sprint); assertFalse(sprint.hasKeybind()); sprint.setKeyCode(65); assertTrue(sprint.hasKeybind()); assertEquals(65, sprint.keyCode());
