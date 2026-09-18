@@ -38,6 +38,34 @@ class ExpandedTelemetryParityTest {
     }
 
     @Test
+    void clickGuiPreferencesExposePersistentDefaults() {
+        ClickGuiPreferencesModule prefs = new ClickGuiPreferencesModule();
+        assertEquals("clickgui-preferences", prefs.id());
+        assertEquals(ClickGuiPreferencesModule.Theme.MIDNIGHT, prefs.theme());
+        assertFalse(prefs.alphabetical());
+        assertFalse(prefs.favoritesOnly());
+        assertFalse(prefs.enabledOnly());
+        assertEquals(1.0, prefs.panelScale());
+        prefs.cycleTheme();
+        prefs.setAlphabetical(true);
+        prefs.setFavoritesOnly(true);
+        prefs.setEnabledOnly(true);
+        assertEquals(ClickGuiPreferencesModule.Theme.GRAPHITE, prefs.theme());
+        assertTrue(prefs.alphabetical());
+        assertTrue(prefs.favoritesOnly());
+        assertTrue(prefs.enabledOnly());
+    }
+
+    @Test
+    void managerRegistersClickGuiPreferencesInMisc() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        Module module = manager.get("clickgui-preferences");
+        assertNotNull(module);
+        assertEquals(Module.Category.MISC, module.category());
+    }
+
+    @Test
     void formattedTelemetryIsHumanReadable() {
         assertTrue(new PlayerAirInfoModule().formatted().startsWith("Air "));
         assertTrue(new WorldWeatherInfoModule().formatted().startsWith("Weather "));
