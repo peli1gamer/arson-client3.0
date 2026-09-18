@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft;
 public final class PlayerMovementInfoModule extends Module {
     private double horizontalSpeed;
     private double verticalSpeed;
-    private float fallDistance;
+    private double fallDistance;
     private boolean onGround;
     private boolean sprinting;
     private boolean sneaking;
@@ -34,7 +34,7 @@ public final class PlayerMovementInfoModule extends Module {
 
     public double horizontalSpeed() { return horizontalSpeed; }
     public double verticalSpeed() { return verticalSpeed; }
-    public float fallDistance() { return fallDistance; }
+    public double fallDistance() { return fallDistance; }
     public boolean onGround() { return onGround; }
     public boolean sprinting() { return sprinting; }
     public boolean sneaking() { return sneaking; }
