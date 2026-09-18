@@ -69,3 +69,5 @@ gradle build
 ```
 
 GitHub Actions also runs the Java 21 build automatically on pushes and pull requests.
+
+<!-- CI baseline probe -->
