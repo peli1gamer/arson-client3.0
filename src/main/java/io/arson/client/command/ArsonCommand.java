@@ -16,7 +16,7 @@ public final class ArsonCommand {
     private ArsonCommand() {}
     public static void register(){
         ClientCommandRegistrationCallback.EVENT.register((dispatcher,registryAccess)->dispatcher.register(ClientCommandManager.literal("arson")
-            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|toggle|info|settings|reset>, category <list|info>, config <save|load>, profile <list|save|load|delete>, plus legacy list/toggle/info/settings/reset/save.");return 1;}))
+            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|toggle|info|settings|reset>, category <list|info|enable|disable>, search <query>, config <save|load>, profile <list|save|load|delete>, plus legacy list/toggle/info/settings/reset/save.");return 1;}))
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
             .then(ClientCommandManager.literal("enabled").executes(ctx->{feedback(ctx,"Enabled: "+ArsonClient.getInstance().modules().all().stream().filter(Module::enabled).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("favorites").executes(ctx->{feedback(ctx,"Favorites: "+ArsonClient.getInstance().modules().all().stream().filter(Module::favorite).map(Module::id).toList());return 1;}))
