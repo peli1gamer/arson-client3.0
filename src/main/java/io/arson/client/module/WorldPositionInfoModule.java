@@ -26,13 +26,12 @@ public final class WorldPositionInfoModule extends Module {
             return;
         }
         var level = client.level;
-        minBuildHeight = level.getMinBuildHeight();
-        maxBuildHeight = level.getMaxBuildHeight();
+        minBuildHeight = level.dimensionType().minY();
+        maxBuildHeight = minBuildHeight + level.dimensionType().height();
         borderDiameter = level.getWorldBorder().getSize();
-        var spawn = level.getSharedSpawnPos();
-        spawnX = spawn.getX();
-        spawnY = spawn.getY();
-        spawnZ = spawn.getZ();
+        spawnX = level.getLevelData().getXSpawn();
+        spawnY = level.getLevelData().getYSpawn();
+        spawnZ = level.getLevelData().getZSpawn();
         difficulty = level.getDifficulty().toString();
     }
 
