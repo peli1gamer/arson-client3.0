@@ -7,6 +7,7 @@ import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.InventoryInfoModule;
 import io.arson.client.module.PlayerEquipmentModule;
+import io.arson.client.module.PlayerExperienceInfoModule;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.PlayerMovementInfoModule;
 import io.arson.client.module.PlayerVitalsModule;
@@ -16,6 +17,7 @@ import io.arson.client.module.WorldDetailsModule;
 import io.arson.client.module.WorldEnvironmentModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.module.WorldPositionInfoModule;
+import io.arson.client.module.WorldLightInfoModule;
 import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -36,12 +38,14 @@ public final class HudRenderer {
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
         PlayerEquipmentModule equipment = (PlayerEquipmentModule) ArsonClient.getInstance().modules().get("player-equipment");
+        PlayerExperienceInfoModule experienceInfo = (PlayerExperienceInfoModule) ArsonClient.getInstance().modules().get("player-experience-info");
         PlayerMovementInfoModule movementInfo = (PlayerMovementInfoModule) ArsonClient.getInstance().modules().get("player-movement-info");
         InventoryInfoModule inventoryInfo = (InventoryInfoModule) ArsonClient.getInstance().modules().get("inventory-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
         WorldEnvironmentModule worldEnvironment = (WorldEnvironmentModule) ArsonClient.getInstance().modules().get("world-environment");
         WorldDetailsModule worldDetails = (WorldDetailsModule) ArsonClient.getInstance().modules().get("world-details");
         WorldPositionInfoModule worldPositionInfo = (WorldPositionInfoModule) ArsonClient.getInstance().modules().get("world-position-info");
+        WorldLightInfoModule worldLightInfo = (WorldLightInfoModule) ArsonClient.getInstance().modules().get("world-light-info");
         RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
         CameraInfoModule cameraInfo = (CameraInfoModule) ArsonClient.getInstance().modules().get("camera-info");
         RenderDisplayInfoModule displayInfo = (RenderDisplayInfoModule) ArsonClient.getInstance().modules().get("render-display-info");
@@ -64,6 +68,7 @@ public final class HudRenderer {
                 rows.add("State " + (playerVitals.sprinting() ? "Sprinting" : "Walking") + (playerVitals.sneaking() ? "  Sneaking" : ""));
             }
             if (equipment != null && equipment.enabled()) rows.add(equipment.formatted());
+            if (experienceInfo != null && experienceInfo.enabled()) rows.add(experienceInfo.formatted());
             if (movementInfo != null && movementInfo.enabled()) rows.add(movementInfo.formatted());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
@@ -85,6 +90,7 @@ public final class HudRenderer {
             }
             if (worldDetails != null && worldDetails.enabled()) rows.add(worldDetails.formatted());
             if (worldPositionInfo != null && worldPositionInfo.enabled()) rows.add(worldPositionInfo.formatted());
+            if (worldLightInfo != null && worldLightInfo.enabled()) rows.add(worldLightInfo.formatted());
             if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
             if (cameraInfo != null && cameraInfo.enabled()) rows.add(cameraInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
