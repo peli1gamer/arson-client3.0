@@ -13,13 +13,17 @@ import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.PlayerMovementInfoModule;
 import io.arson.client.module.PlayerPoseInfoModule;
 import io.arson.client.module.PlayerVitalsModule;
+import io.arson.client.module.PlayerVelocityInfoModule;
+import io.arson.client.module.PlayerInputInfoModule;
 import io.arson.client.module.RenderInfoModule;
+import io.arson.client.module.RenderTargetInfoModule;
 import io.arson.client.module.RenderDisplayInfoModule;
 import io.arson.client.module.RenderCameraInfoModule;
 import io.arson.client.module.WorldDetailsModule;
 import io.arson.client.module.WorldEnvironmentModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.module.WorldPositionInfoModule;
+import io.arson.client.module.WorldHeightInfoModule;
 import io.arson.client.module.WorldLightInfoModule;
 import io.arson.client.module.WorldMoonInfoModule;
 import io.arson.client.module.WorldChunkInfoModule;
@@ -42,6 +46,8 @@ public final class HudRenderer {
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
+        PlayerVelocityInfoModule velocityInfo = (PlayerVelocityInfoModule) ArsonClient.getInstance().modules().get("player-velocity-info");
+        PlayerInputInfoModule inputInfo = (PlayerInputInfoModule) ArsonClient.getInstance().modules().get("player-input-info");
         PlayerEquipmentModule equipment = (PlayerEquipmentModule) ArsonClient.getInstance().modules().get("player-equipment");
         PlayerExperienceInfoModule experienceInfo = (PlayerExperienceInfoModule) ArsonClient.getInstance().modules().get("player-experience-info");
         PlayerEffectInfoModule effectInfo = (PlayerEffectInfoModule) ArsonClient.getInstance().modules().get("player-effect-info");
@@ -52,10 +58,12 @@ public final class HudRenderer {
         WorldEnvironmentModule worldEnvironment = (WorldEnvironmentModule) ArsonClient.getInstance().modules().get("world-environment");
         WorldDetailsModule worldDetails = (WorldDetailsModule) ArsonClient.getInstance().modules().get("world-details");
         WorldPositionInfoModule worldPositionInfo = (WorldPositionInfoModule) ArsonClient.getInstance().modules().get("world-position-info");
+        WorldHeightInfoModule worldHeightInfo = (WorldHeightInfoModule) ArsonClient.getInstance().modules().get("world-height-info");
         WorldLightInfoModule worldLightInfo = (WorldLightInfoModule) ArsonClient.getInstance().modules().get("world-light-info");
         WorldMoonInfoModule moonInfo = (WorldMoonInfoModule) ArsonClient.getInstance().modules().get("world-moon-info");
         WorldChunkInfoModule chunkInfo = (WorldChunkInfoModule) ArsonClient.getInstance().modules().get("world-chunk-info");
         RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
+        RenderTargetInfoModule targetInfo = (RenderTargetInfoModule) ArsonClient.getInstance().modules().get("render-target-info");
         CameraInfoModule cameraInfo = (CameraInfoModule) ArsonClient.getInstance().modules().get("camera-info");
         RenderDisplayInfoModule displayInfo = (RenderDisplayInfoModule) ArsonClient.getInstance().modules().get("render-display-info");
         RenderCameraInfoModule cameraInfo2 = (RenderCameraInfoModule) ArsonClient.getInstance().modules().get("render-camera-info");
@@ -82,6 +90,8 @@ public final class HudRenderer {
             if (effectInfo != null && effectInfo.enabled()) rows.add(effectInfo.formatted());
             if (movementInfo != null && movementInfo.enabled()) rows.add(movementInfo.formatted());
             if (poseInfo != null && poseInfo.enabled()) rows.add(poseInfo.formatted());
+            if (velocityInfo != null && velocityInfo.enabled()) rows.add(velocityInfo.formatted());
+            if (inputInfo != null && inputInfo.enabled()) rows.add(inputInfo.formatted());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
         if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
@@ -105,9 +115,11 @@ public final class HudRenderer {
             if (worldLightInfo != null && worldLightInfo.enabled()) rows.add(worldLightInfo.formatted());
             if (moonInfo != null && moonInfo.enabled()) rows.add(moonInfo.formatted());
             if (chunkInfo != null && chunkInfo.enabled()) rows.add(chunkInfo.formatted());
+            if (worldHeightInfo != null && worldHeightInfo.enabled()) rows.add(worldHeightInfo.formatted());
             if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
             if (cameraInfo != null && cameraInfo.enabled()) rows.add(cameraInfo.formatted());
             if (cameraInfo2 != null && cameraInfo2.enabled()) rows.add(cameraInfo2.formatted());
+            if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
