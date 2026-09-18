@@ -66,6 +66,7 @@ public final class HudRenderer {
         RenderTargetInfoModule targetInfo = (RenderTargetInfoModule) ArsonClient.getInstance().modules().get("render-target-info");
         CameraInfoModule cameraInfo = (CameraInfoModule) ArsonClient.getInstance().modules().get("camera-info");
         RenderDisplayInfoModule displayInfo = (RenderDisplayInfoModule) ArsonClient.getInstance().modules().get("render-display-info");
+        RenderViewportInfoModule viewportInfo = (RenderViewportInfoModule) ArsonClient.getInstance().modules().get("render-viewport-info");
         RenderCameraInfoModule cameraInfo2 = (RenderCameraInfoModule) ArsonClient.getInstance().modules().get("render-camera-info");
         ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
         float globalScale = (float) hud.scale();
@@ -122,6 +123,7 @@ public final class HudRenderer {
             if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
+            if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
         graphics.pose().popMatrix();
@@ -131,7 +133,9 @@ public final class HudRenderer {
         for (NotificationCenter.Notification n : list) { int width = Math.max(180, Math.max(client.font.width(n.title()), client.font.width(n.message())) + 24), height = 40; float p = n.progress(System.currentTimeMillis()), eased = p * p * (3f - 2f * p); int slide = Math.round((1f - eased) * 18f); boolean left = NotificationCenter.position() == NotificationCenter.Position.TOP_LEFT || NotificationCenter.position() == NotificationCenter.Position.BOTTOM_LEFT; boolean bottom = NotificationCenter.position() == NotificationCenter.Position.BOTTOM_LEFT || NotificationCenter.position() == NotificationCenter.Position.BOTTOM_RIGHT; int x = left ? 10 : screenW - width - 10, y = bottom ? screenH - 10 - height - index * 45 : 10 + index * 45; x += left ? -slide : slide; int outline = switch (n.priority()) { case HIGH -> 0xFFFF5555; case LOW -> 0xFF777777; case NORMAL -> 0xFF5555AA; }; graphics.fill(x, y, x + width, y + height, 0xE0181820); graphics.renderOutline(x, y, width, height, outline); graphics.drawString(client.font, n.title(), x + 8, y + 6, 0xFFFFFFFF); graphics.drawString(client.font, n.message(), x + 8, y + 20, 0xFFD0D0D0); graphics.fill(x + 1, y + height - 3, x + 1 + Math.round((width - 2) * eased), y + height - 1, outline); index++; }
     }
     private static void drawElement(GuiGraphics graphics, Minecraft client, HudModule hud, HudLayoutModule layout, String element, int fallbackX, int fallbackY, String[] rows) {
-        if (rows.length == 0) return; double elementScale = hud.elementScale(element); int maxWidth = 0; for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row)); int line = hud.lineSpacing(); double x = fallbackX, y = fallbackY;
+        if (rows.length == 0) return;
+        if (hud.rowFormat() == HudModule.RowFormat.COMPACT && rows.length > 1) rows = new String[]{String.join("  |  ", rows)};
+        double elementScale = hud.elementScale(element); int maxWidth = 0; for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row)); int line = hud.rowFormat() == HudModule.RowFormat.DENSE ? Math.max(8, hud.lineSpacing() - 2) : hud.lineSpacing(); double x = fallbackX, y = fallbackY;
         if (layout != null) { double logicalViewportW = client.getWindow().getGuiScaledWidth() / Math.max(0.001, hud.scale()), logicalViewportH = client.getWindow().getGuiScaledHeight() / Math.max(0.001, hud.scale()); double[] resolved = layout.resolve(element, logicalViewportW, logicalViewportH, maxWidth * elementScale, rows.length * line * elementScale); x = resolved[0]; y = resolved[1]; }
         graphics.pose().pushMatrix(); graphics.pose().translate((float)x, (float)y); graphics.pose().scale((float) elementScale, (float) elementScale); int padding = hud.padding(); String alignment = hud.elementAlignment(element); int left = alignedX(0, maxWidth, alignment);
         if (hud.showBackground() && hud.elementBackground(element)) graphics.fill(left - padding, -padding, left + maxWidth + padding, rows.length * line + padding - 1, hud.elementBackgroundColor());
