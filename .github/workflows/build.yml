@@ -19,7 +19,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Focused integration tests
-        run: gradle test --no-daemon --stacktrace
+        run: gradle test --no-daemon --stacktrace --info
       - name: Fabric client runtime smoke test
         env:
           JAVA_TOOL_OPTIONS: -Darson.runtimeSmokeTicks=80
