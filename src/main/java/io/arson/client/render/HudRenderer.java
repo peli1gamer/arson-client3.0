@@ -8,13 +8,16 @@ import io.arson.client.module.InventoryInfoModule;
 import io.arson.client.module.PlayerEquipmentModule;
 import io.arson.client.module.PlayerInfoModule;
 import io.arson.client.module.PlayerMovementInfoModule;
+import io.arson.client.module.PlayerPoseInfoModule;
 import io.arson.client.module.PlayerVitalsModule;
 import io.arson.client.module.RenderInfoModule;
 import io.arson.client.module.RenderDisplayInfoModule;
+import io.arson.client.module.RenderTargetInfoModule;
 import io.arson.client.module.WorldDetailsModule;
 import io.arson.client.module.WorldEnvironmentModule;
 import io.arson.client.module.WorldInfoModule;
 import io.arson.client.module.WorldPositionInfoModule;
+import io.arson.client.module.WorldLightInfoModule;
 import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -36,14 +39,17 @@ public final class HudRenderer {
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
         PlayerEquipmentModule equipment = (PlayerEquipmentModule) ArsonClient.getInstance().modules().get("player-equipment");
         PlayerMovementInfoModule movementInfo = (PlayerMovementInfoModule) ArsonClient.getInstance().modules().get("player-movement-info");
+        PlayerPoseInfoModule poseInfo = (PlayerPoseInfoModule) ArsonClient.getInstance().modules().get("player-pose-info");
         InventoryInfoModule inventoryInfo = (InventoryInfoModule) ArsonClient.getInstance().modules().get("inventory-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
         WorldEnvironmentModule worldEnvironment = (WorldEnvironmentModule) ArsonClient.getInstance().modules().get("world-environment");
         WorldDetailsModule worldDetails = (WorldDetailsModule) ArsonClient.getInstance().modules().get("world-details");
         WorldPositionInfoModule worldPositionInfo = (WorldPositionInfoModule) ArsonClient.getInstance().modules().get("world-position-info");
+        WorldLightInfoModule worldLightInfo = (WorldLightInfoModule) ArsonClient.getInstance().modules().get("world-light-info");
         RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
         CameraInfoModule cameraInfo = (CameraInfoModule) ArsonClient.getInstance().modules().get("camera-info");
         RenderDisplayInfoModule displayInfo = (RenderDisplayInfoModule) ArsonClient.getInstance().modules().get("render-display-info");
+        RenderTargetInfoModule targetInfo = (RenderTargetInfoModule) ArsonClient.getInstance().modules().get("render-target-info");
         float globalScale = (float) hud.scale();
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
@@ -63,6 +69,7 @@ public final class HudRenderer {
             }
             if (equipment != null && equipment.enabled()) rows.add(equipment.formatted());
             if (movementInfo != null && movementInfo.enabled()) rows.add(movementInfo.formatted());
+            if (poseInfo != null && poseInfo.enabled()) rows.add(poseInfo.formatted());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
         if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
@@ -86,6 +93,8 @@ public final class HudRenderer {
             if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
             if (cameraInfo != null && cameraInfo.enabled()) rows.add(cameraInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
+            if (worldLightInfo != null && worldLightInfo.enabled()) rows.add(worldLightInfo.formatted());
+            if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
         graphics.pose().popMatrix();
