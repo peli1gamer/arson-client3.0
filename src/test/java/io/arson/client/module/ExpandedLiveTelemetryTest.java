@@ -10,10 +10,12 @@ class ExpandedLiveTelemetryTest {
         PlayerMovementInfoModule movement = new PlayerMovementInfoModule();
         WorldPositionInfoModule world = new WorldPositionInfoModule();
         RenderDisplayInfoModule display = new RenderDisplayInfoModule();
+        ClientPerformanceInfoModule performance = new ClientPerformanceInfoModule();
 
         assertEquals("player-movement-info", movement.id());
         assertEquals("world-position-info", world.id());
         assertEquals("render-display-info", display.id());
+        assertEquals("client-performance-info", performance.id());
         assertTrue(movement.description().contains("velocity"));
         assertTrue(world.description().contains("world border"));
         assertTrue(display.description().contains("FOV"));
@@ -23,6 +25,9 @@ class ExpandedLiveTelemetryTest {
         assertEquals(0.0, world.borderDiameter());
         assertEquals(0.0, display.fov());
         assertFalse(display.fullscreen());
+        assertEquals(0, performance.fps());
+        assertEquals(0L, performance.usedMemoryMb());
+        assertTrue(performance.formatted().startsWith("FPS 0"));
     }
 
     @Test
@@ -33,6 +38,7 @@ class ExpandedLiveTelemetryTest {
         assertEquals(Module.Category.PLAYER, manager.get("player-movement-info").category());
         assertEquals(Module.Category.WORLD, manager.get("world-position-info").category());
         assertEquals(Module.Category.RENDER, manager.get("render-display-info").category());
+        assertEquals(Module.Category.MISC, manager.get("client-performance-info").category());
         assertTrue(manager.categoryCount(Module.Category.PLAYER) >= 1);
         assertTrue(manager.categoryCount(Module.Category.WORLD) >= 1);
         assertTrue(manager.categoryCount(Module.Category.RENDER) >= 1);
