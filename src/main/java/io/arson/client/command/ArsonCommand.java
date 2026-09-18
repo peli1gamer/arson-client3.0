@@ -21,11 +21,15 @@ public final class ArsonCommand {
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
             .then(ClientCommandManager.literal("enabled").executes(ctx->{feedback(ctx,"Enabled: "+ArsonClient.getInstance().modules().all().stream().filter(Module::enabled).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("favorites").executes(ctx->{feedback(ctx,"Favorites: "+ArsonClient.getInstance().modules().all().stream().filter(Module::favorite).map(Module::id).toList());return 1;}))
-            .then(moduleCommands()).then(categoryCommands()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
+            .then(moduleCommands()).then(categoryCommands()).then(summaryCommand()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
             .then(enableCommand()).then(disableCommand()).then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand())
             .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
         ));
     }
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> summaryCommand() {
+        return ClientCommandManager.literal("summary").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category cat:Module.Category.values()) b.suggest(cat.name().toLowerCase()); return b.buildFuture();}).executes(ctx->{Module.Category cat=category(StringArgumentType.getString(ctx,"category")); if(cat==null){error(ctx,"Unknown category");return 0;} feedback(ctx,io.arson.client.api.ArsonApi.moduleSummary(cat)); return 1;}));
+    }
+
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> moduleCommands(){return ClientCommandManager.literal("module")
         .then(ClientCommandManager.literal("search").then(ClientCommandManager.argument("query",StringArgumentType.greedyString()).executes(ctx->{String q=StringArgumentType.getString(ctx,"query");var found=io.arson.client.api.ArsonApi.search(q);feedback(ctx,"Search "+q+": "+found.stream().map(Module::id).toList());return 1;}))).then(ClientCommandManager.literal("list").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,raw+": "+ArsonClient.getInstance().modules().organized(c).stream().map(Module::id).toList());return 1;})).executes(ctx->{feedback(ctx,"Modules: "+ArsonClient.getInstance().modules().all().stream().map(Module::id).toList());return 1;}))
         .then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand());}
