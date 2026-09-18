@@ -3,6 +3,7 @@ package io.arson.client.ui;
 import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
 import io.arson.client.notification.NotificationCenter;
 import io.arson.client.settings.BooleanSetting;
@@ -23,9 +24,9 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Comparator;
 
 public final class ArsonScreen extends Screen {
-    private enum Theme { MIDNIGHT, GRAPHITE, CONTRAST }
     private final Screen parent;
     private Module.Category category=Module.Category.RENDER;
     private Module selected;
@@ -40,20 +41,21 @@ public final class ArsonScreen extends Screen {
     private int scroll;
     private boolean favoritesOnly;
     private boolean enabledOnly;
-    private Theme theme=Theme.MIDNIGHT;
     public ArsonScreen(Screen parent){super(Component.literal("Arson Client V3"));this.parent=parent;}
-    @Override protected void init(){panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);rebuild();}
-    private int headerColor(){return switch(theme){case MIDNIGHT->0xFF181820;case GRAPHITE->0xFF202428;case CONTRAST->0xFF101010;};}
-    private int accentColor(){return switch(theme){case MIDNIGHT->0xFF6C63FF;case GRAPHITE->0xFF8AA0B8;case CONTRAST->0xFFFFFFFF;};}
-    private int panelColor(){return switch(theme){case MIDNIGHT->0xE00F1015;case GRAPHITE->0xE016191C;case CONTRAST->0xEE050505;};}
+    private ClickGuiPreferencesModule preferences(){Module module=ArsonClient.getInstance().modules().get("clickgui-preferences");return module instanceof ClickGuiPreferencesModule p?p:null;}
+    @Override protected void init(){panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);ClickGuiPreferencesModule p=preferences();if(p!=null){favoritesOnly=p.favoritesOnly();enabledOnly=p.enabledOnly();}rebuild();}
+    private int headerColor(){ClickGuiPreferencesModule p=preferences();return switch(p==null?ClickGuiPreferencesModule.Theme.MIDNIGHT:p.theme()){case MIDNIGHT->0xFF181820;case GRAPHITE->0xFF202428;case CONTRAST->0xFF101010;};}
+    private int accentColor(){ClickGuiPreferencesModule p=preferences();return switch(p==null?ClickGuiPreferencesModule.Theme.MIDNIGHT:p.theme()){case MIDNIGHT->0xFF6C63FF;case GRAPHITE->0xFF8AA0B8;case CONTRAST->0xFFFFFFFF;};}
+    private int panelColor(){ClickGuiPreferencesModule p=preferences();return switch(p==null?ClickGuiPreferencesModule.Theme.MIDNIGHT:p.theme()){case MIDNIGHT->0xE00F1015;case GRAPHITE->0xE016191C;case CONTRAST->0xEE050505;};}
     private void rebuild(){
         String profileValue=profile==null?"":profile.getValue();String searchValue=search==null?"":search.getValue();
         clearWidgets();moduleButtons.clear();profile=null;editBox=null;
         if(selected==null||selected.category()!=category||(favoritesOnly&&!selected.favorite())||(enabledOnly&&!selected.enabled()))selected=ArsonClient.getInstance().modules().organized(category).stream().filter(m->(!favoritesOnly||m.favorite())&&(!enabledOnly||m.enabled())).findFirst().orElse(null);
         search=new EditBox(font,panelX+145,panelY+8,245,20,Component.literal("Search modules"));search.setHint(Component.literal("Search modules..."));search.setValue(searchValue);addRenderableWidget(search);
-        addRenderableWidget(Button.builder(Component.literal((favoritesOnly?"★ Favorites":"☆ Favorites")+" ("+ArsonClient.getInstance().modules().favoriteCount()+")"),b->{favoritesOnly=!favoritesOnly;scroll=0;rebuild();}).bounds(panelX+395,panelY+8,120,20).build());
-        addRenderableWidget(Button.builder(Component.literal((enabledOnly?"● Enabled":"○ Enabled")+" ("+ArsonClient.getInstance().modules().enabledCount()+")"),b->{enabledOnly=!enabledOnly;scroll=0;rebuild();}).bounds(panelX+520,panelY+8,110,20).build());
-        addRenderableWidget(Button.builder(Component.literal("Theme: "+theme.name()),b->{theme=Theme.values()[(theme.ordinal()+1)%Theme.values().length];rebuild();}).bounds(panelX+635,panelY+8,105,20).build());
+        addRenderableWidget(Button.builder(Component.literal((favoritesOnly?"★ Favorites":"☆ Favorites")+" ("+ArsonClient.getInstance().modules().favoriteCount()+")"),b->{favoritesOnly=!favoritesOnly;ClickGuiPreferencesModule p=preferences();if(p!=null){p.setFavoritesOnly(favoritesOnly);saveConfig();}scroll=0;rebuild();}).bounds(panelX+395,panelY+8,120,20).build());
+        addRenderableWidget(Button.builder(Component.literal((enabledOnly?"● Enabled":"○ Enabled")+" ("+ArsonClient.getInstance().modules().enabledCount()+")"),b->{enabledOnly=!enabledOnly;ClickGuiPreferencesModule p=preferences();if(p!=null){p.setEnabledOnly(enabledOnly);saveConfig();}scroll=0;rebuild();}).bounds(panelX+520,panelY+8,110,20).build());
+        addRenderableWidget(Button.builder(Component.literal("Theme: "+(preferences()==null?"MIDNIGHT":preferences().theme().name())),b->{ClickGuiPreferencesModule p=preferences();if(p!=null){p.cycleTheme();saveConfig();}rebuild();}).bounds(panelX+635,panelY+8,105,20).build());
+        addRenderableWidget(Button.builder(Component.literal("Sort: "+(preferences()==null?"FAVORITES":prettyEnum(preferences().sortMode()))),b->{ClickGuiPreferencesModule p=preferences();if(p!=null){p.cycleSortMode();saveConfig();}rebuild();}).bounds(panelX+745,panelY+8,105,20).build());
         int y=panelY+42;for(Module.Category c:Module.Category.values()){Module.Category chosen=c;addRenderableWidget(Button.builder(Component.literal(chosen.displayName()+" ("+ArsonClient.getInstance().modules().categoryCount(chosen)+")"),b->{category=chosen;selected=null;scroll=0;rebuild();}).bounds(panelX+8,y,122,22).build());y+=26;}
         refreshModuleButtons();
         if(selected!=null){
@@ -70,7 +72,7 @@ public final class ArsonScreen extends Screen {
         if(editingString!=null||editingColor!=null)addEditBox();
         if(editingString==null&&editingColor==null){profile=new EditBox(font,panelX+485,footer,120,22,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(panelX+610,footer,55,22).build());addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(panelX+670,footer,55,22).build());}
     }
-    private void refreshModuleButtons(){for(Button button:moduleButtons)removeWidget(button);moduleButtons.clear();int y=panelY+48;String q=search==null?"":search.getValue().trim().toLowerCase(Locale.ROOT);for(Module module:ArsonClient.getInstance().modules().organized(category)){if(favoritesOnly&&!module.favorite())continue;if(enabledOnly&&!module.enabled())continue;String haystack=(module.name()+" "+module.id()+" "+module.description()).toLowerCase(Locale.ROOT);if(!q.isEmpty()&&!haystack.contains(q))continue;Module chosen=module;Button button=Button.builder(Component.literal((module.favorite()?"★ ":"  ")+(module.enabled()?"● ":"○ ")+module.name()),b->{selected=chosen;scroll=0;rebuild();}).bounds(panelX+145,y,225,22).build();moduleButtons.add(button);addRenderableWidget(button);y+=25;if(y>panelY+panelH-65)break;}}
+    private void refreshModuleButtons(){for(Button button:moduleButtons)removeWidget(button);moduleButtons.clear();int y=panelY+48;String q=search==null?"":search.getValue().trim().toLowerCase(Locale.ROOT);java.util.ArrayList<Module> modules=new java.util.ArrayList<>(ArsonClient.getInstance().modules().organized(category));ClickGuiPreferencesModule prefs=preferences();if(prefs!=null&&prefs.sortMode()==ClickGuiPreferencesModule.SortMode.NAME)modules.sort(Comparator.comparing(Module::name,String.CASE_INSENSITIVE_ORDER));else if(prefs!=null&&prefs.sortMode()==ClickGuiPreferencesModule.SortMode.ENABLED_FIRST)modules.sort(Comparator.comparing(Module::enabled).reversed().thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));for(Module module:modules){if(favoritesOnly&&!module.favorite())continue;if(enabledOnly&&!module.enabled())continue;String haystack=(module.name()+" "+module.id()+" "+module.description()).toLowerCase(Locale.ROOT);if(!q.isEmpty()&&!haystack.contains(q))continue;Module chosen=module;Button button=Button.builder(Component.literal((module.favorite()?"★ ":"  ")+(module.enabled()?"● ":"○ ")+module.name()),b->{selected=chosen;scroll=0;rebuild();}).bounds(panelX+145,y,225,22).build();moduleButtons.add(button);addRenderableWidget(button);y+=25;if(y>panelY+panelH-65)break;}}
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
     private static String keyName(int keyCode){if(keyCode<=0)return"None";String name=GLFW.glfwGetKeyName(keyCode,0);return name!=null?name.toUpperCase(Locale.ROOT):"KEY "+keyCode;}
     private void addSettingWidgets(){int x=panelX+385,y=panelY+130-scroll,bottom=panelY+panelH-55;String groupId=null;for(Setting<?> setting:selected.settings()){if(!setting.visible())continue;SettingGroup group=setting.group();if(group!=null&&!group.id().equals(groupId)){groupId=group.id();if(y>=panelY+100&&y<=bottom){addRenderableWidget(Button.builder(Component.literal("▸ "+group.name()),b->{}).bounds(x,y,300,20).build());y+=22;if(!group.description().isBlank())y+=8;}}if(y<panelY+100){y+=27;continue;}if(y>bottom)break;if(setting instanceof BooleanSetting b)addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(b.enabled()?"ON":"OFF")),x1->{b.set(!b.enabled());saveConfig();rebuild();}).bounds(x,y,235,22).build());else if(setting instanceof DoubleSetting d)addRenderableWidget(new DoubleSettingSlider(x,y,235,22,d,this::saveConfig));else if(setting instanceof EnumSetting<?> e)addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(e.get())),b->{e.cycle(1);saveConfig();rebuild();}).bounds(x,y,235,22).build());else if(setting instanceof ColorSetting c)addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",c.get())),b->{editingColor=c;editingString=null;rebuild();}).bounds(x,y,235,22).build());else if(setting instanceof StringSetting s)addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+s.get()),b->{editingString=s;editingColor=null;rebuild();}).bounds(x,y,235,22).build());else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),x1->{}).bounds(x,y,235,22).build());addRenderableWidget(Button.builder(Component.literal("Reset"),b->{setting.reset();NotificationCenter.push(setting.name(),"Reset to default");saveConfig();rebuild();}).bounds(x+240,y,60,22).build());y+=27;}}
