@@ -44,7 +44,7 @@ public final class ArsonScreen extends Screen {
     private Theme theme=Theme.MIDNIGHT;
     private boolean alphabetical;
     public ArsonScreen(Screen parent){super(Component.literal("Arson Client V3"));this.parent=parent;}
-    @Override protected void init(){syncPreferences();panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);rebuild();}
+    @Override protected void init(){syncPreferences();ClickGuiPreferencesModule p=preferences();double scale=p==null?1.0:p.panelScale();panelW=(int)Math.round(900.0*scale);panelH=(int)Math.round(540.0*scale);panelX=Math.max(8,(width-panelW)/2);panelY=Math.max(8,(height-panelH)/2);rebuild();}
     private ClickGuiPreferencesModule preferences(){Module m=ArsonClient.getInstance().modules().get("clickgui-preferences");return m instanceof ClickGuiPreferencesModule p?p:null;}
     private void syncPreferences(){ClickGuiPreferencesModule p=preferences();if(p==null)return;theme=Theme.valueOf(p.theme().name());alphabetical=p.alphabetical();favoritesOnly=p.favoritesOnly();enabledOnly=p.enabledOnly();}
     private void savePreferences(){ClickGuiPreferencesModule p=preferences();if(p==null)return;p.setAlphabetical(alphabetical);p.setFavoritesOnly(favoritesOnly);p.setEnabledOnly(enabledOnly);if(!p.theme().name().equals(theme.name()))p.cycleTheme();ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}

@@ -50,10 +50,12 @@ class ExpandedTelemetryParityTest {
         prefs.setAlphabetical(true);
         prefs.setFavoritesOnly(true);
         prefs.setEnabledOnly(true);
+        prefs.setPanelScale(1.20);
         assertEquals(ClickGuiPreferencesModule.Theme.GRAPHITE, prefs.theme());
         assertTrue(prefs.alphabetical());
         assertTrue(prefs.favoritesOnly());
         assertTrue(prefs.enabledOnly());
+        assertEquals(1.20, prefs.panelScale());
     }
 
     @Test
