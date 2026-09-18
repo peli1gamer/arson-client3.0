@@ -29,9 +29,10 @@ public final class WorldPositionInfoModule extends Module {
         minBuildHeight = level.dimensionType().minY();
         maxBuildHeight = minBuildHeight + level.dimensionType().height();
         borderDiameter = level.getWorldBorder().getSize();
-        spawnX = level.getLevelData().getXSpawn();
-        spawnY = level.getLevelData().getYSpawn();
-        spawnZ = level.getLevelData().getZSpawn();
+        var localSpawn = client.player == null ? net.minecraft.core.BlockPos.ZERO : client.player.blockPosition();
+        spawnX = localSpawn.getX();
+        spawnY = localSpawn.getY();
+        spawnZ = localSpawn.getZ();
         difficulty = level.getDifficulty().toString();
     }
 
