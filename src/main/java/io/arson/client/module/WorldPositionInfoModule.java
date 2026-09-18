@@ -33,7 +33,7 @@ public final class WorldPositionInfoModule extends Module {
         spawnX = spawn.getX();
         spawnY = spawn.getY();
         spawnZ = spawn.getZ();
-        difficulty = level.getDifficulty().getKey().getName();
+        difficulty = level.getDifficulty().toString();
     }
 
     public int minBuildHeight() { return minBuildHeight; }
