@@ -16,6 +16,7 @@ import io.arson.client.module.PlayerVitalsModule;
 import io.arson.client.module.PlayerVelocityInfoModule;
 import io.arson.client.module.PlayerInputInfoModule;
 import io.arson.client.module.RenderInfoModule;
+import io.arson.client.module.RenderViewportInfoModule;
 import io.arson.client.module.RenderTargetInfoModule;
 import io.arson.client.module.RenderDisplayInfoModule;
 import io.arson.client.module.RenderCameraInfoModule;

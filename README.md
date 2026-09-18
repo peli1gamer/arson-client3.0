@@ -69,3 +69,7 @@ gradle build
 ```
 
 GitHub Actions also runs the Java 21 build automatically on pushes and pull requests.
+
+
+### Verification
+The main branch includes the current live telemetry, persistent HUD formatting, ClickGUI, command, and public API parity surfaces; this branch exists only to exercise the repository-native CI verification path.
