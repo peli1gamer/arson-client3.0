@@ -2,6 +2,7 @@ package io.arson.client.api;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
 import java.util.List;
 import java.util.Optional;
@@ -52,5 +53,19 @@ public final class ArsonApi {
     public static boolean setFavorite(String id, boolean favorite) { Optional<Module> module = module(id); if (module.isEmpty()) return false; module.get().setFavorite(favorite); save(); return true; }
     public static boolean resetSettings(String id) { Optional<Module> module = module(id); if (module.isEmpty()) return false; module.get().resetSettings(); save(); return true; }
     public static boolean setKeyCode(String id, int keyCode) { Optional<Module> module = module(id); if (module.isEmpty() || keyCode < 0) return false; module.get().setKeyCode(keyCode); save(); return true; }
+    public static boolean setClickGuiTheme(ClickGuiPreferencesModule.Theme theme) {
+        if (ArsonClient.getInstance() == null || theme == null) return false;
+        Module module = ArsonClient.getInstance().modules().get("clickgui-preferences");
+        if (!(module instanceof ClickGuiPreferencesModule prefs)) return false;
+        while (prefs.theme() != theme) prefs.cycleTheme();
+        save(); return true;
+    }
+    public static boolean setClickGuiFilters(boolean favoritesOnly, boolean enabledOnly, boolean alphabetical) {
+        if (ArsonClient.getInstance() == null) return false;
+        Module module = ArsonClient.getInstance().modules().get("clickgui-preferences");
+        if (!(module instanceof ClickGuiPreferencesModule prefs)) return false;
+        prefs.setFavoritesOnly(favoritesOnly); prefs.setEnabledOnly(enabledOnly); prefs.setAlphabetical(alphabetical);
+        save(); return true;
+    }
     public static void save() { if (ArsonClient.getInstance() != null) ArsonClient.getInstance().saveConfig(); }
 }
