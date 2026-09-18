@@ -69,3 +69,6 @@ gradle build
 ```
 
 GitHub Actions also runs the Java 21 build automatically on pushes and pull requests.
+
+
+<!-- CI verification trigger for the current parity implementation. -->
