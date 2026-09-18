@@ -20,10 +20,10 @@ public final class WorldSpawnInfoModule extends Module {
             distance = 0;
             return;
         }
-        var data = client.level.getLevelData();
-        spawnX = data.getXSpawn();
-        spawnY = data.getYSpawn();
-        spawnZ = data.getZSpawn();
+        var spawn = client.level.getRespawnData().pos();
+        spawnX = spawn.getX();
+        spawnY = spawn.getY();
+        spawnZ = spawn.getZ();
         double dx = client.player.getX() - spawnX;
         double dz = client.player.getZ() - spawnZ;
         distance = Math.sqrt(dx * dx + dz * dz);
