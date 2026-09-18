@@ -28,6 +28,9 @@ import io.arson.client.module.WorldInfoModule;
 import io.arson.client.module.WorldPositionInfoModule;
 import io.arson.client.module.WorldHeightInfoModule;
 import io.arson.client.module.WorldLightInfoModule;
+import io.arson.client.module.WorldBorderInfoModule;
+import io.arson.client.module.WorldSpawnInfoModule;
+import io.arson.client.module.RenderResolutionInfoModule;
 import io.arson.client.module.WorldMoonInfoModule;
 import io.arson.client.module.WorldChunkInfoModule;
 import io.arson.client.notification.NotificationCenter;
@@ -63,6 +66,8 @@ public final class HudRenderer {
         WorldPositionInfoModule worldPositionInfo = (WorldPositionInfoModule) ArsonClient.getInstance().modules().get("world-position-info");
         WorldHeightInfoModule worldHeightInfo = (WorldHeightInfoModule) ArsonClient.getInstance().modules().get("world-height-info");
         WorldLightInfoModule worldLightInfo = (WorldLightInfoModule) ArsonClient.getInstance().modules().get("world-light-info");
+        WorldBorderInfoModule borderInfo = (WorldBorderInfoModule) ArsonClient.getInstance().modules().get("world-border-info");
+        WorldSpawnInfoModule spawnInfo = (WorldSpawnInfoModule) ArsonClient.getInstance().modules().get("world-spawn-info");
         WorldMoonInfoModule moonInfo = (WorldMoonInfoModule) ArsonClient.getInstance().modules().get("world-moon-info");
         WorldChunkInfoModule chunkInfo = (WorldChunkInfoModule) ArsonClient.getInstance().modules().get("world-chunk-info");
         RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
@@ -75,6 +80,7 @@ public final class HudRenderer {
         RenderFrameInfoModule frameInfo = (RenderFrameInfoModule) ArsonClient.getInstance().modules().get("render-frame-info");
         RenderCameraInfoModule cameraInfo2 = (RenderCameraInfoModule) ArsonClient.getInstance().modules().get("render-camera-info");
         ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
+        RenderResolutionInfoModule resolutionInfo = (RenderResolutionInfoModule) ArsonClient.getInstance().modules().get("render-resolution-info");
         float globalScale = (float) hud.scale();
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
@@ -121,6 +127,8 @@ public final class HudRenderer {
             if (worldDetails != null && worldDetails.enabled()) rows.add(worldDetails.formatted());
             if (worldPositionInfo != null && worldPositionInfo.enabled()) rows.add(worldPositionInfo.formatted());
             if (worldLightInfo != null && worldLightInfo.enabled()) rows.add(worldLightInfo.formatted());
+            if (borderInfo != null && borderInfo.enabled()) rows.add(borderInfo.formatted());
+            if (spawnInfo != null && spawnInfo.enabled()) rows.add(spawnInfo.formatted());
             if (moonInfo != null && moonInfo.enabled()) rows.add(moonInfo.formatted());
             if (chunkInfo != null && chunkInfo.enabled()) rows.add(chunkInfo.formatted());
             if (worldHeightInfo != null && worldHeightInfo.enabled()) rows.add(worldHeightInfo.formatted());
@@ -130,6 +138,7 @@ public final class HudRenderer {
             if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
+            if (resolutionInfo != null && resolutionInfo.enabled()) rows.add(resolutionInfo.formatted());
             if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             if (weatherInfo != null && weatherInfo.enabled()) rows.add(weatherInfo.formatted());
             if (frameInfo != null && frameInfo.enabled()) rows.add(frameInfo.formatted());
