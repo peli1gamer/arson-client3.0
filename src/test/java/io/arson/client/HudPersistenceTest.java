@@ -24,6 +24,18 @@ class HudPersistenceTest {
     }
 
     @Test
+    void rowFormattingAndAlignmentArePersistentSettings() {
+        HudModule hud = new HudModule();
+        assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
+        var format = hud.settings().stream().filter(s -> s.id().equals("row-format")).findFirst().orElseThrow();
+        assertEquals(HudModule.RowFormat.STACKED, format.get());
+        hud.cycleAlignment("player-info");
+        assertEquals("center", hud.elementAlignment("player-info"));
+        hud.cycleAlignment("player-info");
+        assertEquals("right", hud.elementAlignment("player-info"));
+    }
+
+    @Test
     void hudResetRestoresDefaultEditorPositionAndPresetState() {
         HudModule hud = new HudModule();
         hud.setEditorPosition("fps", 300, 300);
