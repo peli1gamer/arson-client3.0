@@ -21,6 +21,7 @@ import io.arson.client.module.RenderFrameInfoModule;
 import io.arson.client.module.RenderInfoModule;
 import io.arson.client.module.RenderTargetInfoModule;
 import io.arson.client.module.RenderDisplayInfoModule;
+import io.arson.client.module.RenderViewportInfoModule;
 import io.arson.client.module.RenderCameraInfoModule;
 import io.arson.client.module.WorldDetailsModule;
 import io.arson.client.module.WorldEnvironmentModule;
@@ -133,6 +134,7 @@ public final class HudRenderer {
             if (chunkInfo != null && chunkInfo.enabled()) rows.add(chunkInfo.formatted());
             if (worldHeightInfo != null && worldHeightInfo.enabled()) rows.add(worldHeightInfo.formatted());
             if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
+            if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             if (cameraInfo != null && cameraInfo.enabled()) rows.add(cameraInfo.formatted());
             if (cameraInfo2 != null && cameraInfo2.enabled()) rows.add(cameraInfo2.formatted());
             if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());

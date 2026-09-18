@@ -11,6 +11,19 @@ import java.util.Locale;
 /** Stable public facade for addons that need Arson module discovery/control. */
 public final class ArsonApi {
     private ArsonApi() {}
+    public static String moduleSummary(Module.Category category) {
+        if (ArsonClient.getInstance() == null || category == null) return "";
+        var modules = ArsonClient.getInstance().modules().organized(category);
+        return modules.stream().map(m -> m.id() + (m.enabled() ? "[on]" : "[off]")).collect(java.util.stream.Collectors.joining(", "));
+    }
+    public static int resetAllModules() {
+        if (ArsonClient.getInstance() == null) return 0;
+        int changed = 0;
+        for (Module module : ArsonClient.getInstance().modules().all()) { module.resetToDefaults(); changed++; }
+        if (changed > 0) save();
+        return changed;
+    }
+
     public static Optional<Module> module(String id) { if (ArsonClient.getInstance() == null || id == null || id.isBlank()) return Optional.empty(); return Optional.ofNullable(ArsonClient.getInstance().modules().get(id)); }
     public static List<Module> modules() { return ArsonClient.getInstance() == null ? List.of() : List.copyOf(ArsonClient.getInstance().modules().all()); }
     public static List<Module> modules(Module.Category category) { if (ArsonClient.getInstance() == null || category == null) return List.of(); return List.copyOf(ArsonClient.getInstance().modules().organized(category)); }

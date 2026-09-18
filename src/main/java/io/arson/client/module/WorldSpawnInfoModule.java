@@ -20,7 +20,7 @@ public final class WorldSpawnInfoModule extends Module {
             distance = 0;
             return;
         }
-        var spawn = client.level.getSharedSpawnPos();
+        var spawn = client.level.getRespawnData().pos();
         spawnX = spawn.getX();
         spawnY = spawn.getY();
         spawnZ = spawn.getZ();

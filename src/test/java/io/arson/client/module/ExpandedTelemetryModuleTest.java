@@ -34,4 +34,15 @@ class ExpandedTelemetryModuleTest {
         assertEquals(Module.Category.RENDER, manager.get("camera-info").category());
         assertEquals(Module.Category.WORLD, manager.get("world-details").category());
     }
+    @org.junit.jupiter.api.Test
+    void inputWeatherAndViewportTelemetryAreRegistered() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        assertNotNull(manager.get("player-input-info"));
+        assertNotNull(manager.get("world-weather-info"));
+        assertNotNull(manager.get("render-viewport-info"));
+        assertTrue(manager.search("weather").stream().anyMatch(m -> m.id().equals("world-weather-info")));
+        assertTrue(new PlayerInputInfoModule().formatted().startsWith("Input "));
+    }
+
 }
