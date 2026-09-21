@@ -17,8 +17,8 @@ public final class RenderGuiInfoModule extends Module {
     @Override protected void onTick(Minecraft client) {
         var window = client.getWindow();
         guiScale = (float) window.getGuiScale();
-        mouseX = (int) Math.round(client.mouseHandler.xpos() * window.getGuiScaledWidth() / Math.max(1, window.getWidth()));
-        mouseY = (int) Math.round(client.mouseHandler.ypos() * window.getGuiScaledHeight() / Math.max(1, window.getHeight()));
+        mouseX = (int) Math.round(client.mouseHandler.getScaledXPos(window));
+        mouseY = (int) Math.round(client.mouseHandler.getScaledYPos(window));
         screenOpen = client.screen != null;
     }
 
