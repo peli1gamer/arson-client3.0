@@ -104,7 +104,7 @@ public final class HudLayoutModule extends Module {
 
 
     /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
-    public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,boolean arrayListEnabled) {
+    public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList) {
         double scale=Math.max(0.5,globalScale);
         int logicalW=Math.max(1,(int)Math.floor(viewportWidth/scale));
         int logicalH=Math.max(1,(int)Math.floor(viewportHeight/scale));
@@ -113,7 +113,7 @@ public final class HudLayoutModule extends Module {
         Map<String,NoOverlapLayout.Size> sizes=new LinkedHashMap<>();
         for(String element:order){
             if("array-list".equals(element)){
-                if(!arrayListEnabled) continue;
+                if(arrayList == null || !arrayList.enabled()) continue;
                 preferred.put(element,new NoOverlapLayout.Rect(0,0,arrayListWidth,arrayListHeight));
                 // Array-list coordinates are already in the raw viewport space.
                 preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,arrayListPreferredX),Math.max(0,arrayListPreferredY),arrayListWidth,arrayListHeight));
@@ -132,6 +132,8 @@ public final class HudLayoutModule extends Module {
         for(String element:placements.keySet()){
             NoOverlapLayout.Rect rect=placements.get(element).rect();
             if("array-list".equals(element)){
+                int targetX=rect.x(),targetY=rect.y();
+                if(arrayList != null && (arrayList.x()!=targetX || arrayList.y()!=targetY)){ arrayList.setEditorPosition(targetX,targetY); changed=true; }
                 continue;
             }
             double x=rect.x()/scale,y=rect.y()/scale;
