@@ -16,7 +16,7 @@ class TelemetryUiTrancheTest {
         assertNotNull(manager.get("world-entity-count-info"));
         assertNotNull(manager.get("render-gui-info"));
         assertTrue(manager.search("interaction").stream().anyMatch(m -> m.id().equals("player-interaction-info")));
-        assertTrue(manager.search("entities").stream().anyMatch(m -> m.id().equals("world-entity-count-info")));
+        assertTrue(manager.search("entity").stream().anyMatch(m -> m.id().equals("world-entity-count-info")));
         assertTrue(manager.search("gui scale").stream().anyMatch(m -> m.id().equals("render-gui-info")));
     }
 
@@ -36,7 +36,7 @@ class TelemetryUiTrancheTest {
         HudModule hud = (HudModule) manager.get("hud");
         assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
         var setting = hud.settings().stream().filter(s -> s.id().equals("row-format")).findFirst().orElseThrow();
-        setting.set(HudModule.RowFormat.DENSE);
+        ((io.arson.client.settings.EnumSetting<HudModule.RowFormat>) setting).set(HudModule.RowFormat.DENSE);
         assertEquals(HudModule.RowFormat.DENSE, hud.rowFormat());
         setting.reset();
         assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
