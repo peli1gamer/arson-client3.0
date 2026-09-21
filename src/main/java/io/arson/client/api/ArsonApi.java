@@ -16,6 +16,24 @@ public final class ArsonApi {
         var modules = ArsonClient.getInstance().modules().organized(category);
         return modules.stream().map(m -> m.id() + (m.enabled() ? "[on]" : "[off]")).collect(java.util.stream.Collectors.joining(", "));
     }
+    public static int resetCategory(Module.Category category) {
+        if (ArsonClient.getInstance() == null || category == null) return 0;
+        int changed = 0;
+        for (Module module : ArsonClient.getInstance().modules().all()) {
+            if (module.category() == category) { module.resetToDefaults(); changed++; }
+        }
+        if (changed > 0) save();
+        return changed;
+    }
+
+    public static boolean setHudElementPosition(String element, double x, double y) {
+        if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof io.arson.client.module.HudModule hud)) return false;
+        try { hud.setEditorPosition(element, x, y); save(); return true; }
+        catch (IllegalArgumentException ignored) { return false; }
+    }
+
     public static int resetAllModules() {
         if (ArsonClient.getInstance() == null) return 0;
         int changed = 0;
@@ -73,6 +91,17 @@ public final class ArsonApi {
         while (prefs.theme() != theme) prefs.cycleTheme();
         save(); return true;
     }
+    public static boolean setHudRowFormat(HudModule.RowFormat format) {
+        if (ArsonClient.getInstance() == null || format == null) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof HudModule hud)) return false;
+        for (var setting : hud.settings()) if (setting.id().equals("row-format") && setting instanceof io.arson.client.settings.EnumSetting<?> select) {
+            @SuppressWarnings({"rawtypes", "unchecked"}) io.arson.client.settings.EnumSetting raw = select;
+            raw.set(format); save(); return true;
+        }
+        return false;
+    }
+
     public static boolean setClickGuiPanelScale(double scale) { if (ArsonClient.getInstance() == null || Double.isNaN(scale) || Double.isInfinite(scale) || scale < 0.75 || scale > 1.25) return false; Module module = ArsonClient.getInstance().modules().get("clickgui-preferences"); if (!(module instanceof ClickGuiPreferencesModule prefs)) return false; prefs.setPanelScale(scale); save(); return true; }
     public static boolean setClickGuiFilters(boolean favoritesOnly, boolean enabledOnly, boolean alphabetical) {
         if (ArsonClient.getInstance() == null) return false;
