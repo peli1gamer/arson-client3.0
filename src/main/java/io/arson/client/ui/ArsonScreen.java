@@ -38,7 +38,7 @@ public final class ArsonScreen extends Screen {
     private ColorSetting editingColor;
     private final List<Button> moduleButtons = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
-    private int scroll;
+    private int scroll, detailScroll;
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
     private Theme theme = Theme.MIDNIGHT;
     private ClickGuiLayoutModel.Focus focus = ClickGuiLayoutModel.Focus.MODULE;
@@ -117,35 +117,33 @@ public final class ArsonScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
             favoritesOnly = false; enabledOnly = false; alphabetical = false;
-            search.setValue(""); scroll = 0; savePreferences(); rebuild();
-        }).bounds(r.headerLeftX(), r.headerY(), r.headerButtonW(), 20).build());
+            search.setValue(""); scroll = 0; detailScroll = 0; savePreferences(); rebuild();
+        }).bounds(r.toolbar().x()+toolbarButtonX(0),r.toolbar().y(),toolbarButtonWidth(0),22).build());
 
         addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
             favoritesOnly = !favoritesOnly; scroll = 0; savePreferences(); rebuild();
-        }).bounds(r.headerLeftX()+r.headerButtonW()+4, r.headerY(), 28, 20).build());
+        }).bounds(r.toolbar().x()+toolbarButtonX(1),r.toolbar().y(),toolbarButtonWidth(1),22).build());
 
         addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "●" : "○"), b -> {
             enabledOnly = !enabledOnly; scroll = 0; savePreferences(); rebuild();
-        }).bounds(r.headerLeftX()+r.headerButtonW()+36, r.headerY(), 28, 20).build());
+        }).bounds(r.toolbar().x()+toolbarButtonX(2),r.toolbar().y(),toolbarButtonWidth(2),22).build());
 
         addRenderableWidget(Button.builder(Component.literal(compactMode ? "Compact" : "Comfort"), b -> {
             compactMode = !compactMode; savePreferences(); init();
-        }).bounds(r.headerLeftX()+r.headerButtonW()+68, r.headerY(), 72, 20).build());
+        }).bounds(r.toolbar().x()+toolbarButtonX(3),r.toolbar().y(),toolbarButtonWidth(3),22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Theme"), b -> {
             theme = Theme.values()[(theme.ordinal()+1)%Theme.values().length]; savePreferences(); rebuild();
-        }).bounds(r.headerLeftX()+r.headerButtonW()+144, r.headerY(), 58, 20).build());
+        }).bounds(r.toolbar().x()+toolbarButtonX(4),r.toolbar().y(),toolbarButtonWidth(4),22).build());
 
         addRenderableWidget(Button.builder(Component.literal(alphabetical ? "A-Z" : "Smart"), b -> {
             alphabetical = !alphabetical; savePreferences(); rebuild();
-        }).bounds(r.headerLeftX()+r.headerButtonW()+206, r.headerY(), 54, 20).build());
+        }).bounds(r.toolbar().x()+toolbarButtonX(5),r.toolbar().y(),toolbarButtonWidth(5),22).build());
 
         addCategoryButtons(r);
         addModuleCards(visible);
-        addDetailWidgets(r);
+        if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
         addFooter(r, profileValue);
-
-        if (editingString != null || editingColor != null) addEditBox(r);
     }
 
     private List<Module> visibleModules() {
@@ -162,14 +160,20 @@ public final class ArsonScreen extends Screen {
         return result;
     }
 
+
+    private int toolbarButtonWidth(int index){
+        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW) return switch(index){case 0->32;case 1,2->22;case 3->42;case 4->30;default->30;};
+        return switch(index){case 0->48;case 1,2->26;case 3->72;case 4->58;default->54;};
+    }
+    private int toolbarButtonX(int index){int x=0;for(int i=0;i<index;i++)x+=toolbarButtonWidth(i)+4;return x;}
     private void addCategoryButtons(Rects r) {
         Module.Category[] categories = Module.Category.values();
         for (int i=0;i<categories.length;i++) {
             Module.Category c=categories[i];
-            int rowY=r.rail().y()+i*29;
+            int rowY=r.rail().y()+i*geometry.categoryRowHeight();
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
-                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(r.rail().x(),rowY,r.rail().width(),24).build();
             addRenderableWidget(b);
         }
@@ -182,7 +186,7 @@ public final class ArsonScreen extends Screen {
     }
 
     private void addModuleCards(List<Module> visible) {
-        int maxCards = Math.max(1, geometry.visibleRows(visible.size()) * geometry.columns());
+        int maxCards = Math.max(1, Math.min(geometry.visibleRows(visible.size()), Math.max(1, geometry.moduleList().height() / (geometry.cardHeight()+geometry.cardGap()))) * geometry.columns());
         int start = Math.min(scroll, Math.max(0, visible.size()-1));
         int shown=0;
         for(int i=start;i<visible.size() && shown<maxCards;i++,shown++){
@@ -192,7 +196,7 @@ public final class ArsonScreen extends Screen {
             if(card.bottom()>geometry.detail().bottom() && geometry.columns()==1) continue;
             Module chosen=m;
             Button b=Button.builder(Component.literal((m.favorite()?"★ ":"  ")+(m.enabled()?"● ":"○ ")+m.name()), x -> {
-                selected=chosen; moduleFocus=visibleModules().indexOf(chosen); focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(card.x(),card.y(),card.width(),card.height()).build();
             moduleButtons.add(b); addRenderableWidget(b);
         }
@@ -200,63 +204,87 @@ public final class ArsonScreen extends Screen {
 
     private void addDetailWidgets(Rects r) {
         if(selected==null) return;
-        int x=r.detail().x()+8, y=r.detail().y()+8, w=Math.max(80,r.detail().width()-16);
-        addRenderableWidget(Button.builder(Component.literal(selected.enabled()?"Disable":"Enable"),b->toggleSelected()).bounds(x,y,w,22).build());
-        y+=26;
-        int half=Math.max(55,(w-6)/2);
-        addRenderableWidget(Button.builder(Component.literal(selected.favorite()?"★ Favorite":"☆ Favorite"),b->{selected.setFavorite(!selected.favorite());saveConfig();rebuild();}).bounds(x,y,half,22).build());
-        addRenderableWidget(Button.builder(Component.literal(bindingModule==selected?"Press key":"Key: "+keyName(selected.keyCode())),b->{bindingModule=selected;focus=ClickGuiLayoutModel.Focus.ACTION;rebuild();}).bounds(x+half+6,y,half,22).build());
-        y+=26;
-        addRenderableWidget(Button.builder(Component.literal("Reset"),b->{selected.resetToDefaults();NotificationCenter.push(selected.name(),"Module reset");saveConfig();rebuild();}).bounds(x,y,half,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Reset settings"),b->{selected.resetSettings();NotificationCenter.push(selected.name(),"Settings reset");saveConfig();rebuild();}).bounds(x+half+6,y,half,22).build());
-        y+=30;
-        if(!selected.description().isBlank()) {
-            String desc=selected.description();
-            addRenderableWidget(Button.builder(Component.literal(desc),b->{}).bounds(x,y,w,34).build());
+        int x=r.detail().x()+8, w=Math.max(60,r.detail().width()-16);
+        int top=r.detail().y()+6, bottom=r.detail().bottom()-6, y=top-detailScroll;
+        int controlH=22,gapY=26;
+        if(y+controlH>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal(selected.enabled()?"Disable":"Enable"),b->toggleSelected()).bounds(x,y,w,controlH).build());
+        y+=gapY;
+        int half=Math.max(45,(w-6)/2);
+        if(y+controlH>top-1&&y<bottom){
+            addRenderableWidget(Button.builder(Component.literal(selected.favorite()?"★ Favorite":"☆ Favorite"),b->{selected.setFavorite(!selected.favorite());saveConfig();rebuild();}).bounds(x,y,half,controlH).build());
+            if(x+half+6+half<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal(bindingModule==selected?"Press key":"Key: "+keyName(selected.keyCode())),b->{bindingModule=selected;focus=ClickGuiLayoutModel.Focus.ACTION;rebuild();}).bounds(x+half+6,y,half,controlH).build());
+        }
+        y+=gapY;
+        if(y+controlH>top-1&&y<bottom){
+            addRenderableWidget(Button.builder(Component.literal("Reset"),b->{selected.resetToDefaults();NotificationCenter.push(selected.name(),"Module reset");saveConfig();rebuild();}).bounds(x,y,half,controlH).build());
+            if(x+half+6+half<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal("Reset settings"),b->{selected.resetSettings();NotificationCenter.push(selected.name(),"Settings reset");saveConfig();rebuild();}).bounds(x+half+6,y,half,controlH).build());
+        }
+        y+=gapY+4;
+        if(!selected.description().isBlank()){
+            if(y+34>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal(selected.description()),b->{}).bounds(x,y,w,34).build());
             y+=40;
         }
-        int bottom=r.detail().bottom()-6;
         String groupId=null;
-        for(Setting<?> setting:selected.settings()) {
+        for(Setting<?> setting:selected.settings()){
             if(!setting.visible()) continue;
-            if(y+22>bottom) break;
             SettingGroup group=setting.group();
             if(group!=null&&!group.id().equals(groupId)){groupId=group.id();y+=4;}
-            int controlW=Math.max(60,w-64);
-            if(setting instanceof BooleanSetting bs)
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(bs.enabled()?"ON":"OFF")),b->{bs.set(!bs.enabled());saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
-            else if(setting instanceof DoubleSetting ds)
-                addRenderableWidget(new DoubleSettingSlider(x,y,controlW,22,ds,this::saveConfig));
-            else if(setting instanceof EnumSetting<?> es)
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(es.get())),b->{es.cycle(1);saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
-            else if(setting instanceof ColorSetting cs)
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",cs.get())),b->{editingColor=cs;editingString=null;rebuild();}).bounds(x,y,controlW,22).build());
-            else if(setting instanceof StringSetting ss)
-                addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+ss.get()),b->{editingString=ss;editingColor=null;rebuild();}).bounds(x,y,controlW,22).build());
-            else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),b->{}).bounds(x,y,controlW,22).build());
-            addRenderableWidget(Button.builder(Component.literal("↺"),b->{setting.reset();saveConfig();rebuild();}).bounds(x+controlW+4,y,28,22).build());
+            int controlW=Math.max(45,w-32);
+            if(y+22>top-1&&y<bottom){
+                if(setting instanceof BooleanSetting bs)
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(bs.enabled()?"ON":"OFF")),b->{bs.set(!bs.enabled());saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
+                else if(setting instanceof DoubleSetting ds)
+                    addRenderableWidget(new DoubleSettingSlider(x,y,controlW,22,ds,this::saveConfig));
+                else if(setting instanceof EnumSetting<?> es)
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(es.get())),b->{es.cycle(1);saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
+                else if(setting instanceof ColorSetting cs)
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",cs.get())),b->{editingColor=cs;editingString=null;rebuild();}).bounds(x,y,controlW,22).build());
+                else if(setting instanceof StringSetting ss)
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+ss.get()),b->{editingString=ss;editingColor=null;rebuild();}).bounds(x,y,controlW,22).build());
+                else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),b->{}).bounds(x,y,controlW,22).build());
+                if(x+controlW+4+28<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal("↺"),b->{setting.reset();saveConfig();rebuild();}).bounds(x+controlW+4,y,28,22).build());
+            }
             y+=26;
         }
     }
+    private int maxDetailScroll(){
+        if(selected==null)return 0;
+        int lines=3+(selected.description().isBlank()?0:2);
+        for(Setting<?> setting:selected.settings()) if(setting.visible()) lines++;
+        return Math.max(0,lines*26-Math.max(24,geometry.detail().height()-12));
+    }
 
     private void addFooter(Rects r,String profileValue) {
+        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){
+            int y=r.footer().y()+3;
+            addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,42,20).build());
+            addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+46,y,42,20).build());
+            addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-46,y,46,20).build());
+            int row2=y+22, pw=Math.max(70,r.footer().width()-80);
+            profile=new EditBox(font,r.footer().x(),row2,pw,20,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
+            addRenderableWidget(Button.builder(Component.literal("L"),b->loadProfile()).bounds(r.footer().right()-74,row2,34,20).build());
+            addRenderableWidget(Button.builder(Component.literal("S"),b->saveProfile()).bounds(r.footer().right()-38,row2,34,20).build());
+            return;
+        }
         int y=r.footer().y()+6;
         addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,52,22).build());
         addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+58,y,52,22).build());
         addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-58,y,58,22).build());
         int pw=Math.min(110,Math.max(60,r.footer().width()-240));
-        profile=new EditBox(font,r.footer().right()-190,y,pw,22,Component.literal("Profile"));
-        profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
+        profile=new EditBox(font,r.footer().right()-190,y,pw,22,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
         addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(r.footer().right()-74,y,36,22).build());
         addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(r.footer().right()-38,y,36,22).build());
     }
 
     private void addEditBox(Rects r) {
-        int y=r.footer().y()+6;
-        editBox=new EditBox(font,r.detail().x()+8,y,Math.max(80,r.detail().width()-90),22,Component.literal(editingString!=null?editingString.name():editingColor.name()));
-        editBox.setValue(editingString!=null?editingString.get():String.format(Locale.ROOT,"%08X",editingColor.get()));editBox.setMaxLength(128);addRenderableWidget(editBox);
-        addRenderableWidget(Button.builder(Component.literal("Apply"),b->applyEdit()).bounds(r.detail().right()-76,y,34,22).build());
-        addRenderableWidget(Button.builder(Component.literal("×"),b->{editingString=null;editingColor=null;rebuild();}).bounds(r.detail().right()-38,y,34,22).build());
+        int y=r.detail().y()+6;
+        int w=Math.max(70,r.detail().width()-50);
+        editBox=new EditBox(font,r.detail().x()+8,y,w,22,Component.literal(editingString!=null?editingString.name():editingColor.name()));
+        editBox.setValue(editingString!=null?editingString.get():String.format(Locale.ROOT,"%08X",editingColor.get()));
+        editBox.setMaxLength(128);
+        addRenderableWidget(editBox);
+        addRenderableWidget(Button.builder(Component.literal("Apply"),b->applyEdit()).bounds(r.detail().right()-40,y,34,22).build());
+        addRenderableWidget(Button.builder(Component.literal("×"),b->{editingString=null;editingColor=null;rebuild();}).bounds(r.detail().right()-40,y+26,34,22).build());
     }
 
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
@@ -273,7 +301,7 @@ public final class ArsonScreen extends Screen {
         if(key==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}
         if(event.hasControlDown()&&key==GLFW.GLFW_KEY_K){if(search!=null){search.setFocused(true);focus=ClickGuiLayoutModel.Focus.SEARCH;}return true;}
         if(key==GLFW.GLFW_KEY_TAB){focus=nextFocus(event.hasShiftDown()?-1:1);applyFocus();return true;}
-        if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;moduleFocus=0;rebuild();return true;}
+        if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;moduleFocus=0;detailScroll=0;rebuild();return true;}
         if(focus==ClickGuiLayoutModel.Focus.MODULE&&(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT||key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){
             int delta=(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT)?(key==GLFW.GLFW_KEY_LEFT?-1:1):(key==GLFW.GLFW_KEY_UP?-1:1);
             if(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN) delta*=geometry.columns();
@@ -292,7 +320,7 @@ public final class ArsonScreen extends Screen {
 
     @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused()){scroll=0;rebuild();}return handled;}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
-        if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){scroll=Math.max(0,scroll+(vertical>0?-1:1));rebuild();return true;}
+        if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){if(geometry.detail().contains(mouseX,mouseY)){detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+(vertical>0?-1:1)));}else{scroll=Math.max(0,scroll+(vertical>0?-1:1));}rebuild();return true;}
         return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
     }
 
@@ -322,6 +350,7 @@ public final class ArsonScreen extends Screen {
         ClickGuiLayoutModel.Rect rail(){return g.rail();}
         ClickGuiLayoutModel.Rect detail(){return g.detail();}
         ClickGuiLayoutModel.Rect search(){return g.search();}
+        ClickGuiLayoutModel.Rect toolbar(){return g.toolbar();}
         ClickGuiLayoutModel.Rect footer(){return g.footer();}
         int headerY(){return g.panelY()+9;}
         int headerLeftX(){return g.panelX()+8;}

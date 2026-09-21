@@ -35,6 +35,17 @@ class HudLayoutModuleTest {
     }
 
     @Test
+    void overlapRepairChangesLegacyCollisionState() {
+        HudLayoutModule layout = new HudLayoutModule();
+        layout.setOffset("watermark", 0, 0);
+        layout.setOffset("coordinates", 0, 0);
+        layout.setOffset("fps", 0, 0);
+        layout.setOffset("player-info", 0, 0);
+        layout.setOffset("world-info", 0, 0);
+        assertTrue(layout.repairNoOverlap(360, 240, 1.0, 100, 80, null));
+    }
+
+    @Test
     void resetRestoresAnchorAndOffsets() {
         HudLayoutModule layout = new HudLayoutModule();
         layout.setAnchor("coordinates", HudLayoutModule.Anchor.CENTER);

@@ -31,6 +31,7 @@ public final class HudEditorScreen extends Screen {
     private boolean dragging; private double offsetX,offsetY;
     public HudEditorScreen(Screen parent){super(Component.literal("HUD Editor"));this.parent=parent;}
     @Override protected void init(){hud=(HudModule)ArsonClient.getInstance().modules().get("hud");layout=(HudLayoutModule)ArsonClient.getInstance().modules().get("hud-layout");arrayList=(ArrayListModule)ArsonClient.getInstance().modules().get("array-list");if(hud==null)return;
+        repairLayout();
         for(int i=0;i<ELEMENTS.length;i++){final String e=ELEMENTS[i];addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+e),b->{selection.select(e,false);rebuild();}).bounds(10+i*92,45,88,22).build());}
         int y=78;
         addRenderableWidget(Button.builder(Component.literal("Visible: "+(allVisible()?"ON":"MIXED")),b->{toggleVisible();save();rebuild();}).bounds(10,y,120,22).build());
@@ -48,6 +49,11 @@ public final class HudEditorScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(width-85,height-30,75,22).build());
     }
     private void rebuild(){clearWidgets();init();}
+    private void repairLayout(){
+        if(layout==null)return;
+        if(arrayList!=null) layout.setArrayListPreferredPosition(arrayList.x(),arrayList.y());
+        if(layout.repairNoOverlap(width,height,hud.scale(),Math.max(90,Math.min(width/2,220)),Math.max(24,Math.min(height/2,320)),arrayList)) save();
+    }
     private boolean visible(String e){return "array-list".equals(e)?arrayList!=null&&arrayList.enabled():hud.elementVisible(e);}
     private boolean allVisible(){if(selection.size()==0)return false;for(String e:selection.elements())if(!visible(e))return false;return true;}
     private void toggleVisible(){boolean target=!allVisible();for(String e:selection.elements())if("array-list".equals(e)){if(arrayList!=null&&arrayList.enabled()!=target)arrayList.toggle();}else hud.setElementVisible(e,target);}
@@ -72,7 +78,7 @@ public final class HudEditorScreen extends Screen {
     private void anchorSelected(){if(layout==null)return;HudLayoutModule.Anchor[] anchors=HudLayoutModule.Anchor.values();for(String e:selection.elements()){if("array-list".equals(e))continue;Snapshot current=snapshot(e);HudLayoutModule.Anchor next=anchors[(layout.anchor(e).ordinal()+1)%anchors.length];layout.setAnchorPreservingPosition(e,next,current.x,current.y,width,height,190,hud.scale()*hud.elementScale(e)*35);}}
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.button()==0){for(String e:ELEMENTS)if(hit(e,event.x(),event.y())){selection.select(e,event.hasShiftDown());double[]p=position(e);offsetX=event.x()-p[0];offsetY=event.y()-p[1];dragging=true;return true;}}return super.mouseClicked(event,doubleClick);}
     @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0){double x=event.x()-offsetX,y=event.y()-offsetY;if(selection.size()>0){String anchor=selection.elements().iterator().next();double[] a=position(anchor);double dx=x-a[0],dy=y-a[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}}return true;}return super.mouseDragged(event,dragX,dragY);}
-    @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;save();return true;}return super.mouseReleased(event);}
+    @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;repairLayout();save();return true;}return super.mouseReleased(event);}
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
     @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(0,0,width,height,0x66000000);graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);graphics.drawString(font,"Shift-click group | drag | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);for(String e:selection.elements())if(visible(e)){double[]p=position(e);int x=(int)p[0],y=(int)p[1];graphics.renderOutline(x-4,y-4,190,35,0xFF55AAFF);graphics.drawString(font,e,x,y+6,0xFFFFFFFF);}super.render(graphics,mouseX,mouseY,delta);}
     @Override public void onClose(){save();minecraft.setScreen(parent);}
