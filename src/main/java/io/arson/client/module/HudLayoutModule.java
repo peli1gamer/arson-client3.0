@@ -10,6 +10,8 @@ public final class HudLayoutModule extends Module {
     public enum Anchor { TOP_LEFT, TOP_CENTER, TOP_RIGHT, CENTER_LEFT, CENTER, CENTER_RIGHT, BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT }
 
     private final BooleanSetting clamp = setting(new BooleanSetting("clamp", "Clamp To Viewport", true));
+    /** One-time migration marker for pre-anchor HUD configs. */
+    private final BooleanSetting legacyMigrated = setting(new BooleanSetting("legacy-migrated", "Legacy Layout Migrated", false));
     private final EnumSetting<Anchor> watermarkAnchor = setting(new EnumSetting<>("watermark-anchor", "Watermark Anchor", Anchor.TOP_LEFT));
     private final EnumSetting<Anchor> coordinatesAnchor = setting(new EnumSetting<>("coordinates-anchor", "Coordinates Anchor", Anchor.TOP_LEFT));
     private final EnumSetting<Anchor> fpsAnchor = setting(new EnumSetting<>("fps-anchor", "FPS Anchor", Anchor.TOP_LEFT));
@@ -37,6 +39,28 @@ public final class HudLayoutModule extends Module {
     }
 
     public boolean clamp() { return clamp.enabled(); }
+    public boolean legacyMigrated() { return legacyMigrated.enabled(); }
+
+    /**
+     * Migrates old HudModule absolute positions only when this anchor layout still has its declared defaults.
+     * Existing anchor edits win; the marker makes the migration idempotent and persistent.
+     */
+    public void migrateLegacyPositions(HudModule hud) {
+        if (legacyMigrated.enabled() || hud == null) return;
+        migrateOne("watermark", hud.x(), hud.y(), 6, 6);
+        migrateOne("coordinates", hud.coordinatesX(), hud.coordinatesY(), 6, 28);
+        migrateOne("fps", hud.fpsX(), hud.fpsY(), 6, 39);
+        migrateOne("player-info", hud.playerInfoX(), hud.playerInfoY(), 6, 50);
+        migrateOne("world-info", hud.worldInfoX(), hud.worldInfoY(), 6, 94);
+        legacyMigrated.set(true);
+    }
+
+    private void migrateOne(String element, double oldX, double oldY, double defaultX, double defaultY) {
+        if (anchor(element) == Anchor.TOP_LEFT && Math.abs(offsetX(element) - defaultX) < 0.001 && Math.abs(offsetY(element) - defaultY) < 0.001
+                && (Math.abs(oldX - defaultX) > 0.001 || Math.abs(oldY - defaultY) > 0.001)) {
+            setOffset(element, oldX, oldY);
+        }
+    }
     public Anchor anchor(String element) { return switch (element) {
         case "watermark" -> watermarkAnchor.get(); case "coordinates" -> coordinatesAnchor.get(); case "fps" -> fpsAnchor.get();
         case "player-info" -> playerInfoAnchor.get(); case "world-info" -> worldInfoAnchor.get(); default -> Anchor.TOP_LEFT;

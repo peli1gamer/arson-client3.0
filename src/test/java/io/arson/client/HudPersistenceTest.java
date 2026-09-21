@@ -1,11 +1,28 @@
 package io.arson.client;
 
 import io.arson.client.module.HudModule;
+import io.arson.client.module.HudLayoutModule;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class HudPersistenceTest {
+    @Test
+    void legacyAbsolutePositionsMigrateOnceIntoAnchorLayout() {
+        HudModule hud = new HudModule();
+        HudLayoutModule layout = new HudLayoutModule();
+        hud.setGridSnap(false);
+        hud.setEditorPosition("watermark", 137, 91);
+        layout.migrateLegacyPositions(hud);
+        assertEquals(137.0, layout.offsetX("watermark"), 0.0001);
+        assertEquals(91.0, layout.offsetY("watermark"), 0.0001);
+        hud.setEditorPosition("watermark", 240, 200);
+        layout.migrateLegacyPositions(hud);
+        assertEquals(137.0, layout.offsetX("watermark"), 0.0001);
+        assertEquals(91.0, layout.offsetY("watermark"), 0.0001);
+        assertTrue(layout.legacyMigrated());
+    }
+
     @Test
     void editorPositionAndVisibilityStateRemainOnTheModuleAcrossEditorRebuilds() {
         HudModule hud = new HudModule();
