@@ -56,10 +56,18 @@ public final class ArrayListRenderer {
                 .reversed()
                 .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
         if (all.size() > module.maxModules()) all = all.subList(0, module.maxModules());
+        int viewportW=client.getWindow().getGuiScaledWidth(), viewportH=client.getWindow().getGuiScaledHeight();
+        int maxVisible=Math.max(1,(int)Math.floor(Math.max(1,viewportH-12)/(double)Math.max(1,module.spacing())));
+        if(all.size()>maxVisible) all=all.subList(0,maxVisible);
+        int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.font.width(label(candidate,module)));
+        double renderScale=module.scale();
+        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/maxWidth);
+        if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
+        renderScale=Math.max(0.05,renderScale);
 
         graphics.pose().pushMatrix();
         graphics.pose().translate(module.x(), module.y());
-        graphics.pose().scale(module.scale(), module.scale());
+        graphics.pose().scale((float)renderScale, (float)renderScale);
 
         int line = module.spacing();
         int padding = module.padding();

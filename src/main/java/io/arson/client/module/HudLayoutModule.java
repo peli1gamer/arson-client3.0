@@ -120,7 +120,7 @@ public final class HudLayoutModule extends Module {
                 sizes.put(element,new NoOverlapLayout.Size(arrayListWidth,arrayListHeight));
                 continue;
             }
-            double elementScale=elementScaleHint(element);
+            double elementScale=elementScaleHint(element,viewportWidth,viewportHeight);
             double[] p=resolve(element,logicalW,logicalH,190*elementScale,35*elementScale);
             int x=(int)Math.round(p[0]*scale),y=(int)Math.round(p[1]*scale);
             int w=Math.max(1,(int)Math.ceil(190*elementScale*scale)),h=Math.max(1,(int)Math.ceil(35*elementScale*scale));
@@ -137,8 +137,8 @@ public final class HudLayoutModule extends Module {
                 continue;
             }
             double x=rect.x()/scale,y=rect.y()/scale;
-            if(Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element))[0]-x)>0.5 || Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element))[1]-y)>0.5){
-                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element));
+            if(Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[0]-x)>0.5 || Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[1]-y)>0.5){
+                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight));
                 changed=true;
             }
         }
@@ -147,7 +147,7 @@ public final class HudLayoutModule extends Module {
 
     private int arrayListPreferredX=6,arrayListPreferredY=6;
     public void setArrayListPreferredPosition(int x,int y){arrayListPreferredX=x;arrayListPreferredY=y;}
-    private double elementScaleHint(String element){return 2.0;}
+    private double elementScaleHint(String element,int viewportWidth,int viewportHeight){return viewportWidth<520||viewportHeight<360?1.0:2.0;}
 
     @Override protected void onTick(Minecraft client) { /* layout is declarative; no per-tick work is required */ }
 }

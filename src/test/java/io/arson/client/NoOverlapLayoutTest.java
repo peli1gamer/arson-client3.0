@@ -43,6 +43,22 @@ class NoOverlapLayoutTest {
         assertTrue(NoOverlapLayout.pairwiseNonIntersecting(rects));
     }
 
+
+    @Test
+    void tooltipFlowsAroundReservedControls() {
+        Map<String,NoOverlapLayout.Rect> preferred=Map.of(
+                "panel",new NoOverlapLayout.Rect(40,30,240,140),
+                "control",new NoOverlapLayout.Rect(80,70,120,22),
+                "tooltip",new NoOverlapLayout.Rect(82,72,160,44));
+        Map<String,NoOverlapLayout.Size> sizes=Map.of(
+                "panel",new NoOverlapLayout.Size(240,140),
+                "control",new NoOverlapLayout.Size(120,22),
+                "tooltip",new NoOverlapLayout.Size(160,44));
+        var solved=NoOverlapLayout.solve(320,200,new NoOverlapLayout.Insets(6,6,6,6),4,preferred,sizes,List.of("panel","control","tooltip"));
+        assertTrue(solved.get("tooltip").rect().within(320,200,new NoOverlapLayout.Insets(6,6,6,6)));
+        assertFalse(solved.get("tooltip").rect().intersects(solved.get("control").rect()));
+    }
+
     @Test
     void ultrawideKeepsPlacementsInsideSafeArea() {
         Map<String,NoOverlapLayout.Rect> preferred=Map.of(
