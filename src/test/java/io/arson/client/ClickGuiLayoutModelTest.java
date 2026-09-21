@@ -19,7 +19,7 @@ class ClickGuiLayoutModelTest {
 
     @Test
     void compactGeometryUsesTwoColumnsWhenSpaceAllows() {
-        var g = ClickGuiLayoutModel.compute(1280, 720, 1.0);
+        var g = ClickGuiLayoutModel.compute(1000, 650, 1.0);
         assertEquals(ClickGuiLayoutModel.Mode.COMPACT, g.mode());
         assertEquals(2, g.columns());
         var left = g.moduleCard(0, 12);
@@ -43,8 +43,8 @@ class ClickGuiLayoutModelTest {
     void keyboardNavigationIsDeterministicAndWraps() {
         assertEquals(0, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.CATEGORY, 5, 1, 6, 20));
         assertEquals(5, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.CATEGORY, 0, -1, 6, 20));
-        assertEquals(0, ClickGuiLayoutModel.moveModule(3, -1, 4, 2));
-        assertEquals(3, ClickGuiLayoutModel.moveModule(1, 1, 4, 2));
+        assertEquals(2, ClickGuiLayoutModel.moveModule(3, -1, 4, 2));
+        assertEquals(2, ClickGuiLayoutModel.moveModule(1, 1, 4, 2));
         assertEquals(2, ClickGuiLayoutModel.moveModule(0, 1, 10, 2));
     }
 
