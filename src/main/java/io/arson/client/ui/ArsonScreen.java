@@ -203,10 +203,10 @@ public final class ArsonScreen extends Screen {
     }
     private void selectRelative(int delta,List<Module> visible){
         int index=selected==null?-1:visible.indexOf(selected); if(index<0)index=delta>0?-1:0;
-        selected=visible.get(Math.floorMod(index+delta,visible.size())); scroll=Math.max(0,(visible.indexOf(selected)-2)*24); rebuild();
+        selected=visible.get(ResponsiveNavigation.moveIndex(index,delta,visible.size())); scroll=Math.max(0,(visible.indexOf(selected)-2)*24); rebuild();
     }
     private void changeCategory(int delta){
-        Module.Category[] all=Module.Category.values(); int index=category.ordinal(); category=all[Math.floorMod(index+delta,all.length)]; selected=null;scroll=0;rebuild();
+        Module.Category[] all=Module.Category.values(); int index=category.ordinal(); category=all[ResponsiveNavigation.moveCategory(index,delta,all.length)]; selected=null;scroll=0;rebuild();
     }
     @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused())refreshModuleButtons();return handled;}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontalAmount,double verticalAmount){
