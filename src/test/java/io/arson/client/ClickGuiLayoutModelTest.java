@@ -49,6 +49,16 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void finalResponsiveContractKeepsSearchInsidePanel() {
+        for (int[] size : new int[][]{{360,240},{640,400},{900,600},{3440,1440}}) {
+            var g=ClickGuiLayoutModel.compute(size[0],size[1],1.25);
+            assertTrue(g.search().x() >= g.panelX());
+            assertTrue(g.search().right() <= g.panelX()+g.panelWidth());
+            assertTrue(g.footer().bottom() <= g.panelY()+g.panelHeight());
+        }
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));
