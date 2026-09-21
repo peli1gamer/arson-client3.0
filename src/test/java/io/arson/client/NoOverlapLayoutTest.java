@@ -39,7 +39,7 @@ class NoOverlapLayoutTest {
         var solved=NoOverlapLayout.solve(120,90,new NoOverlapLayout.Insets(4,4,4,4),2,preferred,sizes,List.of("first","second"));
         var rects=solved.values().stream().map(NoOverlapLayout.Placement::rect).toList();
         assertTrue(rects.get(0).within(120,90,new NoOverlapLayout.Insets(4,4,4,4)));
-        assertTrue(rects.get(0).compacted());
+        assertTrue(solved.get("first").compacted());
         assertTrue(NoOverlapLayout.pairwiseNonIntersecting(rects));
     }
 
