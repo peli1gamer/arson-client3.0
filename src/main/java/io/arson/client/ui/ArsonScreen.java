@@ -213,17 +213,16 @@ public final class ArsonScreen extends Screen {
         if(selected!=null){int step=verticalAmount>0?-24:24;scroll=Math.max(0,scroll+step);rebuild();return true;}
         return super.mouseScrolled(mouseX,mouseY,horizontalAmount,verticalAmount);
     }
-    @Override public void onClose(){bindingModule=null;saveConfig();minecraft.setScreen(parent);}
-}    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){
+    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){
         graphics.fill(panelX,panelY,panelX+panelW,panelY+panelH,panelColor());
         graphics.fill(panelX,panelY,panelX+panelW,panelY+(compact?30:34),headerColor());
         graphics.drawString(font,"Arson Client V3",panelX+12,panelY+10,0xFFFFFFFF);
-        graphics.drawString(font,""+category.displayName()+" • "+visibleModules().size()+" shown",contentX,panelY+contentTop-panelY-16,accentColor());
+        graphics.drawString(font,category.displayName()+" • "+visibleModules().size()+" shown",contentX,contentTop-16,accentColor());
         if(compact) graphics.drawString(font,"↑↓ select  ←→ category  Enter toggle  Esc close",panelX+8,panelY+panelH-45,0xFFAAAAAA);
         if(selected!=null&&!selected.description().isBlank()){
             String help=selected.description();
             int max=Math.max(1,contentW/6);
-            if(help.length()>max)help=help.substring(0,Math.max(0,max-1))+"…";
+            if(help.length()>max)help=help.substring(0,Math.max(1,max-1))+"…";
             graphics.drawString(font,help,contentX,contentTop-16,0xFFAAAAAA);
         }
         graphics.renderOutline(panelX,panelY,panelW,panelH,accentColor());
