@@ -36,7 +36,7 @@ class TelemetryUiTrancheTest {
         HudModule hud = (HudModule) manager.get("hud");
         assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
         var setting = hud.settings().stream().filter(s -> s.id().equals("row-format")).findFirst().orElseThrow();
-        setting.set(HudModule.RowFormat.DENSE);
+        ((io.arson.client.settings.EnumSetting<HudModule.RowFormat>) setting).set(HudModule.RowFormat.DENSE);
         assertEquals(HudModule.RowFormat.DENSE, hud.rowFormat());
         setting.reset();
         assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
