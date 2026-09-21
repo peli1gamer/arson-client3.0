@@ -2,6 +2,8 @@ package io.arson.client.render;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.CameraInfoModule;
+import io.arson.client.module.ArrayListModule;
+import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ClientPerformanceInfoModule;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
@@ -54,6 +56,7 @@ public final class HudRenderer {
         HudModule hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
         if (hud == null || !hud.enabled()) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
+        ArrayListModule arrayList = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
         PlayerVelocityInfoModule velocityInfo = (PlayerVelocityInfoModule) ArsonClient.getInstance().modules().get("player-velocity-info");
@@ -89,6 +92,12 @@ public final class HudRenderer {
         ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
         RenderResolutionInfoModule resolutionInfo = (RenderResolutionInfoModule) ArsonClient.getInstance().modules().get("render-resolution-info");
         float globalScale = (float) hud.scale();
+        if(layout != null){
+            int[] arraySize=estimateArrayListSize(client,arrayList);
+            layout.setArrayListPreferredPosition(arrayList==null?6:arrayList.x(),arrayList==null?6:arrayList.y());
+            if(layout.repairNoOverlap(client.getWindow().getGuiScaledWidth(),client.getWindow().getGuiScaledHeight(),globalScale,arraySize[0],arraySize[1],arrayList))
+                ConfigManager.save(client,ArsonClient.getInstance().modules());
+        }
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
         if (hud.showCoordinates()) drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())});
