@@ -4,6 +4,11 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
 import net.minecraft.client.Minecraft;
+import io.arson.client.ui.NoOverlapLayout;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Persistent, resize-aware HUD anchor constraints. Positions are stored as anchor-relative offsets. */
 public final class HudLayoutModule extends Module {
@@ -96,6 +101,51 @@ public final class HudLayoutModule extends Module {
             default -> throw new IllegalArgumentException("Unknown HUD element: " + element);
         }
     }
+
+
+    /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
+    public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,boolean arrayListEnabled) {
+        double scale=Math.max(0.5,globalScale);
+        int logicalW=Math.max(1,(int)Math.floor(viewportWidth/scale));
+        int logicalH=Math.max(1,(int)Math.floor(viewportHeight/scale));
+        List<String> order=List.of("watermark","coordinates","fps","player-info","world-info","array-list");
+        Map<String,NoOverlapLayout.Rect> preferred=new LinkedHashMap<>();
+        Map<String,NoOverlapLayout.Size> sizes=new LinkedHashMap<>();
+        for(String element:order){
+            if("array-list".equals(element)){
+                if(!arrayListEnabled) continue;
+                preferred.put(element,new NoOverlapLayout.Rect(0,0,arrayListWidth,arrayListHeight));
+                // Array-list coordinates are already in the raw viewport space.
+                preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,arrayListPreferredX),Math.max(0,arrayListPreferredY),arrayListWidth,arrayListHeight));
+                sizes.put(element,new NoOverlapLayout.Size(arrayListWidth,arrayListHeight));
+                continue;
+            }
+            double elementScale=elementScaleHint(element);
+            double[] p=resolve(element,logicalW,logicalH,190*elementScale,35*elementScale);
+            int x=(int)Math.round(p[0]*scale),y=(int)Math.round(p[1]*scale);
+            int w=Math.max(1,(int)Math.ceil(190*elementScale*scale)),h=Math.max(1,(int)Math.ceil(35*elementScale*scale));
+            preferred.put(element,new NoOverlapLayout.Rect(x,y,w,h));
+            sizes.put(element,new NoOverlapLayout.Size(w,h));
+        }
+        Map<String,NoOverlapLayout.Placement> placements=NoOverlapLayout.solve(viewportWidth,viewportHeight,new NoOverlapLayout.Insets(6,6,6,6),6,preferred,sizes,order.stream().filter(preferred::containsKey).toList());
+        boolean changed=false;
+        for(String element:placements.keySet()){
+            NoOverlapLayout.Rect rect=placements.get(element).rect();
+            if("array-list".equals(element)){
+                continue;
+            }
+            double x=rect.x()/scale,y=rect.y()/scale;
+            if(Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element))[0]-x)>0.5 || Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element))[1]-y)>0.5){
+                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element));
+                changed=true;
+            }
+        }
+        return changed;
+    }
+
+    private int arrayListPreferredX=6,arrayListPreferredY=6;
+    public void setArrayListPreferredPosition(int x,int y){arrayListPreferredX=x;arrayListPreferredY=y;}
+    private double elementScaleHint(String element){return switch(element){case "watermark"->watermarkScale.get();case "coordinates"->coordinatesScale.get();case "fps"->fpsScale.get();case "player-info"->playerInfoScale.get();case "world-info"->worldInfoScale.get();default->1.0;};}
 
     @Override protected void onTick(Minecraft client) { /* layout is declarative; no per-tick work is required */ }
 }
