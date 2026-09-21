@@ -46,7 +46,12 @@ public final class NoOverlapLayout {
             Rect chosen=new Rect(px,py,w,h);
             boolean compacted=w!=requested.width()||h!=requested.height();
             if(conflicts(chosen,occupied)){
-                chosen=findCandidate(chosen,w,h,safeLeft,safeTop,safeRight,safeBottom,step,occupied);
+                Rect candidate=findCandidate(chosen,w,h,safeLeft,safeTop,safeRight,safeBottom,step,occupied);
+                if(candidate!=null) chosen=candidate;
+                else {
+                    Rect compactedCandidate=findCompactedCandidate(preferred.getOrDefault(id,chosen),w,h,safeLeft,safeTop,safeRight,safeBottom,step,occupied);
+                    if(compactedCandidate!=null){ chosen=compactedCandidate; compacted=true; }
+                }
             }
             boolean moved=chosen.x()!=pref.x()||chosen.y()!=pref.y();
             result.put(id,new Placement(id,chosen,moved,compacted));
@@ -74,9 +79,25 @@ public final class NoOverlapLayout {
                 best=candidate;bestDistance=distance;
             }
         }
-        return best==null ? new Rect(left,top,w,h) : best;
+        return best;
     }
 
+
+    private static Rect findCompactedCandidate(Rect preferred,int width,int height,int left,int top,int right,int bottom,int gap,List<Rect> occupied){
+        double[] factors={0.85,0.70,0.55,0.40,0.25,0.15,0.08};
+        for(double factor:factors){
+            int w=Math.max(1,Math.min(right-left,(int)Math.floor(width*factor)));
+            int h=Math.max(1,Math.min(bottom-top,(int)Math.floor(height*factor)));
+            Rect candidate=findCandidate(new Rect(preferred.x(),preferred.y(),w,h),w,h,left,top,right,bottom,gap,occupied);
+            if(candidate!=null)return candidate;
+        }
+        for(int h=Math.max(1,Math.min(height,bottom-top));h>=1;h=Math.max(1,h/2)){
+            Rect candidate=findCandidate(new Rect(preferred.x(),preferred.y(),1,h),1,h,left,top,right,bottom,gap,occupied);
+            if(candidate!=null)return candidate;
+            if(h==1)break;
+        }
+        return null;
+    }
     private static boolean conflicts(Rect candidate,List<Rect> occupied){
         for(Rect rect:occupied) if(candidate.intersects(rect)) return true;
         return false;
