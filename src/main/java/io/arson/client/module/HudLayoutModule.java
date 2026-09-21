@@ -147,7 +147,7 @@ public final class HudLayoutModule extends Module {
 
     private int arrayListPreferredX=6,arrayListPreferredY=6;
     public void setArrayListPreferredPosition(int x,int y){arrayListPreferredX=x;arrayListPreferredY=y;}
-    private double elementScaleHint(String element){return switch(element){case "watermark"->watermarkScale.get();case "coordinates"->coordinatesScale.get();case "fps"->fpsScale.get();case "player-info"->playerInfoScale.get();case "world-info"->worldInfoScale.get();default->1.0;};}
+    private double elementScaleHint(String element){return 2.0;}
 
     @Override protected void onTick(Minecraft client) { /* layout is declarative; no per-tick work is required */ }
 }
