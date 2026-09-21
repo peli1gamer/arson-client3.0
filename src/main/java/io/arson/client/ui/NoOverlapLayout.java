@@ -98,6 +98,10 @@ public final class NoOverlapLayout {
         }
         return null;
     }
+    public static boolean pairwiseNonIntersecting(List<Rect> rects){
+        for(int i=0;i<rects.size();i++) for(int j=i+1;j<rects.size();j++) if(rects.get(i).intersects(rects.get(j))) return false;
+        return true;
+    }
     private static boolean conflicts(Rect candidate,List<Rect> occupied){
         for(Rect rect:occupied) if(candidate.intersects(rect)) return true;
         return false;
