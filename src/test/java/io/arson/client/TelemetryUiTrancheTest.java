@@ -16,7 +16,7 @@ class TelemetryUiTrancheTest {
         assertNotNull(manager.get("world-entity-count-info"));
         assertNotNull(manager.get("render-gui-info"));
         assertTrue(manager.search("interaction").stream().anyMatch(m -> m.id().equals("player-interaction-info")));
-        assertTrue(manager.search("entities").stream().anyMatch(m -> m.id().equals("world-entity-count-info")));
+        assertTrue(manager.search("entity").stream().anyMatch(m -> m.id().equals("world-entity-count-info")));
         assertTrue(manager.search("gui scale").stream().anyMatch(m -> m.id().equals("render-gui-info")));
     }
 
