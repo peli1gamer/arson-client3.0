@@ -24,7 +24,7 @@ import java.util.List;
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
-    private static final int CONFIG_VERSION = 3;
+    private static final int CONFIG_VERSION = 4;
     private ConfigManager() {}
     public static void load(Minecraft client, ModuleManager modules) { loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
     public static void save(Minecraft client, ModuleManager modules) { saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
@@ -63,6 +63,7 @@ public final class ConfigManager {
             JsonObject root = parsed.getAsJsonObject();
             if (readVersion(root) > CONFIG_VERSION) return false;
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
+            migrateLegacyLayout(root, moduleRoot, modules);
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
@@ -83,6 +84,35 @@ public final class ConfigManager {
             }
             return true;
         } catch (Exception ignored) { return false; }
+    }
+
+    /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
+    private static void migrateLegacyLayout(JsonObject root, JsonObject moduleRoot, ModuleManager modules) {
+        Module layout = modules.get("hud-layout");
+        if (layout == null) return;
+        JsonObject legacy = null;
+        for (String key : List.of("hudLayout", "layout", "hud_layout")) {
+            JsonElement value = root.get(key);
+            if (value != null && value.isJsonObject()) { legacy = value.getAsJsonObject(); break; }
+        }
+        if (legacy == null) return;
+        JsonObject elements = legacy.has("elements") && legacy.get("elements").isJsonObject()
+                ? legacy.getAsJsonObject("elements") : legacy;
+        for (String element : List.of("watermark", "coordinates", "fps", "player-info", "world-info")) {
+            JsonElement raw = elements.get(element);
+            if (raw == null || !raw.isJsonObject()) continue;
+            JsonObject value = raw.getAsJsonObject();
+            JsonObject settings = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
+                    ? moduleRoot.getAsJsonObject("hud-layout").getAsJsonObject("settings") : new JsonObject();
+            if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
+            if (value.has("x") && value.get("x").isJsonPrimitive()) settings.addProperty(element + "-x", value.get("x").getAsDouble());
+            if (value.has("y") && value.get("y").isJsonPrimitive()) settings.addProperty(element + "-y", value.get("y").getAsDouble());
+            if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
+            JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
+                    ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
+            moduleData.add("settings", settings);
+            moduleRoot.add("hud-layout", moduleData);
+        }
     }
     private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
     @SuppressWarnings({"rawtypes", "unchecked"}) private static void setEnumUnchecked(EnumSetting setting, Enum value) { setting.set(value); }
