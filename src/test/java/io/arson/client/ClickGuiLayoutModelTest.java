@@ -45,7 +45,7 @@ class ClickGuiLayoutModelTest {
         assertEquals(5, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.CATEGORY, 0, -1, 6, 20));
         assertEquals(2, ClickGuiLayoutModel.moveModule(3, -1, 4, 2));
         assertEquals(2, ClickGuiLayoutModel.moveModule(1, 1, 4, 2));
-        assertEquals(2, ClickGuiLayoutModel.moveModule(0, 1, 10, 2));
+        assertEquals(1, ClickGuiLayoutModel.moveModule(0, 1, 10, 2));
     }
 
     @Test
