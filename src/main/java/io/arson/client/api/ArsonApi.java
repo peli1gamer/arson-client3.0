@@ -16,6 +16,24 @@ public final class ArsonApi {
         var modules = ArsonClient.getInstance().modules().organized(category);
         return modules.stream().map(m -> m.id() + (m.enabled() ? "[on]" : "[off]")).collect(java.util.stream.Collectors.joining(", "));
     }
+    public static int resetCategory(Module.Category category) {
+        if (ArsonClient.getInstance() == null || category == null) return 0;
+        int changed = 0;
+        for (Module module : ArsonClient.getInstance().modules().all()) {
+            if (module.category() == category) { module.resetToDefaults(); changed++; }
+        }
+        if (changed > 0) save();
+        return changed;
+    }
+
+    public static boolean setHudElementPosition(String element, double x, double y) {
+        if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof io.arson.client.module.HudModule hud)) return false;
+        try { hud.setEditorPosition(element, x, y); save(); return true; }
+        catch (IllegalArgumentException ignored) { return false; }
+    }
+
     public static int resetAllModules() {
         if (ArsonClient.getInstance() == null) return 0;
         int changed = 0;

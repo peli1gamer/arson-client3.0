@@ -15,6 +15,9 @@ import io.arson.client.module.PlayerPoseInfoModule;
 import io.arson.client.module.PlayerVitalsModule;
 import io.arson.client.module.PlayerVelocityInfoModule;
 import io.arson.client.module.PlayerInputInfoModule;
+import io.arson.client.module.PlayerInteractionInfoModule;
+import io.arson.client.module.WorldEntityCountInfoModule;
+import io.arson.client.module.RenderGuiInfoModule;
 import io.arson.client.module.PlayerAirInfoModule;
 import io.arson.client.module.WorldWeatherInfoModule;
 import io.arson.client.module.RenderFrameInfoModule;
@@ -55,6 +58,9 @@ public final class HudRenderer {
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
         PlayerVelocityInfoModule velocityInfo = (PlayerVelocityInfoModule) ArsonClient.getInstance().modules().get("player-velocity-info");
         PlayerInputInfoModule inputInfo = (PlayerInputInfoModule) ArsonClient.getInstance().modules().get("player-input-info");
+        PlayerInteractionInfoModule interactionInfo = (PlayerInteractionInfoModule) ArsonClient.getInstance().modules().get("player-interaction-info");
+        WorldEntityCountInfoModule entityCountInfo = (WorldEntityCountInfoModule) ArsonClient.getInstance().modules().get("world-entity-count-info");
+        RenderGuiInfoModule guiInfo = (RenderGuiInfoModule) ArsonClient.getInstance().modules().get("render-gui-info");
         PlayerEquipmentModule equipment = (PlayerEquipmentModule) ArsonClient.getInstance().modules().get("player-equipment");
         PlayerExperienceInfoModule experienceInfo = (PlayerExperienceInfoModule) ArsonClient.getInstance().modules().get("player-experience-info");
         PlayerEffectInfoModule effectInfo = (PlayerEffectInfoModule) ArsonClient.getInstance().modules().get("player-effect-info");
@@ -106,6 +112,7 @@ public final class HudRenderer {
             if (poseInfo != null && poseInfo.enabled()) rows.add(poseInfo.formatted());
             if (velocityInfo != null && velocityInfo.enabled()) rows.add(velocityInfo.formatted());
             if (inputInfo != null && inputInfo.enabled()) rows.add(inputInfo.formatted());
+            if (interactionInfo != null && interactionInfo.enabled()) rows.add(interactionInfo.formatted());
             if (airInfo != null && airInfo.enabled()) rows.add(airInfo.formatted());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
@@ -143,6 +150,8 @@ public final class HudRenderer {
             if (resolutionInfo != null && resolutionInfo.enabled()) rows.add(resolutionInfo.formatted());
             if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             if (weatherInfo != null && weatherInfo.enabled()) rows.add(weatherInfo.formatted());
+            if (entityCountInfo != null && entityCountInfo.enabled()) rows.add(entityCountInfo.formatted());
+            if (guiInfo != null && guiInfo.enabled()) rows.add(guiInfo.formatted());
             if (frameInfo != null && frameInfo.enabled()) rows.add(frameInfo.formatted());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
