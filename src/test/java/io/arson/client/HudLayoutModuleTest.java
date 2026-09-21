@@ -43,6 +43,7 @@ class HudLayoutModuleTest {
         layout.setOffset("player-info", 0, 0);
         layout.setOffset("world-info", 0, 0);
         assertTrue(layout.repairNoOverlap(360, 240, 1.0, 100, 80, null));
+        assertFalse(layout.repairNoOverlap(360, 240, 1.0, 100, 80, null));
     }
 
     @Test
