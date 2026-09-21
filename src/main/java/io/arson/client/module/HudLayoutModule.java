@@ -137,7 +137,7 @@ public final class HudLayoutModule extends Module {
                 continue;
             }
             double x=rect.x()/scale,y=rect.y()/scale;
-            if(Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[0]-x)>0.5 || Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element))[1]-y)>0.5){
+            if(Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[0]-x)>0.5 || Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[1]-y)>0.5){
                 setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScaleHint(element),35*elementScaleHint(element));
                 changed=true;
             }
