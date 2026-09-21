@@ -8,10 +8,10 @@ import io.arson.client.settings.EnumSetting;
 public final class ClickGuiPreferencesModule extends Module {
     public enum Theme { MIDNIGHT, GRAPHITE, CONTRAST }
     private final EnumSetting<Theme> theme = setting(new EnumSetting<>("theme", "Theme", Theme.MIDNIGHT));
-    private final BooleanSetting alphabetical = setting(new BooleanSetting<>("alphabetical", "Alphabetical", false));
-    private final BooleanSetting favoritesOnly = setting(new BooleanSetting<>("favorites-only", "Favorites Only", false));
-    private final BooleanSetting enabledOnly = setting(new BooleanSetting<>("enabled-only", "Enabled Only", false));
-    private final BooleanSetting compactMode = setting(new BooleanSetting<>("compact-mode", "Compact Mode", false));
+    private final BooleanSetting alphabetical = setting(new BooleanSetting("alphabetical", "Alphabetical", false));
+    private final BooleanSetting favoritesOnly = setting(new BooleanSetting("favorites-only", "Favorites Only", false));
+    private final BooleanSetting enabledOnly = setting(new BooleanSetting("enabled-only", "Enabled Only", false));
+    private final BooleanSetting compactMode = setting(new BooleanSetting("compact-mode", "Compact Mode", false));
     private final DoubleSetting panelScale = setting(new DoubleSetting<>("panel-scale", "Panel Scale", 1.0, 0.75, 1.25, 0.05));
 
     public ClickGuiPreferencesModule() {
