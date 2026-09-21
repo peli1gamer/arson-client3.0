@@ -36,6 +36,7 @@ import io.arson.client.module.WorldBorderInfoModule;
 import io.arson.client.module.WorldSpawnInfoModule;
 import io.arson.client.module.RenderResolutionInfoModule;
 import io.arson.client.module.WorldMoonInfoModule;
+import io.arson.client.ui.ResponsiveUiLayout;
 import io.arson.client.module.WorldChunkInfoModule;
 import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
@@ -54,6 +55,7 @@ public final class HudRenderer {
         HudModule hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
         if (hud == null || !hud.enabled()) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
+        if (layout != null) layout.migrateLegacyPositions(hud);
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
         PlayerVelocityInfoModule velocityInfo = (PlayerVelocityInfoModule) ArsonClient.getInstance().modules().get("player-velocity-info");
@@ -88,7 +90,10 @@ public final class HudRenderer {
         RenderCameraInfoModule cameraInfo2 = (RenderCameraInfoModule) ArsonClient.getInstance().modules().get("render-camera-info");
         ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
         RenderResolutionInfoModule resolutionInfo = (RenderResolutionInfoModule) ArsonClient.getInstance().modules().get("render-resolution-info");
-        float globalScale = (float) hud.scale();
+        int viewportW = client.getWindow().getGuiScaledWidth();
+        int viewportH = client.getWindow().getGuiScaledHeight();
+        float viewportScale = (float) ResponsiveUiLayout.viewportScale(viewportW, viewportH, 960, 540, 0.70, 1.0);
+        float globalScale = (float) (hud.scale() * viewportScale);
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
         if (hud.showCoordinates()) drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())});
@@ -164,11 +169,35 @@ public final class HudRenderer {
     private static void drawElement(GuiGraphics graphics, Minecraft client, HudModule hud, HudLayoutModule layout, String element, int fallbackX, int fallbackY, String[] rows) {
         if (rows.length == 0) return;
         if (hud.rowFormat() == HudModule.RowFormat.COMPACT && rows.length > 1) rows = new String[]{String.join("  |  ", rows)};
-        double elementScale = hud.elementScale(element); int maxWidth = 0; for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row)); int line = hud.rowFormat() == HudModule.RowFormat.DENSE ? Math.max(8, hud.lineSpacing() - 2) : hud.lineSpacing(); double x = fallbackX, y = fallbackY;
-        if (layout != null) { double logicalViewportW = client.getWindow().getGuiScaledWidth() / Math.max(0.001, hud.scale()), logicalViewportH = client.getWindow().getGuiScaledHeight() / Math.max(0.001, hud.scale()); double[] resolved = layout.resolve(element, logicalViewportW, logicalViewportH, maxWidth * elementScale, rows.length * line * elementScale); x = resolved[0]; y = resolved[1]; }
-        graphics.pose().pushMatrix(); graphics.pose().translate((float)x, (float)y); graphics.pose().scale((float) elementScale, (float) elementScale); int padding = hud.padding(); String alignment = hud.elementAlignment(element); int left = alignedX(0, maxWidth, alignment);
+        double configuredScale = hud.elementScale(element);
+        int maxWidth = 0;
+        for (String row : rows) maxWidth = Math.max(maxWidth, client.font.width(row));
+        int line = hud.rowFormat() == HudModule.RowFormat.DENSE ? Math.max(8, hud.lineSpacing() - 2) : hud.lineSpacing();
+        double logicalViewportW = client.getWindow().getGuiScaledWidth() / Math.max(0.001, hud.scale());
+        double logicalViewportH = client.getWindow().getGuiScaledHeight() / Math.max(0.001, hud.scale());
+        double availableWidth = Math.max(24.0, logicalViewportW - 16.0);
+        double fitScale = maxWidth <= 0 ? configuredScale : Math.min(configuredScale, availableWidth / maxWidth);
+        double elementScale = Math.max(0.60, fitScale);
+        double boxWidth = Math.max(1.0, maxWidth * elementScale);
+        double boxHeight = Math.max(1.0, rows.length * line * elementScale);
+        double x = fallbackX, y = fallbackY;
+        if (layout != null) {
+            double[] resolved = layout.resolve(element, logicalViewportW, logicalViewportH, boxWidth, boxHeight);
+            x = resolved[0];
+            y = resolved[1];
+        }
+        graphics.pose().pushMatrix();
+        graphics.pose().translate((float)x, (float)y);
+        graphics.pose().scale((float) elementScale, (float) elementScale);
+        int padding = hud.padding();
+        String alignment = hud.elementAlignment(element);
+        int left = alignedX(0, maxWidth, alignment);
         if (hud.showBackground() && hud.elementBackground(element)) graphics.fill(left - padding, -padding, left + maxWidth + padding, rows.length * line + padding - 1, hud.elementBackgroundColor());
-        for (int i = 0; i < rows.length; i++) { int rowWidth = client.font.width(rows[i]); int rowX = alignedX(0, rowWidth, alignment); graphics.drawString(client.font, rows[i], rowX, i * line, hud.elementColor(element), hud.showShadow()); }
+        for (int i = 0; i < rows.length; i++) {
+            int rowWidth = client.font.width(rows[i]);
+            int rowX = alignedX(0, rowWidth, alignment);
+            graphics.drawString(client.font, rows[i], rowX, i * line, hud.elementColor(element), hud.showShadow());
+        }
         graphics.pose().popMatrix();
     }
     private static int alignedX(int x, int width, String alignment) { return switch (alignment == null ? "left" : alignment.trim().toLowerCase(java.util.Locale.ROOT)) { case "center" -> x - width / 2; case "right" -> x - width; default -> x; }; }
