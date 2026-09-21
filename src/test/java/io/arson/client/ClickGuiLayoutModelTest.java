@@ -30,7 +30,9 @@ class ClickGuiLayoutModelTest {
         var right = g.moduleCard(1, 12);
         assertTrue(left.right() <= right.x());
         assertTrue(right.right() <= g.content().right());
-        assertTrue(left.bottom() <= g.content().bottom());
+        assertTrue(left.bottom() <= g.moduleList().bottom());
+        assertFalse(left.intersects(g.detail()));
+        assertFalse(right.intersects(g.detail()));
     }
 
     @Test
