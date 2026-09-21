@@ -350,6 +350,7 @@ public final class ArsonScreen extends Screen {
         ClickGuiLayoutModel.Rect rail(){return g.rail();}
         ClickGuiLayoutModel.Rect detail(){return g.detail();}
         ClickGuiLayoutModel.Rect search(){return g.search();}
+        ClickGuiLayoutModel.Rect toolbar(){return g.toolbar();}
         ClickGuiLayoutModel.Rect footer(){return g.footer();}
         int headerY(){return g.panelY()+9;}
         int headerLeftX(){return g.panelX()+8;}
