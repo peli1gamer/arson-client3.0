@@ -17,7 +17,7 @@ public final class PlayerInteractionInfoModule extends Module {
         distance = 0;
         if (client.player == null || client.crosshairPickEntity == null) return;
         var entity = client.crosshairPickEntity;
-        target = entity.getType().toShortString();
+        target = entity.getType().toString();
         distance = client.player.distanceTo(entity);
     }
 
