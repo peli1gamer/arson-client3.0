@@ -166,6 +166,23 @@ public final class HudRenderer {
         }
         graphics.pose().popMatrix();
     }
+    private static int[] estimateArrayListSize(Minecraft client, ArrayListModule module) {
+        if(module==null || !module.enabled()) return new int[]{1,1};
+        int maxWidth=1;
+        int count=0;
+        for(var candidate:ArsonClient.getInstance().modules().all()){
+            if(candidate.id().equals("array-list")) continue;
+            if(candidate.enabled()){
+                count++;
+                String label=candidate.name()+(module.showCategory()?" ["+candidate.category().displayName()+"]":"");
+                maxWidth=Math.max(maxWidth,client.font.width(label));
+            }
+        }
+        count=Math.min(module.maxModules(),Math.max(1,count));
+        return new int[]{Math.max(1,(int)Math.ceil((maxWidth+module.padding()*2)*module.scale())),
+                Math.max(1,(int)Math.ceil((count*module.spacing()+module.padding()*2)*module.scale()))};
+    }
+
     private static void renderNotifications(GuiGraphics graphics, Minecraft client) {
         var list = NotificationCenter.active(System.currentTimeMillis()); int screenW = client.getWindow().getGuiScaledWidth(), screenH = client.getWindow().getGuiScaledHeight(); int index = 0;
         for (NotificationCenter.Notification n : list) { int width = Math.max(180, Math.max(client.font.width(n.title()), client.font.width(n.message())) + 24), height = 40; float p = n.progress(System.currentTimeMillis()), eased = p * p * (3f - 2f * p); int slide = Math.round((1f - eased) * 18f); boolean left = NotificationCenter.position() == NotificationCenter.Position.TOP_LEFT || NotificationCenter.position() == NotificationCenter.Position.BOTTOM_LEFT; boolean bottom = NotificationCenter.position() == NotificationCenter.Position.BOTTOM_LEFT || NotificationCenter.position() == NotificationCenter.Position.BOTTOM_RIGHT; int x = left ? 10 : screenW - width - 10, y = bottom ? screenH - 10 - height - index * 45 : 10 + index * 45; x += left ? -slide : slide; int outline = switch (n.priority()) { case HIGH -> 0xFFFF5555; case LOW -> 0xFF777777; case NORMAL -> 0xFF5555AA; }; graphics.fill(x, y, x + width, y + height, 0xE0181820); graphics.renderOutline(x, y, width, height, outline); graphics.drawString(client.font, n.title(), x + 8, y + 6, 0xFFFFFFFF); graphics.drawString(client.font, n.message(), x + 8, y + 20, 0xFFD0D0D0); graphics.fill(x + 1, y + height - 3, x + 1 + Math.round((width - 2) * eased), y + height - 1, outline); index++; }
