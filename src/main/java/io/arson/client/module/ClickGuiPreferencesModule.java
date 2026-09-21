@@ -8,14 +8,15 @@ import io.arson.client.settings.EnumSetting;
 public final class ClickGuiPreferencesModule extends Module {
     public enum Theme { MIDNIGHT, GRAPHITE, CONTRAST }
     private final EnumSetting<Theme> theme = setting(new EnumSetting<>("theme", "Theme", Theme.MIDNIGHT));
-    private final BooleanSetting alphabetical = setting(new BooleanSetting("alphabetical", "Alphabetical", false));
-    private final BooleanSetting favoritesOnly = setting(new BooleanSetting("favorites-only", "Favorites Only", false));
-    private final BooleanSetting enabledOnly = setting(new BooleanSetting("enabled-only", "Enabled Only", false));
-    private final DoubleSetting panelScale = setting(new DoubleSetting("panel-scale", "Panel Scale", 1.0, 0.75, 1.25, 0.05));
+    private final BooleanSetting alphabetical = setting(new BooleanSetting<>("alphabetical", "Alphabetical", false));
+    private final BooleanSetting favoritesOnly = setting(new BooleanSetting<>("favorites-only", "Favorites Only", false));
+    private final BooleanSetting enabledOnly = setting(new BooleanSetting<>("enabled-only", "Enabled Only", false));
+    private final BooleanSetting compactMode = setting(new BooleanSetting<>("compact-mode", "Compact Mode", false));
+    private final DoubleSetting panelScale = setting(new DoubleSetting<>("panel-scale", "Panel Scale", 1.0, 0.75, 1.25, 0.05));
 
     public ClickGuiPreferencesModule() {
         super("clickgui-preferences", "ClickGUI Preferences", Category.MISC,
-                "Persists local ClickGUI theme, filters, sorting, and panel scale preferences.");
+                "Persists local ClickGUI theme, filters, sorting, compact mode, and panel scale preferences.");
     }
 
     public Theme theme() { return theme.get(); }
@@ -26,6 +27,8 @@ public final class ClickGuiPreferencesModule extends Module {
     public void setFavoritesOnly(boolean value) { favoritesOnly.set(value); }
     public boolean enabledOnly() { return enabledOnly.enabled(); }
     public void setEnabledOnly(boolean value) { enabledOnly.set(value); }
+    public boolean compactMode() { return compactMode.enabled(); }
+    public void setCompactMode(boolean value) { compactMode.set(value); }
     public double panelScale() { return panelScale.get(); }
     public void setPanelScale(double value) { panelScale.set(value); }
 }
