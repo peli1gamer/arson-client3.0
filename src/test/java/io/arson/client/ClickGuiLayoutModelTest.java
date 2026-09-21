@@ -49,6 +49,17 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void compactAndNarrowModesRemainBoundedAtTheEdges() {
+        var compact = ClickGuiLayoutModel.compute(900, 600, 1.25);
+        var narrow = ClickGuiLayoutModel.compute(360, 240, 1.25);
+        assertEquals(ClickGuiLayoutModel.Mode.COMPACT, compact.mode());
+        assertEquals(ClickGuiLayoutModel.Mode.NARROW, narrow.mode());
+        assertTrue(compact.detail().right() <= compact.panelX() + compact.panelWidth());
+        assertTrue(narrow.detail().right() <= narrow.panelX() + narrow.panelWidth());
+        assertTrue(narrow.detail().bottom() <= narrow.panelY() + narrow.panelHeight());
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));
