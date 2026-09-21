@@ -14,6 +14,10 @@ class ClickGuiLayoutModelTest {
         assertTrue(g.panelHeight() <= 400 - g.safeMargin() * 2);
         assertTrue(g.search().right() <= g.panelX() + g.panelWidth());
         assertTrue(g.footer().bottom() <= g.panelY() + g.panelHeight());
+        assertFalse(g.search().intersects(g.toolbar()));
+        assertFalse(g.toolbar().intersects(g.content()));
+        assertFalse(g.rail().intersects(g.content()));
+        assertFalse(g.footer().intersects(g.content()));
         assertEquals(1, g.columns());
     }
 
@@ -36,6 +40,10 @@ class ClickGuiLayoutModelTest {
         assertTrue(g.panelWidth() <= 1125);
         assertTrue(g.panelX() > 0);
         assertTrue(g.panelX() + g.panelWidth() < 3440);
+        assertFalse(g.search().intersects(g.toolbar()));
+        assertFalse(g.toolbar().intersects(g.content()));
+        assertFalse(g.rail().intersects(g.content()));
+        assertFalse(g.footer().intersects(g.content()));
         assertTrue(g.rail().right() < g.content().x());
     }
 
