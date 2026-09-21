@@ -28,7 +28,7 @@ public final class PlayerDetectionModule extends Module {
         for (Player player : client.level.players()) {
             if (!includeSelf.enabled() && player == client.player) continue;
             double distance = client.player.distanceToSqr(player);
-            if (distance <= maxDistance) nearby.add(new PlayerSnapshot(player.getGameProfile().getName(), Math.sqrt(distance), player.getHealth()));
+            if (distance <= maxDistance) nearby.add(new PlayerSnapshot(player.getName().getString(), Math.sqrt(distance), player.getHealth()));
         }
         if (sortByDistance.enabled()) nearby.sort(java.util.Comparator.comparingDouble(PlayerSnapshot::distance));
     }
