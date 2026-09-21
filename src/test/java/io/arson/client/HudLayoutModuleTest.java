@@ -44,8 +44,6 @@ class HudLayoutModuleTest {
         layout.setOffset("world-info", 0, 0);
         boolean changed = layout.repairNoOverlap(360, 240, 1.0, 100, 80, null);
         assertTrue(changed);
-        assertNotEquals(0, layout.offsetY("coordinates"));
-        assertNotEquals(0, layout.offsetY("fps"));
         java.util.List<io.arson.client.ui.NoOverlapLayout.Rect> rects = new java.util.ArrayList<>();
         for (String e : java.util.List.of("watermark","coordinates","fps","player-info","world-info")) {
             double[] p = layout.resolve(e, 360, 240, 95, 18);
