@@ -110,7 +110,7 @@ public final class ArsonScreen extends Screen {
         moduleFocus = selected == null ? 0 : Math.max(0, visible.indexOf(selected));
 
         Rects r = new Rects(geometry);
-        search = new EditBox(font, r.search.x(), r.search.y(), r.search.width(), r.search.height(), Component.literal("Search"));
+        search = new EditBox(font, r.search().x(), r.search().y(), r.search().width(), r.search().height(), Component.literal("Search"));
         search.setHint(Component.literal("Search modules...   Ctrl+K"));
         search.setValue(searchValue);
         addRenderableWidget(search);
@@ -166,11 +166,11 @@ public final class ArsonScreen extends Screen {
         Module.Category[] categories = Module.Category.values();
         for (int i=0;i<categories.length;i++) {
             Module.Category c=categories[i];
-            int rowY=r.rail.y()+i*29;
+            int rowY=r.rail().y()+i*29;
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
                 categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
-            }).bounds(r.rail.x(),rowY,r.rail.width(),24).build();
+            }).bounds(r.rail().x(),rowY,r.rail().width(),24).build();
             addRenderableWidget(b);
         }
     }
@@ -200,7 +200,7 @@ public final class ArsonScreen extends Screen {
 
     private void addDetailWidgets(Rects r) {
         if(selected==null) return;
-        int x=r.detail.x()+8, y=r.detail.y()+8, w=Math.max(80,r.detail.width()-16);
+        int x=r.detail().x()+8, y=r.detail().y()+8, w=Math.max(80,r.detail().width()-16);
         addRenderableWidget(Button.builder(Component.literal(selected.enabled()?"Disable":"Enable"),b->toggleSelected()).bounds(x,y,w,22).build());
         y+=26;
         int half=Math.max(55,(w-6)/2);
@@ -215,7 +215,7 @@ public final class ArsonScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal(desc),b->{}).bounds(x,y,w,34).build());
             y+=40;
         }
-        int bottom=r.detail.bottom()-6;
+        int bottom=r.detail().bottom()-6;
         String groupId=null;
         for(Setting<?> setting:selected.settings()) {
             if(!setting.visible()) continue;
@@ -240,23 +240,23 @@ public final class ArsonScreen extends Screen {
     }
 
     private void addFooter(Rects r,String profileValue) {
-        int y=r.footer.y()+6;
-        addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer.x(),y,52,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer.x()+58,y,52,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer.right()-58,y,58,22).build());
-        int pw=Math.min(110,Math.max(60,r.footer.width()-240));
-        profile=new EditBox(font,r.footer.right()-190,y,pw,22,Component.literal("Profile"));
+        int y=r.footer().y()+6;
+        addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,52,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+58,y,52,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-58,y,58,22).build());
+        int pw=Math.min(110,Math.max(60,r.footer().width()-240));
+        profile=new EditBox(font,r.footer().right()-190,y,pw,22,Component.literal("Profile"));
         profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
-        addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(r.footer.right()-74,y,36,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(r.footer.right()-38,y,36,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(r.footer().right()-74,y,36,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(r.footer().right()-38,y,36,22).build());
     }
 
     private void addEditBox(Rects r) {
-        int y=r.footer.y()+6;
-        editBox=new EditBox(font,r.detail.x()+8,y,Math.max(80,r.detail.width()-90),22,Component.literal(editingString!=null?editingString.name():editingColor.name()));
+        int y=r.footer().y()+6;
+        editBox=new EditBox(font,r.detail().x()+8,y,Math.max(80,r.detail().width()-90),22,Component.literal(editingString!=null?editingString.name():editingColor.name()));
         editBox.setValue(editingString!=null?editingString.get():String.format(Locale.ROOT,"%08X",editingColor.get()));editBox.setMaxLength(128);addRenderableWidget(editBox);
-        addRenderableWidget(Button.builder(Component.literal("Apply"),b->applyEdit()).bounds(r.detail.right()-76,y,34,22).build());
-        addRenderableWidget(Button.builder(Component.literal("×"),b->{editingString=null;editingColor=null;rebuild();}).bounds(r.detail.right()-38,y,34,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Apply"),b->applyEdit()).bounds(r.detail().right()-76,y,34,22).build());
+        addRenderableWidget(Button.builder(Component.literal("×"),b->{editingString=null;editingColor=null;rebuild();}).bounds(r.detail().right()-38,y,34,22).build());
     }
 
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
@@ -307,7 +307,7 @@ public final class ArsonScreen extends Screen {
         g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
         g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
         if(selected!=null){
-            g.drawString(font,selected.name(),r.detail.x()+8,r.detail.y()-12,accentColor());
+            g.drawString(font,selected.name(),r.detail().x()+8,r.detail().y()-12,accentColor());
         }
         super.render(g,mouseX,mouseY,delta);
     }
