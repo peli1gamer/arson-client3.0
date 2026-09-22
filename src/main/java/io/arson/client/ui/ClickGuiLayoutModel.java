@@ -64,6 +64,25 @@ public final class ClickGuiLayoutModel {
         return new Geometry(mode,x,y,pw,ph,rail,search,toolbar,content,list,detail,footer,cols,cardW,cardH,cardGap,safe,categoryRowHeight);
     }
 
+    /** Builds a bounded grid of module cards without allowing overlap or viewport overflow. */
+    public static List<Rect> gridCards(Rect area, int itemCount, int requestedColumns, int requestedCardHeight, int gap) {
+        if (area == null || itemCount <= 0 || area.width() <= 0 || area.height() <= 0) return List.of();
+        int spacing = Math.max(0, gap);
+        int columns = Math.max(1, requestedColumns);
+        columns = Math.min(columns, Math.max(1, (area.width() + spacing) / (spacing + 1)));
+        int cardWidth = Math.max(1, (area.width() - spacing * (columns - 1)) / columns);
+        int cardHeight = Math.max(1, Math.min(requestedCardHeight, area.height()));
+        int rows = Math.max(1, (area.height() + spacing) / (cardHeight + spacing));
+        int count = Math.min(itemCount, rows * columns);
+        ArrayList<Rect> cards = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            int row = i / columns, column = i % columns;
+            cards.add(new Rect(area.x() + column * (cardWidth + spacing),
+                    area.y() + row * (cardHeight + spacing), cardWidth, cardHeight));
+        }
+        return List.copyOf(cards);
+    }
+
     public static boolean pairwiseNonIntersecting(List<Rect> rects){
         for(int i=0;i<rects.size();i++)for(int j=i+1;j<rects.size();j++)if(rects.get(i).intersects(rects.get(j)))return false;
         return true;
