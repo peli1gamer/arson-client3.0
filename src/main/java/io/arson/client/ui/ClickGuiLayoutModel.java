@@ -1,5 +1,6 @@
 package io.arson.client.ui;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Pure geometry/navigation model for the responsive Arson ClickGUI. */
