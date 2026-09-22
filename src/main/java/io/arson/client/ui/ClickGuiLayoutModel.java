@@ -44,7 +44,7 @@ public final class ClickGuiLayoutModel {
         Rect content=new Rect(contentX,contentY,contentW,contentH);
         Rect rail=new Rect(x+pad,contentY,Math.max(46,railW-pad),contentH);
         int categoryRows=Math.max(1,ModuleCategoryCountHolder.COUNT);
-        int categoryRowHeight=Math.max(18,Math.min(28,Math.max(18,(rail.height()-4)/categoryRows)));
+        int categoryRowHeight=Math.max(1,Math.min(28,Math.max(1,(rail.height()-4)/categoryRows)));
         int cols=mode==Mode.NARROW?1:contentW>=540?2:1,cardGap=mode==Mode.NARROW?6:9;
         Rect list,detail;
         if(cols==2){
