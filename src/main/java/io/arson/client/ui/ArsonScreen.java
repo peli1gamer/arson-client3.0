@@ -35,6 +35,7 @@ public final class ArsonScreen extends Screen {
     private Module bindingModule;
     private EditBox search, profile, editBox;
     private StringSetting editingString;
+    private String pendingDeleteProfile;
     private ColorSetting editingColor;
     private final List<Button> moduleButtons = new ArrayList<>();
     private final List<SectionLabel> detailGroupLabels = new ArrayList<>();
@@ -291,25 +292,62 @@ public final class ArsonScreen extends Screen {
     }
 
     private void addFooter(Rects r,String profileValue) {
-        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){
-            int y=r.footer().y()+3;
-            addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,42,20).build());
-            addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+46,y,42,20).build());
-            addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-46,y,46,20).build());
-            int row2=y+22, pw=Math.max(70,r.footer().width()-80);
-            profile=new EditBox(font,r.footer().x(),row2,pw,20,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
-            addRenderableWidget(Button.builder(Component.literal("L"),b->loadProfile()).bounds(r.footer().right()-74,row2,34,20).build());
-            addRenderableWidget(Button.builder(Component.literal("S"),b->saveProfile()).bounds(r.footer().right()-38,row2,34,20).build());
+        int y = r.footer().y() + (geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 3 : 6);
+        int controlHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 20 : 22;
+        int buttonY = y;
+        addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),buttonY,52,controlHeight).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+58,buttonY,52,controlHeight).build());
+
+        int loadWidth = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 38 : 42;
+        int saveWidth = loadWidth;
+        int deleteWidth = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 48 : 52;
+        int closeWidth = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 46 : 58;
+        int gap = 4;
+        int right = r.footer().right();
+        int closeX = right - closeWidth;
+        int deleteX = closeX - gap - deleteWidth;
+        int saveX = deleteX - gap - saveWidth;
+        int loadX = saveX - gap - loadWidth;
+        int profileX;
+        int profileWidth;
+        if (geometry.mode() == ClickGuiLayoutModel.Mode.NARROW) {
+            buttonY = y + 22;
+            profileX = r.footer().x();
+            profileWidth = Math.max(40, loadX - gap - profileX);
+        } else {
+            profileWidth = Math.min(120, Math.max(52, loadX - gap - r.footer().x() - 116));
+            profileX = loadX - gap - profileWidth;
+        }
+
+        addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(closeX,y,closeWidth,controlHeight).build());
+        profile=new EditBox(font,profileX,geometry.mode()==ClickGuiLayoutModel.Mode.NARROW?buttonY:y,profileWidth,controlHeight,Component.literal("Profile"));
+        profile.setHint(Component.literal("profile"));
+        profile.setValue(profileValue);
+        addRenderableWidget(profile);
+        int actionY = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? buttonY : y;
+        addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(loadX,actionY,loadWidth,controlHeight).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(saveX,actionY,saveWidth,controlHeight).build());
+        String profileName = profile.getValue();
+        String deleteLabel = profileName.equals(pendingDeleteProfile) ? "Confirm" : "Delete";
+        addRenderableWidget(Button.builder(Component.literal(deleteLabel),b->deleteProfile()).bounds(deleteX,actionY,deleteWidth,controlHeight).build());
+    }
+
+    private void deleteProfile() {
+        if (minecraft == null || profile == null || profile.getValue().isBlank()) {
+            NotificationCenter.push("Profile", "Enter a profile name");
             return;
         }
-        int y=r.footer().y()+6;
-        addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,52,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+58,y,52,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-58,y,58,22).build());
-        int pw=Math.min(110,Math.max(60,r.footer().width()-240));
-        profile=new EditBox(font,r.footer().right()-190,y,pw,22,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
-        addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(r.footer().right()-74,y,36,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(r.footer().right()-38,y,36,22).build());
+        String name = profile.getValue();
+        if (!name.equals(pendingDeleteProfile)) {
+            pendingDeleteProfile = name;
+            NotificationCenter.push("Profile", "Click Confirm to delete " + name);
+            rebuild();
+            return;
+        }
+        pendingDeleteProfile = null;
+        if (ConfigManager.deleteProfile(minecraft, name)) NotificationCenter.push("Profile", "Deleted " + name);
+        else NotificationCenter.push("Profile", "Profile not found or could not be deleted");
+        rebuild();
     }
 
     private void addEditBox(Rects r) {
@@ -328,8 +366,8 @@ public final class ArsonScreen extends Screen {
     private static String prettyEnum(Object v){if(v==null)return"None";String raw=v.toString().toLowerCase(Locale.ROOT),out="";for(String p:raw.split("_"))if(!p.isEmpty())out+=(out.isEmpty()?"":" ")+Character.toUpperCase(p.charAt(0))+p.substring(1);return out;}
     private void applyEdit(){if(editBox!=null){if(editingString!=null)editingString.set(editBox.getValue());else if(editingColor!=null){try{String raw=editBox.getValue().trim().replace("#","");if(raw.length()==6)raw="FF"+raw;if(raw.length()!=8)throw new NumberFormatException();editingColor.set((int)Long.parseLong(raw,16));}catch(NumberFormatException ignored){NotificationCenter.push("Invalid color","Use RRGGBB or AARRGGBB");return;}}saveConfig();}editingString=null;editingColor=null;editBox=null;rebuild();}
     private void saveConfig(){if(minecraft!=null)ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}
-    private void saveProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue()))NotificationCenter.push("Profile","Saved "+profile.getValue());else NotificationCenter.push("Profile","Invalid profile name");}
-    private void loadProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
+    private void saveProfile(){pendingDeleteProfile=null;if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue()))NotificationCenter.push("Profile","Saved "+profile.getValue());else NotificationCenter.push("Profile","Invalid profile name");}
+    private void loadProfile(){pendingDeleteProfile=null;if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
 
     @Override public boolean keyPressed(KeyEvent event){
         int key=event.key();
@@ -415,5 +453,5 @@ public final class ArsonScreen extends Screen {
         int headerButtonW(){return g.mode()==ClickGuiLayoutModel.Mode.NARROW?34:54;}
     }
 
-    @Override public void onClose(){bindingModule=null;saveConfig();minecraft.setScreen(parent);}
+    @Override public void onClose(){bindingModule=null;pendingDeleteProfile=null;saveConfig();minecraft.setScreen(parent);}
 }
