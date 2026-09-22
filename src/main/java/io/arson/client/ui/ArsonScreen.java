@@ -205,17 +205,13 @@ public final class ArsonScreen extends Screen {
         ClickGuiLayoutModel.Rect area = geometry.content();
         int columns = visibleModuleColumns();
         int gap = 8;
-        int cardWidth = Math.max(1, (area.width() - gap * (columns - 1)) / columns);
         int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 40 : 48;
-        int rows = Math.max(1, (area.height() + gap) / (cardHeight + gap));
-        int maxCards = rows * columns;
         int start = Math.min(scroll, Math.max(0, visible.size() - 1));
-        for (int i = start; i < visible.size() && i - start < maxCards; i++) {
-            Module module = visible.get(i);
-            int logical = i - start;
-            int x = area.x() + (logical % columns) * (cardWidth + gap);
-            int y = area.y() + (logical / columns) * (cardHeight + gap);
-            if (y + cardHeight > area.bottom()) continue;
+        List<ClickGuiLayoutModel.Rect> cards = ClickGuiLayoutModel.gridCards(
+                area, visible.size() - start, columns, cardHeight, gap);
+        for (int logical = 0; logical < cards.size(); logical++) {
+            Module module = visible.get(start + logical);
+            ClickGuiLayoutModel.Rect card = cards.get(logical);
             Button button = Button.builder(Component.literal((module.favorite() ? "★  " : "") + module.name() + (module.enabled() ? "  ●" : "  ○")), ignored -> {
                 selected = module;
                 moduleFocus = visibleModules().indexOf(module);
@@ -223,7 +219,7 @@ public final class ArsonScreen extends Screen {
                 detailScroll = 0;
                 focus = ClickGuiLayoutModel.Focus.MODULE;
                 rebuild();
-            }).bounds(x, y, cardWidth, cardHeight).build();
+            }).bounds(card.x(), card.y(), card.width(), card.height()).build();
             moduleButtons.add(button);
             addRenderableWidget(button);
         }
