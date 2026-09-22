@@ -146,7 +146,9 @@ public final class ArsonScreen extends Screen {
     private List<Module> visibleModules() {
         String q = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
         List<Module> result = new ArrayList<>();
-        for (Module m : ArsonClient.getInstance().modules().organized(category)) {
+        var modules = ArsonClient.getInstance().modules();
+        var candidates = q.isEmpty() ? modules.organized(category) : modules.search(q);
+        for (Module m : candidates) {
             if (favoritesOnly && !m.favorite()) continue;
             if (enabledOnly && !m.enabled()) continue;
             String hay = (m.name()+" "+m.id()+" "+m.description()).toLowerCase(Locale.ROOT);
@@ -358,8 +360,19 @@ public final class ArsonScreen extends Screen {
         g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
         g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
         if (selected != null) {
-            String breadcrumb = detailsPage ? category.displayName() + "  /  " + selected.name() : category.displayName();
+            String breadcrumb = detailsPage ? selected.category().displayName() + "  /  " + selected.name() : category.displayName();
             g.drawString(font, breadcrumb, geometry.content().x() + 4, geometry.content().y() - 12, accentColor());
+        }
+        List<Module> visible = visibleModules();
+        if (visible.isEmpty()) {
+            String message = !search.getValue().isBlank() ? "No modules found" : favoritesOnly ? "No favorites saved" : enabledOnly ? "No enabled modules" : "No modules";
+            int messageX = geometry.content().x() + Math.max(0, (geometry.content().width() - font.width(message)) / 2);
+            g.drawString(font, message, messageX, geometry.content().y() + 10, 0xFFB8C1CC);
+            if (!search.getValue().isBlank()) {
+                String hint = "Try a different search.";
+                int hintX = geometry.content().x() + Math.max(0, (geometry.content().width() - font.width(hint)) / 2);
+                g.drawString(font, hint, hintX, geometry.content().y() + 24, 0xFF7E8998);
+            }
         }
         super.render(g,mouseX,mouseY,delta);
     }
