@@ -55,6 +55,36 @@ public final class ConfigManager {
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         try { return Files.deleteIfExists(path); } catch (IOException ignored) { return false; }
     }
+
+    /** Copies a saved profile without replacing an existing destination. */
+    public static boolean duplicateProfile(Minecraft client, String sourceName, String targetName) {
+        String source = sanitizeProfileName(sourceName), target = sanitizeProfileName(targetName);
+        if (source.isEmpty() || target.isEmpty() || source.equalsIgnoreCase(target)) return false;
+        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+        return copyProfileFile(directory.resolve(source + ".json"), directory.resolve(target + ".json"));
+    }
+
+    /** Renames a saved profile without replacing an existing destination. */
+    public static boolean renameProfile(Minecraft client, String sourceName, String targetName) {
+        String source = sanitizeProfileName(sourceName), target = sanitizeProfileName(targetName);
+        if (source.isEmpty() || target.isEmpty() || source.equalsIgnoreCase(target)) return false;
+        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+        return moveProfileFile(directory.resolve(source + ".json"), directory.resolve(target + ".json"));
+    }
+
+    static boolean copyProfileFile(Path source, Path target) {
+        if (source == null || target == null || samePath(source, target) || !Files.isRegularFile(source) || Files.exists(target)) return false;
+        try { Files.copy(source, target); return true; } catch (IOException ignored) { return false; }
+    }
+
+    static boolean moveProfileFile(Path source, Path target) {
+        if (source == null || target == null || samePath(source, target) || !Files.isRegularFile(source) || Files.exists(target)) return false;
+        try { Files.move(source, target); return true; } catch (IOException ignored) { return false; }
+    }
+
+    private static boolean samePath(Path first, Path second) {
+        return first.toAbsolutePath().normalize().equals(second.toAbsolutePath().normalize());
+    }
     static boolean loadFromPath(Path path, ModuleManager modules) {
         if (!Files.isRegularFile(path)) return false;
         try {
