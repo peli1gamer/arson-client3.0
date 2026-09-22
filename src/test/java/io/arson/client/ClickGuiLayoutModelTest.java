@@ -78,10 +78,12 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
-    void categoryRowsCannotRequireTallerThanTheirAllocatedSlot() {
+    void categoryRowsFitTheRailAndMatchButtonAdvanceOnShortViewport() {
         var g = ClickGuiLayoutModel.compute(360, 240, 1.25);
-        assertTrue(g.categoryRowHeight() >= 18);
-        assertTrue(Math.min(24, g.categoryRowHeight()) <= g.categoryRowHeight());
+        int categoryCount = 6;
+        assertTrue(g.categoryRowHeight() >= 1);
+        assertEquals(g.categoryRowHeight(), Math.min(28, g.categoryRowHeight()));
+        assertTrue(g.rail().y() + categoryCount * g.categoryRowHeight() <= g.rail().bottom());
     }
 
     @Test
