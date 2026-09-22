@@ -85,6 +85,29 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void responsiveModuleGridStaysInsideItsAreaWithoutOverlaps() {
+        for (int[] size : new int[][]{{100,64},{320,120},{480,220},{960,300}}) {
+            var area = new ClickGuiLayoutModel.Rect(20, 30, size[0], size[1]);
+            var cards = ClickGuiLayoutModel.gridCards(area, 30, 3, 48, 8);
+            assertFalse(cards.isEmpty());
+            assertTrue(cards.size() <= 30);
+            assertTrue(ClickGuiLayoutModel.pairwiseNonIntersecting(cards));
+            for (var card : cards) {
+                assertTrue(card.x() >= area.x());
+                assertTrue(card.y() >= area.y());
+                assertTrue(card.right() <= area.right());
+                assertTrue(card.bottom() <= area.bottom());
+            }
+        }
+    }
+
+    @Test
+    void moduleGridHandlesEmptyAndDegenerateAreas() {
+        assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 10, 10), 0, 2, 8, 2).isEmpty());
+        assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 0, 10), 4, 2, 8, 2).isEmpty());
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));
