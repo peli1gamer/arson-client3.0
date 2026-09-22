@@ -8,7 +8,7 @@ import io.arson.client.settings.StringSetting;
 
 /** Configurable HUD module. Drawing is kept separate from state/configuration. */
 public final class HudModule extends Module {
-    public enum RowFormat { STACKED, COMPACT, DENSE }
+    public enum RowFormat { STACKED, COMPACT, DENSE, TWO_COLUMN }
     private final BooleanSetting watermark = setting(new BooleanSetting("watermark", "Watermark", true));
     private final StringSetting watermarkText = setting(new StringSetting("watermark-text", "Watermark Text", "Arson V3", 32));
     private final BooleanSetting coordinates = setting(new BooleanSetting("coordinates", "Coordinates", true));
