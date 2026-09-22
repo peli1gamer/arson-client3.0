@@ -17,10 +17,15 @@ public final class RenderViewportInfoModule extends Module {
 
     @Override protected void onTick(Minecraft client) {
         var window = client.getWindow();
-        guiWidth = window.getGuiScaledWidth();
-        guiHeight = window.getGuiScaledHeight();
-        windowWidth = window.getWidth();
-        windowHeight = window.getHeight();
+        if (window == null) {
+            guiWidth = guiHeight = windowWidth = windowHeight = 0;
+            screenOpen = client.screen != null;
+            return;
+        }
+        guiWidth = Math.max(0, window.getGuiScaledWidth());
+        guiHeight = Math.max(0, window.getGuiScaledHeight());
+        windowWidth = Math.max(0, window.getWidth());
+        windowHeight = Math.max(0, window.getHeight());
         screenOpen = client.screen != null;
     }
 

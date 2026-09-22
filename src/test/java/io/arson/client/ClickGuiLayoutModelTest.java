@@ -69,6 +69,22 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void tinyNarrowToolbarHasEnoughRoomForSixControls() {
+        var g = ClickGuiLayoutModel.compute(360, 240, 1.25);
+        int gap = 2;
+        int fitted = Math.max(15, (g.toolbar().width() - gap * 5) / 6);
+        int total = fitted * 6 + gap * 5;
+        assertTrue(total <= g.toolbar().width());
+    }
+
+    @Test
+    void categoryRowsCannotRequireTallerThanTheirAllocatedSlot() {
+        var g = ClickGuiLayoutModel.compute(360, 240, 1.25);
+        assertTrue(g.categoryRowHeight() >= 18);
+        assertTrue(Math.min(24, g.categoryRowHeight()) <= g.categoryRowHeight());
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));
