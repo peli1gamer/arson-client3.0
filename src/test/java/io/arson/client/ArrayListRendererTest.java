@@ -1,4 +1,4 @@
-package io.arson.client;
+package io.arson.client.render;
 
 import io.arson.client.render.ArrayListRenderer;
 import org.junit.jupiter.api.Test;
