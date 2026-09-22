@@ -171,7 +171,7 @@ public final class ArsonScreen extends Screen {
         for (int i=0;i<categories.length;i++) {
             Module.Category c=categories[i];
             int rowY=r.rail().y()+i*geometry.categoryRowHeight();
-            int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
+            int rowH=geometry.categoryRowHeight();
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
                 categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
