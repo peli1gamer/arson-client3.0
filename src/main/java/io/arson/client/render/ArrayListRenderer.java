@@ -65,8 +65,13 @@ public final class ArrayListRenderer {
         if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
         renderScale=Math.max(0.05,renderScale);
 
+        double contentWidth = maxWidth * renderScale + module.padding() * 2.0 * renderScale;
+        double contentHeight = all.isEmpty() ? 0.0 : all.size() * module.spacing() * renderScale + module.padding() * 2.0 * renderScale;
+        double safeX = clampAnchor(module.x(), module.rightAlign(), contentWidth, viewportW);
+        double safeY = clampTop(module.y(), contentHeight, viewportH);
+
         graphics.pose().pushMatrix();
-        graphics.pose().translate(module.x(), module.y());
+        graphics.pose().translate((float)safeX, (float)safeY);
         graphics.pose().scale((float)renderScale, (float)renderScale);
 
         int line = module.spacing();
@@ -101,6 +106,19 @@ public final class ArrayListRenderer {
             String id = iterator.next();
             if (ANIMATION.getOrDefault(id, 0.0f) <= 0.0f) iterator.remove();
         }
+    }
+
+    static double clampAnchor(double anchor, boolean rightAligned, double contentWidth, int viewportWidth) {
+        double width = Math.max(0.0, contentWidth);
+        double viewport = Math.max(0.0, viewportWidth);
+        if (rightAligned) return Math.max(width, Math.min(viewport, anchor));
+        return Math.max(0.0, Math.min(Math.max(0.0, viewport - width), anchor));
+    }
+
+    static double clampTop(double top, double contentHeight, int viewportHeight) {
+        double height = Math.max(0.0, contentHeight);
+        double viewport = Math.max(0.0, viewportHeight);
+        return Math.max(0.0, Math.min(Math.max(0.0, viewport - height), top));
     }
 
     private static int applyAlpha(int color, float progress) {
