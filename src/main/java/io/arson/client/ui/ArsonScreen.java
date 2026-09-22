@@ -37,6 +37,7 @@ public final class ArsonScreen extends Screen {
     private StringSetting editingString;
     private ColorSetting editingColor;
     private final List<Button> moduleButtons = new ArrayList<>();
+    private final List<SectionLabel> detailGroupLabels = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode, detailsPage;
@@ -84,8 +85,16 @@ public final class ArsonScreen extends Screen {
     }
 
     private int accentColor() { return 0xFFE27632; }
-    private int panelColor() { return 0xF00B0D11; }
-    private int headerColor() { return 0xE012151B; }
+    private int panelColor() { return switch (theme) {
+        case MIDNIGHT -> 0xF00B0D11;
+        case GRAPHITE -> 0xF0121418;
+        case CONTRAST -> 0xF0060709;
+    }; }
+    private int headerColor() { return switch (theme) {
+        case MIDNIGHT -> 0xE012151B;
+        case GRAPHITE -> 0xE01B1E23;
+        case CONTRAST -> 0xE00D0E10;
+    }; }
     private int cardColor(boolean enabled, boolean selectedCard) {
         if (selectedCard) return 0xE52B1D13;
         if (enabled) return 0xD51D1915;
@@ -97,6 +106,7 @@ public final class ArsonScreen extends Screen {
         String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
         moduleButtons.clear();
+        detailGroupLabels.clear();
         profile = null;
         editBox = null;
 
@@ -249,7 +259,11 @@ public final class ArsonScreen extends Screen {
         for(Setting<?> setting:selected.settings()){
             if(!setting.visible()) continue;
             SettingGroup group=setting.group();
-            if(group!=null&&!group.id().equals(groupId)){groupId=group.id();y+=4;}
+            if(group!=null&&!group.id().equals(groupId)){
+                groupId=group.id();
+                if(y+12>top-1&&y<bottom) detailGroupLabels.add(new SectionLabel(group.name(),x,y));
+                y+=16;
+            }
             int controlW=Math.max(45,w-32);
             if(y+22>top-1&&y<bottom){
                 if(setting instanceof BooleanSetting bs)
@@ -270,9 +284,14 @@ public final class ArsonScreen extends Screen {
     }
     private int maxDetailScroll(){
         if(selected==null)return 0;
-        int lines=3+(selected.description().isBlank()?0:2);
-        for(Setting<?> setting:selected.settings()) if(setting.visible()) lines++;
-        return Math.max(0,lines*26-Math.max(24,geometry.content().height()-12));
+        int lines=3+(selected.description().isBlank()?0:2), groups=0;
+        String groupId=null;
+        for(Setting<?> setting:selected.settings()) if(setting.visible()) {
+            lines++;
+            SettingGroup group=setting.group();
+            if(group!=null&&!group.id().equals(groupId)){groupId=group.id();groups++;}
+        }
+        return Math.max(0,lines*26+groups*16-Math.max(24,geometry.content().height()-12));
     }
 
     private void addFooter(Rects r,String profileValue) {
@@ -359,6 +378,10 @@ public final class ArsonScreen extends Screen {
         g.drawString(font,""+ArsonClient.getInstance().modules().enabledCount()+" enabled",geometry.panelX()+geometry.panelWidth()-92,geometry.panelY()+12,0xFFB8C1CC);
         g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
         g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
+        for (SectionLabel label : detailGroupLabels) {
+            if (label.y() >= geometry.content().y() && label.y() + 9 <= geometry.content().bottom())
+                g.drawString(font, label.name().toUpperCase(Locale.ROOT), label.x(), label.y(), accentColor());
+        }
         if (selected != null) {
             String breadcrumb = detailsPage ? selected.category().displayName() + "  /  " + selected.name() : category.displayName();
             g.drawString(font, breadcrumb, geometry.content().x() + 4, geometry.content().y() - 12, accentColor());
@@ -382,6 +405,8 @@ public final class ArsonScreen extends Screen {
         g.fill(x+2,y,x+w-2,y+h,color);g.fill(x,y+2,x+w,y+h-2,color);
         g.fill(x+1,y+1,x+w-1,y+2,color);g.fill(x+1,y+h-2,x+w-1,y+h-1,color);
     }
+
+    private record SectionLabel(String name, int x, int y) {}
 
     private record Rects(ClickGuiLayoutModel.Geometry g, boolean detailsPage){
         ClickGuiLayoutModel.Rect rail(){return g.rail();}
