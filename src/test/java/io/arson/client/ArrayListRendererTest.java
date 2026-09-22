@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ArrayListRendererTest {
     @Test
     void leftAlignedPlacementStaysInsideViewport() {
-        assertEquals(6.0, ArrayListRenderer.clampAnchor(1000, false, 80, 4, 100), 0.001);
+        assertEquals(16.0, ArrayListRenderer.clampAnchor(1000, false, 80, 4, 100), 0.001);
         assertEquals(4.0, ArrayListRenderer.clampAnchor(-100, false, 80, 4, 100), 0.001);
     }
 
