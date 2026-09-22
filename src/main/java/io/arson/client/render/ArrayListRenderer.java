@@ -61,7 +61,7 @@ public final class ArrayListRenderer {
         if(all.size()>maxVisible) all=all.subList(0,maxVisible);
         int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.font.width(label(candidate,module)));
         double renderScale=module.scale();
-        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/maxWidth);
+        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/(maxWidth+module.padding()*2.0));
         if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
         renderScale=Math.max(0.05,renderScale);
 
