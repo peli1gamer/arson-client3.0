@@ -65,10 +65,11 @@ public final class ArrayListRenderer {
         if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
         renderScale=Math.max(0.05,renderScale);
 
-        double contentWidth = maxWidth * renderScale + module.padding() * 2.0 * renderScale;
-        double contentHeight = all.isEmpty() ? 0.0 : all.size() * module.spacing() * renderScale + module.padding() * 2.0 * renderScale;
-        double safeX = clampAnchor(module.x(), module.rightAlign(), contentWidth, viewportW);
-        double safeY = clampTop(module.y(), contentHeight, viewportH);
+        double paddingPx = module.padding() * renderScale;
+        double contentWidth = maxWidth * renderScale;
+        double contentHeight = all.isEmpty() ? 0.0 : all.size() * module.spacing() * renderScale;
+        double safeX = clampAnchor(module.x(), module.rightAlign(), contentWidth, paddingPx, viewportW);
+        double safeY = clampTop(module.y(), contentHeight, paddingPx, viewportH);
 
         graphics.pose().pushMatrix();
         graphics.pose().translate((float)safeX, (float)safeY);
@@ -108,17 +109,15 @@ public final class ArrayListRenderer {
         }
     }
 
-    static double clampAnchor(double anchor, boolean rightAligned, double contentWidth, int viewportWidth) {
-        double width = Math.max(0.0, contentWidth);
-        double viewport = Math.max(0.0, viewportWidth);
-        if (rightAligned) return Math.max(width, Math.min(viewport, anchor));
-        return Math.max(0.0, Math.min(Math.max(0.0, viewport - width), anchor));
+    static double clampAnchor(double anchor, boolean rightAligned, double contentWidth, double padding, int viewportWidth) {
+        double width = Math.max(0.0, contentWidth), pad = Math.max(0.0, padding), viewport = Math.max(0.0, viewportWidth);
+        if (rightAligned) return Math.max(width + pad, Math.min(Math.max(width + pad, viewport - pad), anchor));
+        return Math.max(pad, Math.min(Math.max(pad, viewport - width - pad), anchor));
     }
 
-    static double clampTop(double top, double contentHeight, int viewportHeight) {
-        double height = Math.max(0.0, contentHeight);
-        double viewport = Math.max(0.0, viewportHeight);
-        return Math.max(0.0, Math.min(Math.max(0.0, viewport - height), top));
+    static double clampTop(double top, double contentHeight, double padding, int viewportHeight) {
+        double height = Math.max(0.0, contentHeight), pad = Math.max(0.0, padding), viewport = Math.max(0.0, viewportHeight);
+        return Math.max(pad, Math.min(Math.max(pad, viewport - height - pad), top));
     }
 
     private static int applyAlpha(int color, float progress) {
