@@ -1,7 +1,5 @@
-package io.arson.client;
+package io.arson.client.module;
 
-import io.arson.client.module.RenderFrameInfoModule;
-import io.arson.client.module.RenderGuiInfoModule;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
