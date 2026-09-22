@@ -1,6 +1,8 @@
 package io.arson.client.api;
 
 import io.arson.client.ArsonClient;
+import io.arson.client.config.ConfigManager;
+import net.minecraft.client.Minecraft;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
@@ -46,6 +48,15 @@ public final class ArsonApi {
     public static List<Module> modules() { return ArsonClient.getInstance() == null ? List.of() : List.copyOf(ArsonClient.getInstance().modules().all()); }
     public static List<Module> modules(Module.Category category) { if (ArsonClient.getInstance() == null || category == null) return List.of(); return List.copyOf(ArsonClient.getInstance().modules().organized(category)); }
     public static List<Module> favorites() { return modules().stream().filter(Module::favorite).toList(); }
+    public static List<String> profiles() {
+        return ArsonClient.getInstance() == null ? List.of() : ConfigManager.listProfiles(Minecraft.getInstance());
+    }
+    public static boolean duplicateProfile(String source, String target) {
+        return ArsonClient.getInstance() != null && ConfigManager.duplicateProfile(Minecraft.getInstance(), source, target);
+    }
+    public static boolean renameProfile(String source, String target) {
+        return ArsonClient.getInstance() != null && ConfigManager.renameProfile(Minecraft.getInstance(), source, target);
+    }
     /** Stable case-insensitive discovery surface for addons and integrations. */
     public static List<Module> search(String query) {
         if (query == null || query.isBlank()) return List.of();
