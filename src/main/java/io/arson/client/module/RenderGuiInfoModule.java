@@ -16,10 +16,23 @@ public final class RenderGuiInfoModule extends Module {
 
     @Override protected void onTick(Minecraft client) {
         var window = client.getWindow();
+        if (window == null) {
+            guiScale = 0;
+            mouseX = mouseY = 0;
+            screenOpen = client.screen != null;
+            return;
+        }
         guiScale = (float) window.getGuiScale();
-        mouseX = (int) Math.round(client.mouseHandler.getScaledXPos(window));
-        mouseY = (int) Math.round(client.mouseHandler.getScaledYPos(window));
+        int width = window.getGuiScaledWidth();
+        int height = window.getGuiScaledHeight();
+        mouseX = clampMouseCoordinate((int) Math.round(client.mouseHandler.getScaledXPos(window)), width);
+        mouseY = clampMouseCoordinate((int) Math.round(client.mouseHandler.getScaledYPos(window)), height);
         screenOpen = client.screen != null;
+    }
+
+    static int clampMouseCoordinate(int value, int size) {
+        if (size <= 0) return 0;
+        return Math.max(0, Math.min(size - 1, value));
     }
 
     public float guiScale() { return guiScale; }
