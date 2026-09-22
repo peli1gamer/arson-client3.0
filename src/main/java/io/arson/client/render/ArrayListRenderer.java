@@ -61,12 +61,18 @@ public final class ArrayListRenderer {
         if(all.size()>maxVisible) all=all.subList(0,maxVisible);
         int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.font.width(label(candidate,module)));
         double renderScale=module.scale();
-        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/maxWidth);
+        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/(maxWidth+module.padding()*2.0));
         if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
         renderScale=Math.max(0.05,renderScale);
 
+        double paddingPx = module.padding() * renderScale;
+        double contentWidth = maxWidth * renderScale;
+        double contentHeight = all.isEmpty() ? 0.0 : all.size() * module.spacing() * renderScale;
+        double safeX = clampAnchor(module.x(), module.rightAlign(), contentWidth, paddingPx, viewportW);
+        double safeY = clampTop(module.y(), contentHeight, paddingPx, viewportH);
+
         graphics.pose().pushMatrix();
-        graphics.pose().translate(module.x(), module.y());
+        graphics.pose().translate((float)safeX, (float)safeY);
         graphics.pose().scale((float)renderScale, (float)renderScale);
 
         int line = module.spacing();
@@ -101,6 +107,17 @@ public final class ArrayListRenderer {
             String id = iterator.next();
             if (ANIMATION.getOrDefault(id, 0.0f) <= 0.0f) iterator.remove();
         }
+    }
+
+    static double clampAnchor(double anchor, boolean rightAligned, double contentWidth, double padding, int viewportWidth) {
+        double width = Math.max(0.0, contentWidth), pad = Math.max(0.0, padding), viewport = Math.max(0.0, viewportWidth);
+        if (rightAligned) return Math.max(width + pad, Math.min(Math.max(width + pad, viewport - pad), anchor));
+        return Math.max(pad, Math.min(Math.max(pad, viewport - width - pad), anchor));
+    }
+
+    static double clampTop(double top, double contentHeight, double padding, int viewportHeight) {
+        double height = Math.max(0.0, contentHeight), pad = Math.max(0.0, padding), viewport = Math.max(0.0, viewportHeight);
+        return Math.max(pad, Math.min(Math.max(pad, viewport - height - pad), top));
     }
 
     private static int applyAlpha(int color, float progress) {
