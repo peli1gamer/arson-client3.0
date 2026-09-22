@@ -47,6 +47,39 @@ class ConfigPersistenceTest {
     }
 
     @Test
+    void profileCopyAndRenamePreserveFilesAndNeverOverwrite() throws Exception {
+        Path dir = Files.createTempDirectory("arson-profile-ops");
+        Path source = dir.resolve("source.json");
+        Path copy = dir.resolve("copy.json");
+        Path occupied = dir.resolve("occupied.json");
+        Path renamed = dir.resolve("renamed.json");
+        Files.writeString(source, "{\"profile\":\"source\"}");
+        Files.writeString(occupied, "keep-existing");
+
+        assertTrue(ConfigManager.copyProfileFile(source, copy));
+        assertEquals(Files.readString(source), Files.readString(copy));
+        assertFalse(ConfigManager.copyProfileFile(source, occupied));
+        assertEquals("keep-existing", Files.readString(occupied));
+        assertTrue(Files.exists(source));
+
+        assertTrue(ConfigManager.moveProfileFile(source, renamed));
+        assertFalse(Files.exists(source));
+        assertEquals("{\"profile\":\"source\"}", Files.readString(renamed));
+        assertFalse(ConfigManager.moveProfileFile(renamed, occupied));
+        assertEquals("keep-existing", Files.readString(occupied));
+        assertTrue(Files.exists(renamed));
+        assertFalse(ConfigManager.moveProfileFile(renamed, renamed));
+    }
+
+    @Test
+    void profileFileOperationsRejectMissingSources() throws Exception {
+        Path dir = Files.createTempDirectory("arson-profile-missing");
+        Path missing = dir.resolve("missing.json");
+        assertFalse(ConfigManager.copyProfileFile(missing, dir.resolve("copy.json")));
+        assertFalse(ConfigManager.moveProfileFile(missing, dir.resolve("renamed.json")));
+    }
+
+    @Test
     void invalidProfileLoadLeavesExistingStateUntouched() throws Exception {
         Path profile = Files.createTempFile("arson-invalid", ".json");
         Files.writeString(profile, "not json");
