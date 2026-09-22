@@ -162,19 +162,19 @@ public final class ArsonScreen extends Screen {
 
 
     private int toolbarButtonWidth(int index){
-        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW) return switch(index){case 0->32;case 1,2->22;case 3->42;case 4->30;default->30;};
+        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){ int gap=2; int fitted=Math.max(15,(geometry.toolbar().width()-gap*5)/6); int desired=switch(index){case 0->32;case 1,2->22;case 3->42;case 4->30;default->30;}; return Math.min(desired,fitted); }
         return switch(index){case 0->48;case 1,2->26;case 3->72;case 4->58;default->54;};
     }
-    private int toolbarButtonX(int index){int x=0;for(int i=0;i<index;i++)x+=toolbarButtonWidth(i)+4;return x;}
+    private int toolbarButtonX(int index){int x=0;int gap=geometry.mode()==ClickGuiLayoutModel.Mode.NARROW?2:4;for(int i=0;i<index;i++)x+=toolbarButtonWidth(i)+gap;return x;}
     private void addCategoryButtons(Rects r) {
         Module.Category[] categories = Module.Category.values();
         for (int i=0;i<categories.length;i++) {
             Module.Category c=categories[i];
-            int rowY=r.rail().y()+i*geometry.categoryRowHeight();
+            int rowY=r.rail().y()+i*geometry.categoryRowHeight();\n            int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
                 categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
-            }).bounds(r.rail().x(),rowY,r.rail().width(),24).build();
+            }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
             addRenderableWidget(b);
         }
     }
