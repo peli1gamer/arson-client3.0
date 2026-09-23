@@ -1,5 +1,6 @@
 package io.arson.client.module;
 
+import io.arson.client.accessor.FoodDataAccessor;
 import net.minecraft.client.Minecraft;
 
 /** Tracks live local player vitals for HUD and addon presentation. */
@@ -48,7 +49,7 @@ public final class PlayerVitalsModule extends Module {
         maxHealth = player.getMaxHealth();
         hunger = player.getFoodData().getFoodLevel();
         saturation = player.getFoodData().getSaturationLevel();
-        exhaustion = player.getFoodData().getExhaustionLevel();
+        exhaustion = ((FoodDataAccessor) player.getFoodData()).arson$getExhaustionLevel();
         absorption = player.getAbsorptionAmount();
         armor = player.getArmorValue();
         air = player.getAirSupply();
