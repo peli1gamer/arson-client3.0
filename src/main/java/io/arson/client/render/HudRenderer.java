@@ -115,7 +115,8 @@ public final class HudRenderer {
             if (playerInfo.showHeldItem()) { ItemStack stack = client.player.getMainHandItem(); rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString()); }
             if (playerInfo.showInventory() && inventoryInfo != null && inventoryInfo.enabled()) rows.add(inventoryInfo.formatted() + "  Slot " + inventoryInfo.selectedSlot());
             if (playerVitals != null && playerVitals.enabled()) {
-                rows.add(String.format(java.util.Locale.ROOT, "Saturation %.1f  Armor %d", playerVitals.saturation(), playerVitals.armor()));
+                rows.add(playerVitals.formattedFoodState());
+                rows.add(playerVitals.formattedDefense());
                 rows.add(playerVitals.formattedExperience()); rows.add(playerVitals.formattedAir());
                 rows.add("State " + (playerVitals.sprinting() ? "Sprinting" : "Walking") + (playerVitals.sneaking() ? "  Sneaking" : ""));
             }
