@@ -37,4 +37,18 @@ class ModuleControlTest {
         assertTrue(ModuleControl.setKeyCode(manager, "hud", 0));
         assertFalse(module.hasKeybind());
     }
+    
+    @Test
+    void statusReportsCurrentStateWithoutMutatingIt() {
+        ModuleManager manager = modules();
+        Module module = manager.get("hud");
+
+        assertEquals(java.util.Optional.of("hud enabled=false favorite=false keybind=none settings=" + module.settings().size()),
+                ModuleControl.status(manager, "hud"));
+        assertEquals(java.util.Optional.empty(), ModuleControl.status(manager, "missing-module"));
+        assertTrue(ModuleControl.setKeyCode(manager, "hud", 70));
+        assertTrue(ModuleControl.setFavorite(manager, "hud", true));
+        assertEquals(java.util.Optional.of("hud enabled=false favorite=true keybind=70 settings=" + module.settings().size()),
+                ModuleControl.status(manager, "hud"));
+    }
 }
