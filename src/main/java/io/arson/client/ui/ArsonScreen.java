@@ -122,6 +122,7 @@ public final class ArsonScreen extends Screen {
         Rects r = new Rects(geometry, detailsPage);
         search = new EditBox(font, r.search().x(), r.search().y(), r.search().width(), r.search().height(), Component.literal("Search"));
         search.setHint(Component.literal("Search modules...   Ctrl+K"));
+        search.setTooltip(tooltipFor("Keyboard shortcuts: Ctrl+K focuses search, Tab changes sections, arrow keys move through modules, Enter opens details, Space toggles, and F favorites the selected module."));
         search.setValue(searchValue);
         addRenderableWidget(search);
 
