@@ -1,0 +1,33 @@
+package io.arson.client.ui;
+
+import io.arson.client.module.HudModule;
+import java.util.ArrayList;
+import java.util.List;
+
+/** Pure row-shaping rules shared by the HUD renderer and unit tests. */
+public final class HudRowFormatter {
+    public record Row(String first, String second) {
+        public boolean hasSecond() { return !second.isEmpty(); }
+    }
+
+    private HudRowFormatter() {}
+
+    public static List<Row> format(List<String> values, HudModule.RowFormat format) {
+        if (values == null || values.isEmpty()) return List.of();
+        List<String> safe = values.stream().map(value -> value == null ? "" : value).toList();
+        HudModule.RowFormat mode = format == null ? HudModule.RowFormat.STACKED : format;
+        if (mode == HudModule.RowFormat.COMPACT) {
+            return List.of(new Row(String.join("  |  ", safe), ""));
+        }
+        ArrayList<Row> result = new ArrayList<>();
+        if (mode == HudModule.RowFormat.TWO_COLUMN) {
+            for (int index = 0; index < safe.size(); index += 2) {
+                String second = index + 1 < safe.size() ? safe.get(index + 1) : "";
+                result.add(new Row(safe.get(index), second));
+            }
+        } else {
+            for (String value : safe) result.add(new Row(value, ""));
+        }
+        return List.copyOf(result);
+    }
+}
