@@ -54,7 +54,7 @@ class SettingValueParserTest {
         StringSetting setting = new StringSetting("label", "Label", "initial", 16);
         assertTrue(SettingValueParser.apply(setting, "hello world"));
         assertEquals("hello world", setting.get());
-        assertFalse(SettingValueParser.apply(setting, "this is too long"));
+        assertFalse(SettingValueParser.apply(setting, "this is definitely too long"));
         assertEquals("hello world", setting.get());
     }
 }
