@@ -165,5 +165,11 @@ public final class ArsonApi {
         prefs.setFavoritesOnly(favoritesOnly); prefs.setEnabledOnly(enabledOnly); prefs.setAlphabetical(alphabetical);
         save(); return true;
     }
+    /** Read-only module status for addons and command integrations. */
+    public static Optional<String> moduleStatus(String id) {
+        if (ArsonClient.getInstance() == null) return Optional.empty();
+        return ModuleControl.status(ArsonClient.getInstance().modules(), id);
+    }
+
     public static void save() { if (ArsonClient.getInstance() != null) ArsonClient.getInstance().saveConfig(); }
 }
