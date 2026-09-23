@@ -45,6 +45,14 @@ public final class CombatInfoRenderer {
         if (target != null && module.showArmor()) {
             rows.add(CombatInfoModule.formatArmor(target.getArmorValue()));
         }
+        if (target != null && module.showEffects()) {
+            var effects = target.getActiveEffects().stream()
+                    .map(effect -> new CombatInfoModule.EffectSnapshot(
+                            effect.getEffect().value().getDisplayName().getString(),
+                            effect.getAmplifier(), effect.getDuration()))
+                    .toList();
+            rows.addAll(CombatInfoModule.formatEffects(effects, module.effectLimit()));
+        }
         if (target != null && module.showDistance()) rows.add("Distance " + format((float) client.player.distanceTo(target)) + "m");
         if (module.showHeldItem()) rows.add("Held " + weapon);
         if (durability != null) rows.add(durability);
