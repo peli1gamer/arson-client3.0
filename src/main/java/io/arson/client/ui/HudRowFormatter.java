@@ -29,7 +29,7 @@ public final class HudRowFormatter {
         List<String> safe = values.stream().map(value -> value == null ? "" : value).toList();
         HudModule.RowFormat mode = format == null ? HudModule.RowFormat.STACKED : format;
         if (mode == HudModule.RowFormat.COMPACT) {
-            String separator = compactSeparator == null || compactSeparator.isBlank() ? "  |  " : compactSeparator.replace("\\n", " ").replace("\\r", " ");
+            String separator = compactSeparator == null || compactSeparator.isBlank() ? "  |  " : compactSeparator.replace((char) 10, ' ').replace((char) 13, ' ');
             return List.of(new Row(String.join(separator, safe), ""));
         }
         ArrayList<Row> result = new ArrayList<>();
