@@ -21,11 +21,16 @@ public final class HudRowFormatter {
     }
 
     public static List<Row> format(List<String> values, HudModule.RowFormat format) {
+        return format(values, format, "  |  ");
+    }
+
+    public static List<Row> format(List<String> values, HudModule.RowFormat format, String compactSeparator) {
         if (values == null || values.isEmpty()) return List.of();
         List<String> safe = values.stream().map(value -> value == null ? "" : value).toList();
         HudModule.RowFormat mode = format == null ? HudModule.RowFormat.STACKED : format;
         if (mode == HudModule.RowFormat.COMPACT) {
-            return List.of(new Row(String.join("  |  ", safe), ""));
+            String separator = compactSeparator == null || compactSeparator.isBlank() ? "  |  " : compactSeparator.replace("\\n", " ").replace("\\r", " ");
+            return List.of(new Row(String.join(separator, safe), ""));
         }
         ArrayList<Row> result = new ArrayList<>();
         if (mode == HudModule.RowFormat.TWO_COLUMN) {
