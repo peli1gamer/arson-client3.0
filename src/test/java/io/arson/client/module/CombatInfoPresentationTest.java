@@ -12,10 +12,14 @@ class CombatInfoPresentationTest {
         assertTrue(module.showAbsorption());
         assertTrue(module.showArmor());
         assertTrue(module.showEffects());
+        assertTrue(module.showTargetItem());
+        assertTrue(module.showTargetDurability());
         assertEquals(4, module.effectLimit());
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-absorption")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-armor")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-effects")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-item")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-durability")));
         var limit = (io.arson.client.settings.DoubleSetting) module.settings().stream()
                 .filter(setting -> setting.id().equals("effect-limit")).findFirst().orElseThrow();
         limit.set(2.0);
@@ -27,12 +31,20 @@ class CombatInfoPresentationTest {
                 .filter(setting -> setting.id().equals("show-armor")).findFirst().orElseThrow();
         var effects = (io.arson.client.settings.BooleanSetting) module.settings().stream()
                 .filter(setting -> setting.id().equals("show-effects")).findFirst().orElseThrow();
+        var targetItem = (io.arson.client.settings.BooleanSetting) module.settings().stream()
+                .filter(setting -> setting.id().equals("show-target-item")).findFirst().orElseThrow();
+        var targetDurability = (io.arson.client.settings.BooleanSetting) module.settings().stream()
+                .filter(setting -> setting.id().equals("show-target-durability")).findFirst().orElseThrow();
         absorption.set(false);
         armor.set(false);
         effects.set(false);
+        targetItem.set(false);
+        targetDurability.set(false);
         assertFalse(module.showAbsorption());
         assertFalse(module.showArmor());
         assertFalse(module.showEffects());
+        assertFalse(module.showTargetItem());
+        assertFalse(module.showTargetDurability());
     }
 
     @Test

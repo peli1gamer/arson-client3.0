@@ -55,6 +55,16 @@ public final class CombatInfoRenderer {
         }
         if (target != null && module.showDistance()) rows.add("Distance " + format((float) client.player.distanceTo(target)) + "m");
         if (module.showHeldItem()) rows.add("Held " + weapon);
+        if (target != null && (module.showTargetItem() || module.showTargetDurability())) {
+            ItemStack targetHeld = target.getMainHandItem();
+            if (module.showTargetItem()) {
+                rows.add("Target held " + (targetHeld.isEmpty() ? "Empty" : targetHeld.getHoverName().getString()));
+            }
+            if (module.showTargetDurability() && !targetHeld.isEmpty() && targetHeld.isDamageableItem()) {
+                rows.add("Target durability " + (targetHeld.getMaxDamage() - targetHeld.getDamageValue())
+                        + "/" + targetHeld.getMaxDamage());
+            }
+        }
         if (durability != null) rows.add(durability);
         if (cooldown != null) rows.add(cooldown);
         if (rows.isEmpty() && !(target != null && module.healthBar())) return;

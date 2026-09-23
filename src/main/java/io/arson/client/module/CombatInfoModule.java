@@ -17,7 +17,9 @@ public final class CombatInfoModule extends Module {
     private final BooleanSetting showMobs = setting(new BooleanSetting("show-mobs", "Mobs", true)).group(contentGroup);
     private final BooleanSetting showAnimals = setting(new BooleanSetting("show-animals", "Animals", true)).group(contentGroup);
     private final BooleanSetting showHeldItem = setting(new BooleanSetting("show-held-item", "Show Held Item", true)).group(contentGroup);
+    private final BooleanSetting showTargetItem = setting(new BooleanSetting("show-target-item", "Show Target Item", true)).group(contentGroup);
     private final BooleanSetting showDurability = setting(new BooleanSetting("show-durability", "Show Durability", true)).group(contentGroup);
+    private final BooleanSetting showTargetDurability = setting(new BooleanSetting("show-target-durability", "Show Target Durability", true)).group(contentGroup);
     private final BooleanSetting showAttackCooldown = setting(new BooleanSetting("show-attack-cooldown", "Show Attack Cooldown", true)).group(contentGroup);
     private final BooleanSetting showDistance = setting(new BooleanSetting("show-distance", "Show Distance", true)).group(contentGroup);
     private final BooleanSetting showHealth = setting(new BooleanSetting("show-health", "Show Health", true)).group(contentGroup);
@@ -46,7 +48,9 @@ public final class CombatInfoModule extends Module {
         showPlayers.description("Include player entities in the information display.");
         showMobs.description("Include hostile mobs in the information display.");
         showAnimals.description("Include passive animals in the information display.");
-        showHeldItem.description("Display the selected entity’s held item when available.");
+        showHeldItem.description("Display your own selected hotbar item.");
+        showTargetItem.description("Display the selected entity’s main-hand item when available.");
+        showTargetDurability.description("Display remaining durability for the selected entity’s held item when available.");
         showDurability.description("Display held-item durability when the item has durability.");
         showAttackCooldown.description("Display your local attack cooldown progress.");
         showDistance.description("Display distance from you to the selected entity.");
@@ -76,7 +80,9 @@ public final class CombatInfoModule extends Module {
     public boolean showMobs() { return showMobs.enabled(); }
     public boolean showAnimals() { return showAnimals.enabled(); }
     public boolean showHeldItem() { return showHeldItem.enabled(); }
+    public boolean showTargetItem() { return showTargetItem.enabled(); }
     public boolean showDurability() { return showDurability.enabled(); }
+    public boolean showTargetDurability() { return showTargetDurability.enabled(); }
     public boolean showAttackCooldown() { return showAttackCooldown.enabled(); }
     public boolean showDistance() { return showDistance.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
