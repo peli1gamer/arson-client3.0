@@ -2,6 +2,8 @@ package io.arson.client.command;
 
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
@@ -19,7 +21,7 @@ public final class ArsonCommand {
     private ArsonCommand() {}
     public static void register(){
         ClientCommandRegistrationCallback.EVENT.register((dispatcher,registryAccess)->dispatcher.register(ClientCommandManager.literal("arson")
-            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|toggle|info|settings|reset>, setting <module> <setting> <value>, category <list|info|enable|disable>, reset-category <category>, hud <preset|row-format|element-format> <...>, config <save|load>, profile <list|save|load|delete|duplicate|rename>, clickgui <scale>, plus server and legacy list/toggle/info/settings/reset/save.");return 1;}))
+            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|search|toggle|info|settings|reset|favorite|keybind>, setting <module> <setting> <value>, category <list|info|enable|disable>, reset-category <category>, hud <preset|row-format|element-format> <...>, config <save|load>, profile <list|save|load|delete|duplicate|rename>, clickgui <scale>, plus server and legacy list/toggle/info/settings/reset/save.");return 1;}))
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
             .then(ClientCommandManager.literal("enabled").executes(ctx->{feedback(ctx,"Enabled: "+ArsonClient.getInstance().modules().all().stream().filter(Module::enabled).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("favorites").executes(ctx->{feedback(ctx,"Favorites: "+ArsonClient.getInstance().modules().all().stream().filter(Module::favorite).map(Module::id).toList());return 1;}))
@@ -73,7 +75,7 @@ public final class ArsonCommand {
 
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> moduleCommands(){return ClientCommandManager.literal("module")
         .then(ClientCommandManager.literal("search").then(ClientCommandManager.argument("query",StringArgumentType.greedyString()).executes(ctx->{String q=StringArgumentType.getString(ctx,"query");var found=io.arson.client.api.ArsonApi.search(q);feedback(ctx,"Search "+q+": "+found.stream().map(Module::id).toList());return 1;}))).then(ClientCommandManager.literal("list").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,raw+": "+ArsonClient.getInstance().modules().organized(c).stream().map(Module::id).toList());return 1;})).executes(ctx->{feedback(ctx,"Modules: "+ArsonClient.getInstance().modules().all().stream().map(Module::id).toList());return 1;}))
-        .then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand());}
+        .then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand()).then(favoriteOperation()).then(keybindOperation());}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> categoryCommands(){return ClientCommandManager.literal("category")
         .then(ClientCommandManager.literal("list").executes(ctx->{StringBuilder out=new StringBuilder();for(Module.Category c:Module.Category.values()){if(out.length()>0)out.append(" | ");out.append(c.name().toLowerCase()).append("=").append(ArsonClient.getInstance().modules().categoryCount(c)).append("/").append(ArsonClient.getInstance().modules().enabledCount(c));}feedback(ctx,out.toString());return 1;}))
         .then(ClientCommandManager.literal("info").then(categoryArgument().executes(ctx->{Module.Category c=category(StringArgumentType.getString(ctx,"category"));if(c==null){error(ctx,"Unknown category");return 0;}feedback(ctx,c.displayName()+": "+ArsonClient.getInstance().modules().categoryCount(c)+" modules, "+ArsonClient.getInstance().modules().enabledCount(c)+" enabled.");return 1;})))
@@ -190,6 +192,48 @@ public final class ArsonCommand {
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(){return ClientCommandManager.literal("toggle").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.toggle();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": "+(m.enabled()?"enabled":"disabled"));return 1;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> infoCommand(){return ClientCommandManager.literal("info").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;feedback(ctx,m.help());return 1;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingsCommand(){return ClientCommandManager.literal("settings").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;StringBuilder out=new StringBuilder(m.name()+": ");for(int i=0;i<m.settings().size();i++){if(i>0)out.append(", ");var s=m.settings().get(i);out.append(s.id()).append("=").append(s.get());if(!s.description().isBlank())out.append(" [").append(s.description()).append("]");}if(m.settings().isEmpty())out.append("no settings");feedback(ctx,out.toString());return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> favoriteOperation() {
+        return ClientCommandManager.literal("favorite")
+            .then(moduleArgument().executes(ctx -> {
+                Module target = module(ctx);
+                if (target == null) return 0;
+                boolean favorite = !target.favorite();
+                if (!io.arson.client.api.ArsonApi.setFavorite(target.id(), favorite)) {
+                    error(ctx, "Could not update favorite for " + target.id());
+                    return 0;
+                }
+                feedback(ctx, target.name() + (favorite ? " added to" : " removed from") + " favorites.");
+                return 1;
+            }).then(ClientCommandManager.argument("enabled", BoolArgumentType.bool()).executes(ctx -> {
+                Module target = module(ctx);
+                if (target == null) return 0;
+                boolean favorite = BoolArgumentType.getBool(ctx, "enabled");
+                if (!io.arson.client.api.ArsonApi.setFavorite(target.id(), favorite)) {
+                    error(ctx, "Could not update favorite for " + target.id());
+                    return 0;
+                }
+                feedback(ctx, target.name() + (favorite ? " added to" : " removed from") + " favorites.");
+                return 1;
+            })));
+    }
+
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> keybindOperation() {
+        return ClientCommandManager.literal("keybind")
+            .then(moduleArgument().then(ClientCommandManager.argument("keycode", IntegerArgumentType.integer(0))
+                .executes(ctx -> {
+                    Module target = module(ctx);
+                    if (target == null) return 0;
+                    int keyCode = IntegerArgumentType.getInteger(ctx, "keycode");
+                    if (!io.arson.client.api.ArsonApi.setKeyCode(target.id(), keyCode)) {
+                        error(ctx, "Could not update keybind for " + target.id());
+                        return 0;
+                    }
+                    feedback(ctx, keyCode == 0 ? target.name() + " keybind cleared."
+                            : target.name() + " keybind set to key code " + keyCode + ".");
+                    return 1;
+                })));
+    }
+
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> resetCommand(){return ClientCommandManager.literal("reset").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.resetSettings();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+" settings reset to defaults.");return 1;}));}
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource,String> moduleArgument(){return ClientCommandManager.argument("module",StringArgumentType.word()).suggests((ctx,b)->{for(Module m:ArsonClient.getInstance().modules().all())b.suggest(m.id());return b.buildFuture();});}
     private static Module module(CommandContext<FabricClientCommandSource> ctx){String id=StringArgumentType.getString(ctx,"module");Module m=ArsonClient.getInstance().modules().get(id);if(m==null)error(ctx,"Unknown module: "+id);return m;}

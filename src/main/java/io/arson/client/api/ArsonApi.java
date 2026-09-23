@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
+import io.arson.client.module.ModuleControl;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingValueParser;
 import io.arson.client.module.ServerInfoModule;
@@ -130,9 +131,25 @@ public final class ArsonApi {
     public static int enabledCount(Module.Category category) { return ArsonClient.getInstance() == null || category == null ? 0 : ArsonClient.getInstance().modules().enabledCount(category); }
     public static int setEnabled(Module.Category category, boolean enabled) { if (ArsonClient.getInstance() == null || category == null) return 0; int changed = 0; for (Module module : ArsonClient.getInstance().modules().all()) if (module.category() == category && module.enabled() != enabled) { module.setEnabled(enabled); changed++; } if (changed > 0) save(); return changed; }
     public static boolean setEnabled(String id, boolean enabled) { Optional<Module> module = module(id); if (module.isEmpty()) return false; module.get().setEnabled(enabled); save(); return true; }
-    public static boolean setFavorite(String id, boolean favorite) { Optional<Module> module = module(id); if (module.isEmpty()) return false; module.get().setFavorite(favorite); save(); return true; }
+    public static boolean setFavorite(String id, boolean favorite) {
+        if (ArsonClient.getInstance() == null
+                || !ModuleControl.setFavorite(ArsonClient.getInstance().modules(), id, favorite)) return false;
+        save();
+        return true;
+    }
+    public static boolean toggleFavorite(String id) {
+        if (ArsonClient.getInstance() == null
+                || !ModuleControl.toggleFavorite(ArsonClient.getInstance().modules(), id)) return false;
+        save();
+        return true;
+    }
     public static boolean resetSettings(String id) { Optional<Module> module = module(id); if (module.isEmpty()) return false; module.get().resetSettings(); save(); return true; }
-    public static boolean setKeyCode(String id, int keyCode) { Optional<Module> module = module(id); if (module.isEmpty() || keyCode < 0) return false; module.get().setKeyCode(keyCode); save(); return true; }
+    public static boolean setKeyCode(String id, int keyCode) {
+        if (ArsonClient.getInstance() == null
+                || !ModuleControl.setKeyCode(ArsonClient.getInstance().modules(), id, keyCode)) return false;
+        save();
+        return true;
+    }
     public static boolean setClickGuiTheme(ClickGuiPreferencesModule.Theme theme) {
         if (ArsonClient.getInstance() == null || theme == null) return false;
         Module module = ArsonClient.getInstance().modules().get("clickgui-preferences");
