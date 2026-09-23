@@ -32,6 +32,7 @@ import io.arson.client.module.RenderCameraInfoModule;
 import io.arson.client.module.WorldDetailsModule;
 import io.arson.client.module.WorldEnvironmentModule;
 import io.arson.client.module.WorldInfoModule;
+import io.arson.client.module.ServerInfoModule;
 import io.arson.client.module.WorldPositionInfoModule;
 import io.arson.client.module.WorldHeightInfoModule;
 import io.arson.client.module.WorldLightInfoModule;
@@ -72,6 +73,7 @@ public final class HudRenderer {
         PlayerPoseInfoModule poseInfo = (PlayerPoseInfoModule) ArsonClient.getInstance().modules().get("player-pose-info");
         InventoryInfoModule inventoryInfo = (InventoryInfoModule) ArsonClient.getInstance().modules().get("inventory-info");
         WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
+        ServerInfoModule serverInfo = (ServerInfoModule) ArsonClient.getInstance().modules().get("server-info");
         WorldEnvironmentModule worldEnvironment = (WorldEnvironmentModule) ArsonClient.getInstance().modules().get("world-environment");
         WorldDetailsModule worldDetails = (WorldDetailsModule) ArsonClient.getInstance().modules().get("world-details");
         WorldPositionInfoModule worldPositionInfo = (WorldPositionInfoModule) ArsonClient.getInstance().modules().get("world-position-info");
@@ -142,6 +144,7 @@ public final class HudRenderer {
                 if (worldEnvironment.showChunk()) rows.add("Chunk " + worldEnvironment.chunkX() + ", " + worldEnvironment.chunkZ());
                 if (worldEnvironment.showLight()) rows.add("Block Light " + worldEnvironment.blockLight());
             }
+            if (serverInfo != null && serverInfo.enabled()) rows.add(serverInfo.formatted());
             if (worldDetails != null && worldDetails.enabled()) rows.add(worldDetails.formatted());
             if (worldPositionInfo != null && worldPositionInfo.enabled()) rows.add(worldPositionInfo.formatted());
             if (worldLightInfo != null && worldLightInfo.enabled()) rows.add(worldLightInfo.formatted());
