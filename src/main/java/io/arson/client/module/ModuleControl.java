@@ -19,6 +19,13 @@ public final class ModuleControl {
         return true;
     }
 
+    public static boolean toggleEnabled(ModuleManager modules, String id) {
+        Module module = find(modules, id);
+        if (module == null) return false;
+        module.toggle();
+        return true;
+    }
+
     public static boolean setKeyCode(ModuleManager modules, String id, int keyCode) {
         if (keyCode < 0) return false;
         Module module = find(modules, id);
