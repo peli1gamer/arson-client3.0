@@ -213,16 +213,28 @@ public final class ArsonScreen extends Screen {
         for (int logical = 0; logical < cards.size(); logical++) {
             Module module = visible.get(start + logical);
             ClickGuiLayoutModel.Rect card = cards.get(logical);
-            Button button = Button.builder(Component.literal((module.favorite() ? "★  " : "") + module.name() + (module.enabled() ? "  ●" : "  ○")), ignored -> {
+            var actions = ClickGuiLayoutModel.moduleCardActions(
+                    card, geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 32 : 38, 5);
+            Button details = Button.builder(Component.literal((module.favorite() ? "★  " : "") + module.name()), ignored -> {
                 selected = module;
                 moduleFocus = visibleModules().indexOf(module);
                 detailsPage = true;
                 detailScroll = 0;
                 focus = ClickGuiLayoutModel.Focus.MODULE;
                 rebuild();
-            }).bounds(card.x(), card.y(), card.width(), card.height()).build();
-            moduleButtons.add(button);
-            addRenderableWidget(button);
+            }).bounds(actions.details().x(), actions.details().y(),
+                    actions.details().width(), actions.details().height()).build();
+            moduleButtons.add(details);
+            addRenderableWidget(details);
+
+            int toggleHeight = Math.min(22, actions.toggle().height());
+            int toggleY = actions.toggle().y() + Math.max(0, (actions.toggle().height() - toggleHeight) / 2);
+            Button toggle = Button.builder(Component.literal(module.enabled() ? "ON" : "OFF"), ignored -> {
+                module.toggle();
+                saveConfig();
+                rebuild();
+            }).bounds(actions.toggle().x(), toggleY, actions.toggle().width(), toggleHeight).build();
+            addRenderableWidget(toggle);
         }
     }
 
