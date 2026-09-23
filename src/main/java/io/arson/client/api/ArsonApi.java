@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
+import io.arson.client.module.ServerInfoModule;
 import java.util.List;
 import java.util.Optional;
 import java.util.Locale;
@@ -48,6 +49,11 @@ public final class ArsonApi {
     public static List<Module> modules() { return ArsonClient.getInstance() == null ? List.of() : List.copyOf(ArsonClient.getInstance().modules().all()); }
     public static List<Module> modules(Module.Category category) { if (ArsonClient.getInstance() == null || category == null) return List.of(); return List.copyOf(ArsonClient.getInstance().modules().organized(category)); }
     public static List<Module> favorites() { return modules().stream().filter(Module::favorite).toList(); }
+    public static String serverSummary() {
+        return module("server-info").filter(ServerInfoModule.class::isInstance)
+                .map(ServerInfoModule.class::cast).map(ServerInfoModule::formatted)
+                .orElse("Server info unavailable");
+    }
     public static List<String> profiles() {
         return ArsonClient.getInstance() == null ? List.of() : ConfigManager.listProfiles(Minecraft.getInstance());
     }
