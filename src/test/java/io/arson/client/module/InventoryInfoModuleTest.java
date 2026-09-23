@@ -24,6 +24,10 @@ class InventoryInfoModuleTest {
     void detailedFormatterReportsFreeSpaceAndSelectedItemSafely() {
         assertEquals("Inventory 12/36  Free 24  Slot 3: Diamond Pickaxe",
                 InventoryInfoModule.formatDetails(12, 36, 3, " Diamond Pickaxe "));
+        assertEquals("Inventory 12/36  Free 24  Slot 3: Diamond Pickaxe ×16",
+                InventoryInfoModule.formatDetails(12, 36, 3, "Diamond Pickaxe", 16));
+        assertEquals("Inventory 12/36  Free 24  Slot 3: Diamond Pickaxe",
+                InventoryInfoModule.formatDetails(12, 36, 3, "Diamond Pickaxe", -2));
         assertEquals("Inventory 0/0  Free 0  Slot —: Empty",
                 InventoryInfoModule.formatDetails(-5, -4, 0, null));
         assertEquals("Inventory 4/4  Free 0  Slot 1: Empty",
