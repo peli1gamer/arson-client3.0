@@ -207,7 +207,7 @@ public final class HudRenderer {
         }
         if (hud.rowFormat() == HudModule.RowFormat.TWO_COLUMN) {
             for (HudRowFormatter.Row row : rows) {
-                int width = firstColumnWidth + (row.hasSecond() ? 8 + client.font.width(row.second()) : 0);
+                int width = firstColumnWidth + (row.hasSecond() ? hud.columnGap() + client.font.width(row.second()) : 0);
                 maxWidth = Math.max(maxWidth, width);
             }
         }
@@ -245,7 +245,7 @@ public final class HudRenderer {
             if (hud.rowFormat() == HudModule.RowFormat.TWO_COLUMN) {
                 graphics.drawString(client.font, row.first(), left, index * line, hud.elementColor(element), hud.showShadow());
                 if (row.hasSecond()) {
-                    graphics.drawString(client.font, row.second(), left + firstColumnWidth + 8, index * line,
+                    graphics.drawString(client.font, row.second(), left + firstColumnWidth + hud.columnGap(), index * line,
                         hud.elementColor(element), hud.showShadow());
                 }
             } else {
