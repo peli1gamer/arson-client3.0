@@ -206,7 +206,7 @@ public final class ArsonScreen extends Screen {
         ClickGuiLayoutModel.Rect area = geometry.content();
         int columns = visibleModuleColumns();
         int gap = 8;
-        int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 40 : 48;
+        int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
         int start = Math.min(scroll, Math.max(0, visible.size() - 1));
         List<ClickGuiLayoutModel.Rect> cards = ClickGuiLayoutModel.gridCards(
                 area, visible.size() - start, columns, cardHeight, gap);
@@ -215,6 +215,7 @@ public final class ArsonScreen extends Screen {
             ClickGuiLayoutModel.Rect card = cards.get(logical);
             var actions = ClickGuiLayoutModel.moduleCardActions(
                     card, geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 32 : 38, 5);
+            int titleHeight = Math.min(26, card.height());
             Button details = Button.builder(Component.literal((module.favorite() ? "★  " : "") + module.name()), ignored -> {
                 selected = module;
                 moduleFocus = visibleModules().indexOf(module);
@@ -223,12 +224,22 @@ public final class ArsonScreen extends Screen {
                 focus = ClickGuiLayoutModel.Focus.MODULE;
                 rebuild();
             }).bounds(actions.details().x(), actions.details().y(),
-                    actions.details().width(), actions.details().height()).build();
+                    actions.details().width(), titleHeight).build();
             moduleButtons.add(details);
             addRenderableWidget(details);
 
+            int keyHeight = Math.min(18, Math.max(1, card.height() - titleHeight));
+            int keyY = card.bottom() - keyHeight - 2;
+            Button keybind = Button.builder(Component.literal(bindingModule == module
+                    ? "Press key…" : "Key: " + keyName(module.keyCode())), ignored -> {
+                bindingModule = module;
+                focus = ClickGuiLayoutModel.Focus.ACTION;
+                rebuild();
+            }).bounds(actions.details().x(), keyY, actions.details().width(), keyHeight).build();
+            addRenderableWidget(keybind);
+
             int toggleHeight = Math.min(22, actions.toggle().height());
-            int toggleY = actions.toggle().y() + Math.max(0, (actions.toggle().height() - toggleHeight) / 2);
+            int toggleY = actions.toggle().y() + 2;
             Button toggle = Button.builder(Component.literal(module.enabled() ? "ON" : "OFF"), ignored -> {
                 module.toggle();
                 saveConfig();
