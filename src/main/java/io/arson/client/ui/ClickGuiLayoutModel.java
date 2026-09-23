@@ -13,6 +13,7 @@ public final class ClickGuiLayoutModel {
         public boolean intersects(Rect other){return other!=null&&x<other.right()&&right()>other.x&&y<other.bottom()&&bottom()>other.y;}
     }
     public record CardActionBounds(Rect details, Rect toggle) {}
+    public record ModuleCardRegions(Rect details, Rect favorite, Rect toggle) {}
     public record Geometry(Mode mode,int panelX,int panelY,int panelWidth,int panelHeight,Rect rail,Rect search,Rect toolbar,
                            Rect content,Rect moduleList,Rect detail,Rect footer,int columns,int cardWidth,int cardHeight,int cardGap,
                            int safeMargin,int categoryRowHeight){
@@ -78,6 +79,25 @@ public final class ClickGuiLayoutModel {
         return new CardActionBounds(
                 new Rect(card.x(), card.y(), detailsWidth, card.height()),
                 new Rect(card.x() + detailsWidth + spacing, card.y(), toggleWidth, card.height()));
+    }
+
+    /** Splits the details side of a card into separate details and favorite hit regions. */
+    public static ModuleCardRegions moduleCardRegions(Rect card, int requestedToggleWidth,
+                                                       int requestedFavoriteWidth, int gap) {
+        CardActionBounds actions = moduleCardActions(card, requestedToggleWidth, gap);
+        Rect detailsSide = actions.details();
+        if (detailsSide.width() <= 1 || detailsSide.height() <= 0) {
+            Rect empty = new Rect(detailsSide.right(), detailsSide.y(), 0, Math.max(0, detailsSide.height()));
+            return new ModuleCardRegions(detailsSide, empty, actions.toggle());
+        }
+
+        int favoriteWidth = Math.min(Math.max(1, requestedFavoriteWidth), detailsSide.width() - 1);
+        int spacing = Math.min(Math.max(0, gap), detailsSide.width() - favoriteWidth - 1);
+        int detailsWidth = detailsSide.width() - favoriteWidth - spacing;
+        return new ModuleCardRegions(
+                new Rect(detailsSide.x(), detailsSide.y(), detailsWidth, detailsSide.height()),
+                new Rect(detailsSide.x() + detailsWidth + spacing, detailsSide.y(), favoriteWidth, detailsSide.height()),
+                actions.toggle());
     }
 
     /** Builds a bounded grid of module cards without allowing overlap or viewport overflow. */

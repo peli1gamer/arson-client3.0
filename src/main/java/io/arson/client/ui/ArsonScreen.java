@@ -214,10 +214,11 @@ public final class ArsonScreen extends Screen {
         for (int logical = 0; logical < cards.size(); logical++) {
             Module module = visible.get(start + logical);
             ClickGuiLayoutModel.Rect card = cards.get(logical);
-            var actions = ClickGuiLayoutModel.moduleCardActions(
-                    card, geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 32 : 38, 5);
+            int toggleWidth = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 32 : 38;
+            var actions = ClickGuiLayoutModel.moduleCardActions(card, toggleWidth, 5);
+            var regions = ClickGuiLayoutModel.moduleCardRegions(card, toggleWidth, 18, 5);
             int titleHeight = Math.min(26, card.height());
-            Button details = Button.builder(Component.literal((module.favorite() ? "★  " : "") + module.name()), ignored -> {
+            Button details = Button.builder(Component.literal(module.name()), ignored -> {
                 selected = module;
                 moduleFocus = visibleModules().indexOf(module);
                 detailsPage = true;
@@ -225,10 +226,22 @@ public final class ArsonScreen extends Screen {
                 focus = ClickGuiLayoutModel.Focus.MODULE;
                 rebuild();
             }).tooltip(tooltipFor(module.description()))
-                    .bounds(actions.details().x(), actions.details().y(),
-                    actions.details().width(), titleHeight).build();
+                    .bounds(regions.details().x(), regions.details().y(),
+                    regions.details().width(), titleHeight).build();
             moduleButtons.add(details);
             addRenderableWidget(details);
+
+            if (regions.favorite().width() > 0) {
+                Button favorite = Button.builder(Component.literal(module.favorite() ? "★" : "☆"), ignored -> {
+                    module.setFavorite(!module.favorite());
+                    saveConfig();
+                    rebuild();
+                }).tooltip(tooltipFor(module.favorite() ? "Remove " + module.name() + " from favorites."
+                        : "Add " + module.name() + " to favorites."))
+                        .bounds(regions.favorite().x(), regions.favorite().y(),
+                                regions.favorite().width(), Math.min(titleHeight, regions.favorite().height())).build();
+                addRenderableWidget(favorite);
+            }
 
             int keyHeight = Math.min(18, Math.max(1, card.height() - titleHeight));
             int keyY = card.y() + titleHeight + 2;

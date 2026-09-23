@@ -136,6 +136,24 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void moduleCardRegionsKeepFavoriteControlAccessibleWithoutOverlaps() {
+        for (int width : new int[]{70, 100, 180, 320}) {
+            var card = new ClickGuiLayoutModel.Rect(12, 24, width, 52);
+            var regions = ClickGuiLayoutModel.moduleCardRegions(card, 38, 18, 5);
+            var controls = java.util.List.of(regions.details(), regions.favorite(), regions.toggle());
+            assertTrue(ClickGuiLayoutModel.pairwiseNonIntersecting(controls));
+            assertTrue(regions.details().width() > 0);
+            assertTrue(regions.favorite().x() >= card.x());
+            assertTrue(regions.favorite().right() <= card.right());
+            assertTrue(regions.toggle().right() == card.right());
+            assertEquals(card.height(), regions.favorite().height());
+        }
+        var tiny = ClickGuiLayoutModel.moduleCardRegions(new ClickGuiLayoutModel.Rect(0, 0, 2, 10), 2, 18, 5);
+        assertTrue(tiny.details().width() >= 0);
+        assertFalse(tiny.favorite().intersects(tiny.toggle()));
+    }
+
+    @Test
     void moduleGridHandlesEmptyAndDegenerateAreas() {
         assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 10, 10), 0, 2, 8, 2).isEmpty());
         assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 0, 10), 4, 2, 8, 2).isEmpty());
