@@ -6,6 +6,8 @@ import net.minecraft.client.Minecraft;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
+import io.arson.client.settings.Setting;
+import io.arson.client.settings.SettingValueParser;
 import io.arson.client.module.ServerInfoModule;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +48,19 @@ public final class ArsonApi {
     }
 
     public static Optional<Module> module(String id) { if (ArsonClient.getInstance() == null || id == null || id.isBlank()) return Optional.empty(); return Optional.ofNullable(ArsonClient.getInstance().modules().get(id)); }
+    public static boolean setSetting(String moduleId, String settingId, String value) {
+        if (moduleId == null || moduleId.isBlank() || settingId == null || settingId.isBlank()) return false;
+        Optional<Module> found = module(moduleId);
+        if (found.isEmpty()) return false;
+        for (Setting<?> setting : found.get().settings()) {
+            if (setting.id().equalsIgnoreCase(settingId.trim())) {
+                boolean applied = SettingValueParser.apply(setting, value);
+                if (applied) save();
+                return applied;
+            }
+        }
+        return false;
+    }
     public static List<Module> modules() { return ArsonClient.getInstance() == null ? List.of() : List.copyOf(ArsonClient.getInstance().modules().all()); }
     public static List<Module> modules(Module.Category category) { if (ArsonClient.getInstance() == null || category == null) return List.of(); return List.copyOf(ArsonClient.getInstance().modules().organized(category)); }
     public static List<Module> favorites() { return modules().stream().filter(Module::favorite).toList(); }
