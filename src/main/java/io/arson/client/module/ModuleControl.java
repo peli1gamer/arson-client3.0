@@ -27,6 +27,15 @@ public final class ModuleControl {
         return true;
     }
 
+    public static java.util.Optional<String> status(ModuleManager modules, String id) {
+        Module module = find(modules, id);
+        if (module == null) return java.util.Optional.empty();
+        String keybind = module.hasKeybind() ? Integer.toString(module.keyCode()) : "none";
+        return java.util.Optional.of(module.id() + " enabled=" + module.enabled()
+                + " favorite=" + module.favorite() + " keybind=" + keybind
+                + " settings=" + module.settings().size());
+    }
+
     private static Module find(ModuleManager modules, String id) {
         return modules == null || id == null || id.isBlank() ? null : modules.get(id.trim());
     }
