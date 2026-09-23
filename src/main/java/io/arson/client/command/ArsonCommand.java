@@ -172,3 +172,28 @@ public final class ArsonCommand {
                     String target = StringArgumentType.getString(ctx, "target");
                     boolean ok = io.arson.client.api.ArsonApi.renameProfile(source, target);
                     feedback(ctx, ok ? "Profile renamed: " + source + " -> " + target : "Could not rename profile");
+                    return ok ? 1 : 0;
+                }))));
+    }
+
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource, String> profileNameArgument(String name) {
+        return ClientCommandManager.argument(name, StringArgumentType.word())
+            .suggests((ctx, builder) -> {
+                for (String profile : io.arson.client.api.ArsonApi.profiles()) builder.suggest(profile);
+                return builder.buildFuture();
+            });
+    }
+
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource,String> categoryArgument(){return ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();});}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> enableCommand(){return ClientCommandManager.literal("enable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(true);ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": enabled");return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> disableCommand(){return ClientCommandManager.literal("disable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(false);ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": disabled");return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(){return ClientCommandManager.literal("toggle").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.toggle();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": "+(m.enabled()?"enabled":"disabled"));return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> infoCommand(){return ClientCommandManager.literal("info").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;feedback(ctx,m.help());return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingsCommand(){return ClientCommandManager.literal("settings").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;StringBuilder out=new StringBuilder(m.name()+": ");for(int i=0;i<m.settings().size();i++){if(i>0)out.append(", ");var s=m.settings().get(i);out.append(s.id()).append("=").append(s.get());if(!s.description().isBlank())out.append(" [").append(s.description()).append("]");}if(m.settings().isEmpty())out.append("no settings");feedback(ctx,out.toString());return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> resetCommand(){return ClientCommandManager.literal("reset").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.resetSettings();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+" settings reset to defaults.");return 1;}));}
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource,String> moduleArgument(){return ClientCommandManager.argument("module",StringArgumentType.word()).suggests((ctx,b)->{for(Module m:ArsonClient.getInstance().modules().all())b.suggest(m.id());return b.buildFuture();});}
+    private static Module module(CommandContext<FabricClientCommandSource> ctx){String id=StringArgumentType.getString(ctx,"module");Module m=ArsonClient.getInstance().modules().get(id);if(m==null)error(ctx,"Unknown module: "+id);return m;}
+    private static Module.Category category(String raw){for(Module.Category c:Module.Category.values())if(c.name().equalsIgnoreCase(raw)||c.displayName().equalsIgnoreCase(raw))return c;return null;}
+    private static void feedback(CommandContext<FabricClientCommandSource> ctx,String message){ctx.getSource().sendFeedback(Component.literal(message));NotificationCenter.push("Arson",message);}
+    private static void error(CommandContext<FabricClientCommandSource> ctx,String message){ctx.getSource().sendError(Component.literal(message));NotificationCenter.push("Arson",message,1800,NotificationCenter.Priority.HIGH);}
+}
