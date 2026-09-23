@@ -12,6 +12,7 @@ public final class ClickGuiLayoutModel {
         public boolean contains(double px,double py){return px>=x&&px<right()&&py>=y&&py<bottom();}
         public boolean intersects(Rect other){return other!=null&&x<other.right()&&right()>other.x&&y<other.bottom()&&bottom()>other.y;}
     }
+    public record CardActionBounds(Rect details, Rect toggle) {}
     public record Geometry(Mode mode,int panelX,int panelY,int panelWidth,int panelHeight,Rect rail,Rect search,Rect toolbar,
                            Rect content,Rect moduleList,Rect detail,Rect footer,int columns,int cardWidth,int cardHeight,int cardGap,
                            int safeMargin,int categoryRowHeight){
@@ -63,6 +64,20 @@ public final class ClickGuiLayoutModel {
         int cardW=Math.max(70,(list.width()-cardGap*(cols-1))/cols);
         int cardH=mode==Mode.NARROW?40:54;
         return new Geometry(mode,x,y,pw,ph,rail,search,toolbar,content,list,detail,footer,cols,cardW,cardH,cardGap,safe,categoryRowHeight);
+    }
+
+    /** Splits a module card into a details target and a non-overlapping direct toggle target. */
+    public static CardActionBounds moduleCardActions(Rect card, int requestedToggleWidth, int gap) {
+        if (card == null || card.width() <= 0 || card.height() <= 0) {
+            Rect empty = new Rect(0, 0, 0, 0);
+            return new CardActionBounds(empty, empty);
+        }
+        int toggleWidth = Math.min(Math.max(1, requestedToggleWidth), Math.max(1, card.width() - 1));
+        int spacing = Math.min(Math.max(0, gap), Math.max(0, card.width() - toggleWidth - 1));
+        int detailsWidth = card.width() - toggleWidth - spacing;
+        return new CardActionBounds(
+                new Rect(card.x(), card.y(), detailsWidth, card.height()),
+                new Rect(card.x() + detailsWidth + spacing, card.y(), toggleWidth, card.height()));
     }
 
     /** Builds a bounded grid of module cards without allowing overlap or viewport overflow. */
