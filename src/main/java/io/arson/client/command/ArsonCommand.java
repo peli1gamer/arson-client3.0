@@ -17,16 +17,41 @@ public final class ArsonCommand {
     private ArsonCommand() {}
     public static void register(){
         ClientCommandRegistrationCallback.EVENT.register((dispatcher,registryAccess)->dispatcher.register(ClientCommandManager.literal("arson")
-            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|toggle|info|settings|reset>, category <list|info|enable|disable>, reset-category <category>, hud <preset|row-format> <minimal|compact|full>, config <save|load>, profile <list|save|load|delete|duplicate|rename>, clickgui <scale>, plus server and legacy list/toggle/info/settings/reset/save.");return 1;}))
+            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|toggle|info|settings|reset>, setting <module> <setting> <value>, category <list|info|enable|disable>, reset-category <category>, hud <preset|row-format> <minimal|compact|full>, config <save|load>, profile <list|save|load|delete|duplicate|rename>, clickgui <scale>, plus server and legacy list/toggle/info/settings/reset/save.");return 1;}))
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
             .then(ClientCommandManager.literal("enabled").executes(ctx->{feedback(ctx,"Enabled: "+ArsonClient.getInstance().modules().all().stream().filter(Module::enabled).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("favorites").executes(ctx->{feedback(ctx,"Favorites: "+ArsonClient.getInstance().modules().all().stream().filter(Module::favorite).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("server").executes(ctx->{feedback(ctx,io.arson.client.api.ArsonApi.serverSummary());return 1;}))
-            .then(moduleCommands()).then(categoryCommands()).then(summaryCommand()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
+            .then(settingCommand()).then(moduleCommands()).then(categoryCommands()).then(summaryCommand()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
             .then(enableCommand()).then(disableCommand()).then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand())
             .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
         ));
     }
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingCommand() {
+        return ClientCommandManager.literal("setting")
+            .then(ClientCommandManager.argument("module", StringArgumentType.word())
+                .suggests((ctx, builder) -> {
+                    for (Module module : ArsonClient.getInstance().modules().all()) builder.suggest(module.id());
+                    return builder.buildFuture();
+                })
+                .then(ClientCommandManager.argument("setting", StringArgumentType.word())
+                    .suggests((ctx, builder) -> {
+                        String moduleId = StringArgumentType.getString(ctx, "module");
+                        io.arson.client.api.ArsonApi.module(moduleId).ifPresent(module ->
+                            module.settings().forEach(setting -> builder.suggest(setting.id())));
+                        return builder.buildFuture();
+                    })
+                    .then(ClientCommandManager.argument("value", StringArgumentType.greedyString()).executes(ctx -> {
+                        String moduleId = StringArgumentType.getString(ctx, "module");
+                        String settingId = StringArgumentType.getString(ctx, "setting");
+                        String value = StringArgumentType.getString(ctx, "value");
+                        boolean applied = io.arson.client.api.ArsonApi.setSetting(moduleId, settingId, value);
+                        if (!applied) { error(ctx, "Unknown setting or invalid value"); return 0; }
+                        feedback(ctx, moduleId + "." + settingId + " = " + value);
+                        return 1;
+                    }))));
+    }
+
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> resetCategoryCommand() {
         return ClientCommandManager.literal("reset-category").then(categoryArgument().executes(ctx -> {
             Module.Category category = category(StringArgumentType.getString(ctx, "category"));
