@@ -9,6 +9,7 @@ import io.arson.client.settings.StringSetting;
 /** Configurable HUD module. Drawing is kept separate from state/configuration. */
 public final class HudModule extends Module {
     public enum RowFormat { STACKED, COMPACT, DENSE, TWO_COLUMN }
+    public enum ElementRowFormat { INHERIT, STACKED, COMPACT, DENSE, TWO_COLUMN }
     private final BooleanSetting watermark = setting(new BooleanSetting("watermark", "Watermark", true));
     private final StringSetting watermarkText = setting(new StringSetting("watermark-text", "Watermark Text", "Arson V3", 32));
     private final BooleanSetting coordinates = setting(new BooleanSetting("coordinates", "Coordinates", true));
@@ -55,6 +56,8 @@ public final class HudModule extends Module {
     private final DoubleSetting lineSpacing = setting(new DoubleSetting("line-spacing", "Line Spacing", 11.0, 8.0, 24.0, 1.0));
     private final DoubleSetting columnGap = setting(new DoubleSetting("column-gap", "Column Gap", 8.0, 0.0, 32.0, 1.0));
     private final EnumSetting<RowFormat> rowFormat = setting(new EnumSetting<>("row-format", "Row Format", RowFormat.STACKED));
+    private final EnumSetting<ElementRowFormat> playerInfoRowFormat = setting(new EnumSetting<>("player-info-row-format", "Player Info Row Format", ElementRowFormat.INHERIT));
+    private final EnumSetting<ElementRowFormat> worldInfoRowFormat = setting(new EnumSetting<>("world-info-row-format", "World Info Row Format", ElementRowFormat.INHERIT));
     private final StringSetting compactSeparator = setting(new StringSetting("compact-separator", "Compact Separator", "  |  ", 16));
     private final BooleanSetting snap = setting(new BooleanSetting("snap", "Grid Snap", true));
     private final DoubleSetting gridSize = setting(new DoubleSetting("grid-size", "Grid Size", 4.0, 1.0, 32.0, 1.0));
@@ -62,7 +65,11 @@ public final class HudModule extends Module {
     private final ColorSetting secondaryColor = setting(new ColorSetting("secondary-color", "Secondary Color", 0xFFD0D0D0));
     private final ColorSetting backgroundColor = setting(new ColorSetting("background-color", "Background Color", 0x80000000));
 
-    public HudModule() { super("hud", "HUD", Category.RENDER); }
+    public HudModule() {
+        super("hud", "HUD", Category.RENDER);
+        playerInfoRowFormat.description("Override the global row format for player information, or inherit it.");
+        worldInfoRowFormat.description("Override the global row format for world information, or inherit it.");
+    }
 
     public boolean showWatermark() { return watermark.enabled(); }
     public String watermarkText() { return watermarkText.get(); }
@@ -96,6 +103,25 @@ public final class HudModule extends Module {
     public int lineSpacing() { return (int) Math.round(lineSpacing.get()); }
     public int columnGap() { return (int) Math.round(columnGap.get()); }
     public RowFormat rowFormat() { return rowFormat.get(); }
+    public ElementRowFormat playerInfoRowFormat() { return playerInfoRowFormat.get(); }
+    public ElementRowFormat worldInfoRowFormat() { return worldInfoRowFormat.get(); }
+    public RowFormat elementRowFormat(String element) {
+        ElementRowFormat override = switch (element) {
+            case "player-info" -> playerInfoRowFormat();
+            case "world-info" -> worldInfoRowFormat();
+            default -> ElementRowFormat.INHERIT;
+        };
+        return override == ElementRowFormat.INHERIT ? rowFormat() : RowFormat.valueOf(override.name());
+    }
+    public void setElementRowFormat(String element, ElementRowFormat format) {
+        ElementRowFormat value = format == null ? ElementRowFormat.INHERIT : format;
+        switch (element) {
+            case "player-info" -> playerInfoRowFormat.set(value);
+            case "world-info" -> worldInfoRowFormat.set(value);
+            default -> throw new IllegalArgumentException("Unknown HUD information element: " + element);
+        }
+    }
+    public void setRowFormat(RowFormat format) { if (format != null) rowFormat.set(format); }
     public String compactSeparator() { return compactSeparator.get(); }
     public boolean gridSnap() { return snap.enabled(); }
     public void setGridSnap(boolean enabled) { snap.set(enabled); }
