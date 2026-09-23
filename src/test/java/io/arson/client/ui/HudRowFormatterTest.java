@@ -51,6 +51,16 @@ class HudRowFormatterTest {
     }
 
     @Test
+    void twoColumnWidthAccountsForConfiguredGapAndOddRows() {
+        var paired = new HudRowFormatter.Row("Health", "Food");
+        var odd = new HudRowFormatter.Row("Armor", "");
+        assertEquals(85, HudRowFormatter.columnWidth(paired, 40, 33, 12));
+        assertEquals(40, HudRowFormatter.columnWidth(odd, 40, 33, 12));
+        assertEquals(40, HudRowFormatter.columnWidth(paired, 40, 33, -4));
+        assertEquals(0, HudRowFormatter.columnWidth(null, 40, 33, 12));
+    }
+
+    @Test
     void emptyInputProducesNoRows() {
         assertEquals(List.of(), HudRowFormatter.format(List.of(), HudModule.RowFormat.TWO_COLUMN));
         assertEquals(List.of(), HudRowFormatter.format(null, HudModule.RowFormat.TWO_COLUMN));
