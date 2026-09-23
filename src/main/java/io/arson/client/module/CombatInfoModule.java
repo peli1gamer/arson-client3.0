@@ -19,6 +19,8 @@ public final class CombatInfoModule extends Module {
     private final BooleanSetting showAttackCooldown = setting(new BooleanSetting("show-attack-cooldown", "Show Attack Cooldown", true)).group(contentGroup);
     private final BooleanSetting showDistance = setting(new BooleanSetting("show-distance", "Show Distance", true)).group(contentGroup);
     private final BooleanSetting showHealth = setting(new BooleanSetting("show-health", "Show Health", true)).group(contentGroup);
+    private final BooleanSetting showAbsorption = setting(new BooleanSetting("show-absorption", "Show Absorption", true)).group(contentGroup);
+    private final BooleanSetting showArmor = setting(new BooleanSetting("show-armor", "Show Armor", true)).group(contentGroup);
     private final BooleanSetting healthBar = setting(new BooleanSetting("health-bar", "Health Bar", true)).group(contentGroup);
     private final BooleanSetting healthBarBackground = setting(new BooleanSetting("health-bar-background", "Health Bar Background", true)).group(styleGroup);
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", true)).group(styleGroup);
@@ -35,7 +37,7 @@ public final class CombatInfoModule extends Module {
     private final DoubleSetting healthBarHeight = setting(new DoubleSetting("health-bar-height", "Health Bar Height", 3.0, 1.0, 8.0, 1.0)).group(layoutGroup);
 
     public CombatInfoModule() {
-        super("combat-info", "Combat Info", Category.COMBAT, "Displays nearby entity and local weapon status without changing combat input or attacking.");
+        super("combat-info", "Combat Info", Category.COMBAT, "Displays nearby entity, defensive stats, and local weapon status without changing combat input or attacking.");
         showTarget.description("Show the nearest eligible living entity in range.");
         showPlayers.description("Include player entities in the information display.");
         showMobs.description("Include hostile mobs in the information display.");
@@ -45,6 +47,8 @@ public final class CombatInfoModule extends Module {
         showAttackCooldown.description("Display your local attack cooldown progress.");
         showDistance.description("Display distance from you to the selected entity.");
         showHealth.description("Display the selected entity’s current health.");
+        showAbsorption.description("Display the selected entity’s temporary absorption health.");
+        showArmor.description("Display the selected entity’s armor points.");
         healthBar.description("Show health as a compact bar in addition to the numeric value.");
         healthBarBackground.description("Draw a backing track behind the health bar.");
         background.description("Draw a panel behind the information rows.");
@@ -70,6 +74,8 @@ public final class CombatInfoModule extends Module {
     public boolean showAttackCooldown() { return showAttackCooldown.enabled(); }
     public boolean showDistance() { return showDistance.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
+    public boolean showAbsorption() { return showAbsorption.enabled(); }
+    public boolean showArmor() { return showArmor.enabled(); }
     public boolean healthBar() { return healthBar.enabled(); }
     public boolean healthBarBackground() { return healthBarBackground.enabled(); }
     public boolean background() { return background.enabled(); }
@@ -84,4 +90,13 @@ public final class CombatInfoModule extends Module {
     public int padding() { return (int) Math.round(padding.get()); }
     public int rowGap() { return (int) Math.round(rowGap.get()); }
     public int healthBarHeight() { return (int) Math.round(healthBarHeight.get()); }
+
+    public static String formatAbsorption(float value) {
+        float finiteValue = Float.isFinite(value) ? Math.max(0.0f, value) : 0.0f;
+        return "Absorption " + (Math.round(finiteValue * 10.0f) / 10.0f);
+    }
+
+    public static String formatArmor(int points) {
+        return "Armor " + Math.max(0, points);
+    }
 }

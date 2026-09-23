@@ -39,6 +39,12 @@ public final class CombatInfoRenderer {
             healthRow = rows.size();
             rows.add("HP " + format(target.getHealth()) + "/" + format(target.getMaxHealth()));
         }
+        if (target != null && module.showAbsorption()) {
+            rows.add(CombatInfoModule.formatAbsorption(target.getAbsorptionAmount()));
+        }
+        if (target != null && module.showArmor()) {
+            rows.add(CombatInfoModule.formatArmor(target.getArmorValue()));
+        }
         if (target != null && module.showDistance()) rows.add("Distance " + format((float) client.player.distanceTo(target)) + "m");
         if (module.showHeldItem()) rows.add("Held " + weapon);
         if (durability != null) rows.add(durability);
