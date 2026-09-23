@@ -77,6 +77,22 @@ class HudRowFormatterTest {
     }
 
     @Test
+    void informationWidgetsInheritOrOverrideGlobalRowFormatIndependently() {
+        HudModule hud = new HudModule();
+        assertEquals(HudModule.RowFormat.STACKED, hud.elementRowFormat("player-info"));
+        assertEquals(HudModule.RowFormat.STACKED, hud.elementRowFormat("world-info"));
+
+        hud.setRowFormat(HudModule.RowFormat.COMPACT);
+        assertEquals(HudModule.RowFormat.COMPACT, hud.elementRowFormat("player-info"));
+        hud.setElementRowFormat("player-info", HudModule.ElementRowFormat.TWO_COLUMN);
+        assertEquals(HudModule.RowFormat.TWO_COLUMN, hud.elementRowFormat("player-info"));
+        assertEquals(HudModule.RowFormat.COMPACT, hud.elementRowFormat("world-info"));
+
+        hud.setElementRowFormat("player-info", null);
+        assertEquals(HudModule.RowFormat.COMPACT, hud.elementRowFormat("player-info"));
+    }
+
+    @Test
     void emptyInputProducesNoRows() {
         assertEquals(List.of(), HudRowFormatter.format(List.of(), HudModule.RowFormat.TWO_COLUMN));
         assertEquals(List.of(), HudRowFormatter.format(null, HudModule.RowFormat.TWO_COLUMN));
