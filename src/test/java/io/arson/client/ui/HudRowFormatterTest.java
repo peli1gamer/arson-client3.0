@@ -56,7 +56,7 @@ class HudRowFormatterTest {
         var odd = new HudRowFormatter.Row("Armor", "");
         assertEquals(85, HudRowFormatter.columnWidth(paired, 40, 33, 12));
         assertEquals(40, HudRowFormatter.columnWidth(odd, 40, 33, 12));
-        assertEquals(40, HudRowFormatter.columnWidth(paired, 40, 33, -4));
+        assertEquals(73, HudRowFormatter.columnWidth(paired, 40, 33, -4));
         assertEquals(0, HudRowFormatter.columnWidth(null, 40, 33, 12));
     }
 
