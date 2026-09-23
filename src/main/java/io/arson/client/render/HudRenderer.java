@@ -207,7 +207,7 @@ public final class HudRenderer {
         }
         if (hud.rowFormat() == HudModule.RowFormat.TWO_COLUMN) {
             for (HudRowFormatter.Row row : rows) {
-                int width = firstColumnWidth + (row.hasSecond() ? hud.columnGap() + client.font.width(row.second()) : 0);
+                int width = HudRowFormatter.columnWidth(row, firstColumnWidth, client.font.width(row.second()), hud.columnGap());
                 maxWidth = Math.max(maxWidth, width);
             }
         }
