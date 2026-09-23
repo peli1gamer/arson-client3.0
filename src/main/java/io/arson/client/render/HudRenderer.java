@@ -195,7 +195,8 @@ public final class HudRenderer {
         for (NotificationCenter.Notification n : list) { int width = Math.max(180, Math.max(client.font.width(n.title()), client.font.width(n.message())) + 24), height = 40; float p = n.progress(System.currentTimeMillis()), eased = p * p * (3f - 2f * p); int slide = Math.round((1f - eased) * 18f); boolean left = NotificationCenter.position() == NotificationCenter.Position.TOP_LEFT || NotificationCenter.position() == NotificationCenter.Position.BOTTOM_LEFT; boolean bottom = NotificationCenter.position() == NotificationCenter.Position.BOTTOM_LEFT || NotificationCenter.position() == NotificationCenter.Position.BOTTOM_RIGHT; width = Math.min(width, Math.max(1, screenW - 20)); int x = left ? 10 : screenW - width - 10, y = bottom ? screenH - 10 - height - index * 45 : 10 + index * 45; x += left ? -slide : slide; x = Math.max(0, Math.min(Math.max(0, screenW - width), x)); y = Math.max(0, Math.min(Math.max(0, screenH - height), y)); int outline = switch (n.priority()) { case HIGH -> 0xFFFF5555; case LOW -> 0xFF777777; case NORMAL -> 0xFF5555AA; }; graphics.fill(x, y, x + width, y + height, 0xE0181820); graphics.renderOutline(x, y, width, height, outline); graphics.drawString(client.font, n.title(), x + 8, y + 6, 0xFFFFFFFF); graphics.drawString(client.font, n.message(), x + 8, y + 20, 0xFFD0D0D0); graphics.fill(x + 1, y + height - 3, x + 1 + Math.round((width - 2) * eased), y + height - 1, outline); index++; }
     }
     private static void drawElement(GuiGraphics graphics, Minecraft client, HudModule hud, HudLayoutModule layout, String element, int fallbackX, int fallbackY, String[] values) {
-        java.util.List<HudRowFormatter.Row> rows = HudRowFormatter.format(java.util.Arrays.asList(values), hud.rowFormat(), hud.compactSeparator());
+        HudModule.RowFormat rowFormat = hud.elementRowFormat(element);
+        java.util.List<HudRowFormatter.Row> rows = HudRowFormatter.format(java.util.Arrays.asList(values), rowFormat, hud.compactSeparator());
         if (rows.isEmpty()) return;
 
         int firstColumnWidth = 0;
@@ -205,7 +206,7 @@ public final class HudRenderer {
             firstColumnWidth = Math.max(firstColumnWidth, firstWidth);
             maxWidth = Math.max(maxWidth, firstWidth);
         }
-        if (hud.rowFormat() == HudModule.RowFormat.TWO_COLUMN) {
+        if (rowFormat == HudModule.RowFormat.TWO_COLUMN) {
             for (HudRowFormatter.Row row : rows) {
                 int width = HudRowFormatter.columnWidth(row, firstColumnWidth, client.font.width(row.second()), hud.columnGap());
                 maxWidth = Math.max(maxWidth, width);
@@ -213,7 +214,7 @@ public final class HudRenderer {
         }
 
         double elementScale = hud.elementScale(element);
-        int line = hud.rowFormat() == HudModule.RowFormat.DENSE ? Math.max(8, hud.lineSpacing() - 2) : hud.lineSpacing();
+        int line = rowFormat == HudModule.RowFormat.DENSE ? Math.max(8, hud.lineSpacing() - 2) : hud.lineSpacing();
         double rawW = Math.max(1, client.getWindow().getGuiScaledWidth() - 12);
         double rawH = Math.max(1, client.getWindow().getGuiScaledHeight() - 12);
         double fitW = maxWidth == 0 ? elementScale : rawW / Math.max(1.0, maxWidth * hud.scale());
@@ -242,7 +243,7 @@ public final class HudRenderer {
         }
         for (int index = 0; index < rows.size(); index++) {
             HudRowFormatter.Row row = rows.get(index);
-            if (hud.rowFormat() == HudModule.RowFormat.TWO_COLUMN) {
+            if (rowFormat == HudModule.RowFormat.TWO_COLUMN) {
                 graphics.drawString(client.font, row.first(), left, index * line, hud.elementColor(element), hud.showShadow());
                 if (row.hasSecond()) {
                     graphics.drawString(client.font, row.second(), left + firstColumnWidth + hud.columnGap(), index * line,
