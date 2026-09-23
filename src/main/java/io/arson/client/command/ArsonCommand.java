@@ -21,7 +21,7 @@ public final class ArsonCommand {
     private ArsonCommand() {}
     public static void register(){
         ClientCommandRegistrationCallback.EVENT.register((dispatcher,registryAccess)->dispatcher.register(ClientCommandManager.literal("arson")
-            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|search|toggle|info|settings|reset|favorite|keybind>, setting <module> <setting> <value>, category <list|info|enable|disable>, reset-category <category>, hud <preset|row-format|element-format> <...>, config <save|load>, profile <list|save|load|delete|duplicate|rename>, clickgui <scale>, plus server and legacy list/toggle/info/settings/reset/save.");return 1;}))
+            .then(ClientCommandManager.literal("help").executes(ctx->{feedback(ctx,"Commands: module <list|search|toggle|info|status|settings|reset|favorite|keybind>, setting <module> <setting> <value>, category <list|info|enable|disable>, reset-category <category>, hud <preset|row-format|element-format> <...>, config <save|load>, profile <list|save|load|delete|duplicate|rename>, clickgui <scale>, plus server and legacy list/toggle/info/settings/reset/save.");return 1;}))
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
             .then(ClientCommandManager.literal("enabled").executes(ctx->{feedback(ctx,"Enabled: "+ArsonClient.getInstance().modules().all().stream().filter(Module::enabled).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("favorites").executes(ctx->{feedback(ctx,"Favorites: "+ArsonClient.getInstance().modules().all().stream().filter(Module::favorite).map(Module::id).toList());return 1;}))
@@ -75,7 +75,18 @@ public final class ArsonCommand {
 
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> moduleCommands(){return ClientCommandManager.literal("module")
         .then(ClientCommandManager.literal("search").then(ClientCommandManager.argument("query",StringArgumentType.greedyString()).executes(ctx->{String q=StringArgumentType.getString(ctx,"query");var found=io.arson.client.api.ArsonApi.search(q);feedback(ctx,"Search "+q+": "+found.stream().map(Module::id).toList());return 1;}))).then(ClientCommandManager.literal("list").then(ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();}).executes(ctx->{String raw=StringArgumentType.getString(ctx,"category");Module.Category c=category(raw);if(c==null){error(ctx,"Unknown category: "+raw);return 0;}feedback(ctx,raw+": "+ArsonClient.getInstance().modules().organized(c).stream().map(Module::id).toList());return 1;})).executes(ctx->{feedback(ctx,"Modules: "+ArsonClient.getInstance().modules().all().stream().map(Module::id).toList());return 1;}))
-        .then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand()).then(favoriteOperation()).then(keybindOperation());}
+        .then(toggleCommand()).then(infoCommand()).then(statusCommand()).then(settingsCommand()).then(resetCommand()).then(favoriteOperation()).then(keybindOperation());}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> statusCommand() {
+        return ClientCommandManager.literal("status").then(moduleArgument().executes(ctx -> {
+            Module module = module(ctx);
+            if (module == null) return 0;
+            var status = io.arson.client.api.ArsonApi.moduleStatus(module.id());
+            if (status.isEmpty()) { error(ctx, "Module status unavailable"); return 0; }
+            feedback(ctx, status.get());
+            return 1;
+        }));
+    }
+
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> categoryCommands(){return ClientCommandManager.literal("category")
         .then(ClientCommandManager.literal("list").executes(ctx->{StringBuilder out=new StringBuilder();for(Module.Category c:Module.Category.values()){if(out.length()>0)out.append(" | ");out.append(c.name().toLowerCase()).append("=").append(ArsonClient.getInstance().modules().categoryCount(c)).append("/").append(ArsonClient.getInstance().modules().enabledCount(c));}feedback(ctx,out.toString());return 1;}))
         .then(ClientCommandManager.literal("info").then(categoryArgument().executes(ctx->{Module.Category c=category(StringArgumentType.getString(ctx,"category"));if(c==null){error(ctx,"Unknown category");return 0;}feedback(ctx,c.displayName()+": "+ArsonClient.getInstance().modules().categoryCount(c)+" modules, "+ArsonClient.getInstance().modules().enabledCount(c)+" enabled.");return 1;})))
