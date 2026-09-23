@@ -55,6 +55,7 @@ public final class HudModule extends Module {
     private final DoubleSetting lineSpacing = setting(new DoubleSetting("line-spacing", "Line Spacing", 11.0, 8.0, 24.0, 1.0));
     private final DoubleSetting columnGap = setting(new DoubleSetting("column-gap", "Column Gap", 8.0, 0.0, 32.0, 1.0));
     private final EnumSetting<RowFormat> rowFormat = setting(new EnumSetting<>("row-format", "Row Format", RowFormat.STACKED));
+    private final StringSetting compactSeparator = setting(new StringSetting("compact-separator", "Compact Separator", "  |  ", 16));
     private final BooleanSetting snap = setting(new BooleanSetting("snap", "Grid Snap", true));
     private final DoubleSetting gridSize = setting(new DoubleSetting("grid-size", "Grid Size", 4.0, 1.0, 32.0, 1.0));
     private final ColorSetting textColor = setting(new ColorSetting("text-color", "Text Color", 0xFFFFFFFF));
@@ -95,6 +96,7 @@ public final class HudModule extends Module {
     public int lineSpacing() { return (int) Math.round(lineSpacing.get()); }
     public int columnGap() { return (int) Math.round(columnGap.get()); }
     public RowFormat rowFormat() { return rowFormat.get(); }
+    public String compactSeparator() { return compactSeparator.get(); }
     public boolean gridSnap() { return snap.enabled(); }
     public void setGridSnap(boolean enabled) { snap.set(enabled); }
     public int gridSize() { return (int) Math.round(gridSize.get()); }
