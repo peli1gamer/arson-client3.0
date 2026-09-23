@@ -103,10 +103,14 @@ public final class CombatInfoRenderer {
             if (module.healthBarBackground()) {
                 graphics.fill(0, barTop, panelWidth, barTop + barHeight, module.healthBarBackgroundColor());
             }
-            float maxHealth = Math.max(0.001f, target.getMaxHealth());
-            float ratio = Math.max(0.0f, Math.min(1.0f, target.getHealth() / maxHealth));
-            int filled = Math.round(panelWidth * ratio);
-            if (filled > 0) graphics.fill(0, barTop, filled, barTop + barHeight, module.healthColor());
+            CombatInfoModule.HealthBarSegments segments = CombatInfoModule.healthBarSegments(
+                    target.getHealth(), target.getMaxHealth(), target.getAbsorptionAmount());
+            int healthEnd = Math.round(panelWidth * segments.health());
+            int totalEnd = Math.round(panelWidth * (segments.health() + segments.absorption()));
+            if (healthEnd > 0) graphics.fill(0, barTop, healthEnd, barTop + barHeight, module.healthColor());
+            if (module.showAbsorption() && totalEnd > healthEnd) {
+                graphics.fill(healthEnd, barTop, totalEnd, barTop + barHeight, module.absorptionColor());
+            }
         }
         graphics.pose().popMatrix();
     }
