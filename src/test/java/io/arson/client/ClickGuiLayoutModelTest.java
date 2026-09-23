@@ -102,6 +102,22 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void moduleCardsReserveRoomForSecondRowKeybindControls() {
+        for (int[] size : new int[][]{{360, 240}, {640, 400}, {960, 640}, {1600, 900}}) {
+            var geometry = ClickGuiLayoutModel.compute(size[0], size[1], 1.0);
+            int requestedHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+            var cards = ClickGuiLayoutModel.gridCards(geometry.moduleList(), 8, geometry.columns(),
+                    requestedHeight, geometry.cardGap());
+            assertFalse(cards.isEmpty());
+            for (var card : cards) {
+                assertTrue(card.height() >= 50);
+                assertTrue(card.right() <= geometry.moduleList().right());
+                assertTrue(card.bottom() <= geometry.moduleList().bottom());
+            }
+        }
+    }
+
+    @Test
     void moduleCardDetailsAndToggleTargetsStaySeparatedInNarrowAndWideCards() {
         for (int width : new int[]{70, 100, 180}) {
             var card = new ClickGuiLayoutModel.Rect(12, 24, width, 40);
