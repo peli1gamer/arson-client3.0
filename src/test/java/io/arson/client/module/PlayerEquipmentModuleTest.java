@@ -19,9 +19,9 @@ class PlayerEquipmentModuleTest {
 
     @Test
     void formatsArmorSlotsIndividuallyAndClampsInvalidValues() {
-        assertEquals("Armor H 100% C 52% L 0% F —",
+        assertEquals("Armor H 100% C 52% L — F —",
                 PlayerEquipmentModule.formatArmorSlots(100, 52, -1, -1));
-        assertEquals("Armor H 100% C 0% L 75% F 100%",
+        assertEquals("Armor H 100% C — L 75% F 100%",
                 PlayerEquipmentModule.formatArmorSlots(140, -4, 75, 100));
     }
 }
