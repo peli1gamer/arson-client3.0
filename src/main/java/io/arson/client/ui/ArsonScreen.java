@@ -5,6 +5,7 @@ import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.Module;
+import io.arson.client.module.ModuleControl;
 import io.arson.client.notification.NotificationCenter;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
@@ -416,6 +417,16 @@ public final class ArsonScreen extends Screen {
         if(key==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}
         if(event.hasControlDown()&&key==GLFW.GLFW_KEY_K){if(search!=null){search.setFocused(true);focus=ClickGuiLayoutModel.Focus.SEARCH;}return true;}
         if(key==GLFW.GLFW_KEY_TAB){focus=nextFocus(event.hasShiftDown()?-1:1);applyFocus();return true;}
+        if(focus==ClickGuiLayoutModel.Focus.MODULE&&!detailsPage&&selected!=null){
+            if(key==GLFW.GLFW_KEY_SPACE){
+                if(ModuleControl.toggleEnabled(ArsonClient.getInstance().modules(),selected.id())){saveConfig();rebuild();}
+                return true;
+            }
+            if(key==GLFW.GLFW_KEY_F){
+                if(ModuleControl.toggleFavorite(ArsonClient.getInstance().modules(),selected.id())){saveConfig();rebuild();}
+                return true;
+            }
+        }
         if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;moduleFocus=0;detailScroll=0;detailsPage=false;rebuild();return true;}
         if(focus==ClickGuiLayoutModel.Focus.MODULE&&!detailsPage&&(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT||key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){
             int delta=(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT)?(key==GLFW.GLFW_KEY_LEFT?-1:1):(key==GLFW.GLFW_KEY_UP?-1:1);
