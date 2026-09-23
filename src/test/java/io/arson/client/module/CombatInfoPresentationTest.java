@@ -20,6 +20,8 @@ class CombatInfoPresentationTest {
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-effects")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-item")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-durability")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("absorption-color")));
+        assertEquals(0xFFFFAA00, module.absorptionColor());
         var limit = (io.arson.client.settings.DoubleSetting) module.settings().stream()
                 .filter(setting -> setting.id().equals("effect-limit")).findFirst().orElseThrow();
         limit.set(2.0);
@@ -59,6 +61,21 @@ class CombatInfoPresentationTest {
         assertTrue(CombatInfoModule.formatEffects(effects, 0).isEmpty());
         assertEquals("Strength 2 1:05", CombatInfoModule.formatEffect("Strength", 1, 1300));
         assertEquals("Unknown 1 ∞", CombatInfoModule.formatEffect(" ", -1, -1));
+    }
+
+    @Test
+    void healthBarSeparatesHealthAndAbsorptionWithSafeClamping() {
+        var segments = CombatInfoModule.healthBarSegments(10.0f, 20.0f, 5.0f);
+        assertEquals(0.5f, segments.health(), 0.0001f);
+        assertEquals(0.25f, segments.absorption(), 0.0001f);
+
+        var full = CombatInfoModule.healthBarSegments(20.0f, 20.0f, 8.0f);
+        assertEquals(1.0f, full.health(), 0.0001f);
+        assertEquals(0.0f, full.absorption(), 0.0001f);
+
+        var invalid = CombatInfoModule.healthBarSegments(Float.NaN, Float.NaN, -4.0f);
+        assertEquals(0.0f, invalid.health());
+        assertEquals(0.0f, invalid.absorption());
     }
 
     @Test
