@@ -229,7 +229,7 @@ public final class ArsonScreen extends Screen {
             addRenderableWidget(details);
 
             int keyHeight = Math.min(18, Math.max(1, card.height() - titleHeight));
-            int keyY = card.bottom() - keyHeight - 2;
+            int keyY = card.y() + titleHeight + 2;
             Button keybind = Button.builder(Component.literal(bindingModule == module
                     ? "Press key…" : "Key: " + keyName(module.keyCode())), ignored -> {
                 bindingModule = module;
