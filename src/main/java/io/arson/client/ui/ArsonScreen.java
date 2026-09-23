@@ -16,6 +16,7 @@ import io.arson.client.settings.StringSetting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -223,7 +224,8 @@ public final class ArsonScreen extends Screen {
                 detailScroll = 0;
                 focus = ClickGuiLayoutModel.Focus.MODULE;
                 rebuild();
-            }).bounds(actions.details().x(), actions.details().y(),
+            }).tooltip(tooltipFor(module.description()))
+                    .bounds(actions.details().x(), actions.details().y(),
                     actions.details().width(), titleHeight).build();
             moduleButtons.add(details);
             addRenderableWidget(details);
@@ -235,7 +237,8 @@ public final class ArsonScreen extends Screen {
                 bindingModule = module;
                 focus = ClickGuiLayoutModel.Focus.ACTION;
                 rebuild();
-            }).bounds(actions.details().x(), keyY, actions.details().width(), keyHeight).build();
+            }).tooltip(tooltipFor("Click to set a keybind for " + module.name() + ". Press Escape to cancel."))
+                    .bounds(actions.details().x(), keyY, actions.details().width(), keyHeight).build();
             addRenderableWidget(keybind);
 
             int toggleHeight = Math.min(22, actions.toggle().height());
@@ -244,7 +247,8 @@ public final class ArsonScreen extends Screen {
                 module.toggle();
                 saveConfig();
                 rebuild();
-            }).bounds(actions.toggle().x(), toggleY, actions.toggle().width(), toggleHeight).build();
+            }).tooltip(tooltipFor((module.enabled() ? "Disable " : "Enable ") + module.name()))
+                    .bounds(actions.toggle().x(), toggleY, actions.toggle().width(), toggleHeight).build();
             addRenderableWidget(toggle);
         }
     }
@@ -287,17 +291,17 @@ public final class ArsonScreen extends Screen {
             int controlW=Math.max(45,w-32);
             if(y+22>top-1&&y<bottom){
                 if(setting instanceof BooleanSetting bs)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(bs.enabled()?"ON":"OFF")),b->{bs.set(!bs.enabled());saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(bs.enabled()?"ON":"OFF")),b->{bs.set(!bs.enabled());saveConfig();rebuild();}).tooltip(tooltipFor(setting.description())).bounds(x,y,controlW,22).build());
                 else if(setting instanceof DoubleSetting ds)
-                    addRenderableWidget(new DoubleSettingSlider(x,y,controlW,22,ds,this::saveConfig));
+                    { DoubleSettingSlider slider = new DoubleSettingSlider(x,y,controlW,22,ds,this::saveConfig); slider.setTooltip(tooltipFor(setting.description())); addRenderableWidget(slider); }
                 else if(setting instanceof EnumSetting<?> es)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(es.get())),b->{es.cycle(1);saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(es.get())),b->{es.cycle(1);saveConfig();rebuild();}).tooltip(tooltipFor(setting.description())).bounds(x,y,controlW,22).build());
                 else if(setting instanceof ColorSetting cs)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",cs.get())),b->{editingColor=cs;editingString=null;rebuild();}).bounds(x,y,controlW,22).build());
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",cs.get())),b->{editingColor=cs;editingString=null;rebuild();}).tooltip(tooltipFor(setting.description())).bounds(x,y,controlW,22).build());
                 else if(setting instanceof StringSetting ss)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+ss.get()),b->{editingString=ss;editingColor=null;rebuild();}).bounds(x,y,controlW,22).build());
-                else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),b->{}).bounds(x,y,controlW,22).build());
-                if(x+controlW+4+28<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal("↺"),b->{setting.reset();saveConfig();rebuild();}).bounds(x+controlW+4,y,28,22).build());
+                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+ss.get()),b->{editingString=ss;editingColor=null;rebuild();}).tooltip(tooltipFor(setting.description())).bounds(x,y,controlW,22).build());
+                else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),b->{}).tooltip(tooltipFor(setting.description())).bounds(x,y,controlW,22).build());
+                if(x+controlW+4+28<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal("↺"),b->{setting.reset();saveConfig();rebuild();}).tooltip(tooltipFor("Reset "+setting.name()+" to its default value.")).bounds(x+controlW+4,y,28,22).build());
             }
             y+=26;
         }
@@ -385,6 +389,7 @@ public final class ArsonScreen extends Screen {
     }
 
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
+    private static Tooltip tooltipFor(String text) { return Tooltip.create(Component.literal(text == null || text.isBlank() ? "No additional information." : text)); }
     private static String keyName(int key){if(key<=0)return"None";String n=GLFW.glfwGetKeyName(key,0);return n==null?"KEY "+key:n.toUpperCase(Locale.ROOT);}
     private static String prettyEnum(Object v){if(v==null)return"None";String raw=v.toString().toLowerCase(Locale.ROOT),out="";for(String p:raw.split("_"))if(!p.isEmpty())out+=(out.isEmpty()?"":" ")+Character.toUpperCase(p.charAt(0))+p.substring(1);return out;}
     private void applyEdit(){if(editBox!=null){if(editingString!=null)editingString.set(editBox.getValue());else if(editingColor!=null){try{String raw=editBox.getValue().trim().replace("#","");if(raw.length()==6)raw="FF"+raw;if(raw.length()!=8)throw new NumberFormatException();editingColor.set((int)Long.parseLong(raw,16));}catch(NumberFormatException ignored){NotificationCenter.push("Invalid color","Use RRGGBB or AARRGGBB");return;}}saveConfig();}editingString=null;editingColor=null;editBox=null;rebuild();}
