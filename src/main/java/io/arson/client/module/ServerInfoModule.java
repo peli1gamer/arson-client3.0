@@ -11,6 +11,7 @@ public final class ServerInfoModule extends Module {
     private boolean multiplayer;
     private boolean lan;
     private int latency = -1;
+    private int onlinePlayers = -1;
 
     public ServerInfoModule() {
         super("server-info", "Server Info", Category.MISC,
@@ -25,15 +26,18 @@ public final class ServerInfoModule extends Module {
             multiplayer = false;
             lan = false;
             latency = -1;
+            onlinePlayers = -1;
             return;
         }
         name = server.name == null || server.name.isBlank() ? "Server" : server.name;
         address = server.ip == null ? "" : server.ip;
         multiplayer = true;
         lan = server.isLan();
-        PlayerInfo currentPlayer = client.getConnection() == null || client.player == null
-                ? null : client.getConnection().getPlayerInfo(client.player.getUUID());
+        var connection = client.getConnection();
+        PlayerInfo currentPlayer = connection == null || client.player == null
+                ? null : connection.getPlayerInfo(client.player.getUUID());
         latency = currentPlayer == null ? -1 : Math.max(0, currentPlayer.getLatency());
+        onlinePlayers = connection == null ? -1 : connection.getOnlinePlayers().size();
     }
 
     public String serverName() { return name; }
@@ -41,9 +45,14 @@ public final class ServerInfoModule extends Module {
     public boolean multiplayer() { return multiplayer; }
     public boolean lan() { return lan; }
     public int latency() { return latency; }
+    public int onlinePlayers() { return onlinePlayers; }
     public String formatted() {
         if (!multiplayer) return name;
-        return name + " • " + (lan ? "LAN" : address) + " • " + formatLatency(latency);
+        return name + " • " + (lan ? "LAN" : address) + " • " + formatLatency(latency)
+                + " • " + formatPlayerCount(onlinePlayers);
+    }
+    public static String formatPlayerCount(int count) {
+        return count < 0 ? "Players —" : "Players " + count;
     }
     public static String formatLatency(int latency) {
         return latency < 0 ? "Ping —" : "Ping " + latency + " ms";
