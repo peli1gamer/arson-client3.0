@@ -34,7 +34,32 @@ public final class CombatInfoModule extends Module {
     private final DoubleSetting rowGap = setting(new DoubleSetting("row-gap", "Row Gap", 2.0, 0.0, 8.0, 1.0)).group(layoutGroup);
     private final DoubleSetting healthBarHeight = setting(new DoubleSetting("health-bar-height", "Health Bar Height", 3.0, 1.0, 8.0, 1.0)).group(layoutGroup);
 
-    public CombatInfoModule() { super("combat-info", "Combat Info", Category.COMBAT); }
+    public CombatInfoModule() {
+        super("combat-info", "Combat Info", Category.COMBAT, "Displays nearby entity and local weapon status without changing combat input or attacking.");
+        showTarget.description("Show the nearest eligible living entity in range.");
+        showPlayers.description("Include player entities in the information display.");
+        showMobs.description("Include hostile mobs in the information display.");
+        showAnimals.description("Include passive animals in the information display.");
+        showHeldItem.description("Display the selected entity’s held item when available.");
+        showDurability.description("Display held-item durability when the item has durability.");
+        showAttackCooldown.description("Display your local attack cooldown progress.");
+        showDistance.description("Display distance from you to the selected entity.");
+        showHealth.description("Display the selected entity’s current health.");
+        healthBar.description("Show health as a compact bar in addition to the numeric value.");
+        healthBarBackground.description("Draw a backing track behind the health bar.");
+        background.description("Draw a panel behind the information rows.");
+        range.description("Maximum distance used to find an entity for the display.");
+        x.description("Horizontal screen position of the HUD panel.");
+        y.description("Vertical screen position of the HUD panel.");
+        infoScale.description("Scale the text and panel together.");
+        padding.description("Space between the panel edge and its contents.");
+        rowGap.description("Vertical spacing between information rows.");
+        healthBarHeight.description("Thickness of the health indicator bar.");
+        textColor.description("ARGB color used for informational text.");
+        healthColor.description("ARGB color used for the health fill.");
+        healthBarBackgroundColor.description("ARGB color used for the health bar track.");
+        backgroundColor.description("ARGB color used for the panel background.");
+    }
 
     public boolean showTarget() { return showTarget.enabled(); }
     public boolean showPlayers() { return showPlayers.enabled(); }
