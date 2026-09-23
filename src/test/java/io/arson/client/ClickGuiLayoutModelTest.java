@@ -102,6 +102,24 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void moduleCardDetailsAndToggleTargetsStaySeparatedInNarrowAndWideCards() {
+        for (int width : new int[]{70, 100, 180}) {
+            var card = new ClickGuiLayoutModel.Rect(12, 24, width, 40);
+            var actions = ClickGuiLayoutModel.moduleCardActions(card, 38, 5);
+            assertTrue(actions.details().width() > 0);
+            assertFalse(actions.details().intersects(actions.toggle()));
+            assertTrue(actions.details().x() >= card.x());
+            assertTrue(actions.details().right() <= actions.toggle().x());
+            assertEquals(card.right(), actions.toggle().right());
+            assertEquals(card.y(), actions.toggle().y());
+            assertEquals(card.height(), actions.toggle().height());
+        }
+        var empty = ClickGuiLayoutModel.moduleCardActions(null, 38, 5);
+        assertEquals(0, empty.details().width());
+        assertEquals(0, empty.toggle().width());
+    }
+
+    @Test
     void moduleGridHandlesEmptyAndDegenerateAreas() {
         assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 10, 10), 0, 2, 8, 2).isEmpty());
         assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 0, 10), 4, 2, 8, 2).isEmpty());
