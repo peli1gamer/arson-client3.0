@@ -113,7 +113,7 @@ public final class HudRenderer {
             if (playerInfo.showHunger()) rows.add("Food " + client.player.getFoodData().getFoodLevel());
             if (playerInfo.showArmor()) rows.add(armor(client));
             if (playerInfo.showHeldItem()) { ItemStack stack = client.player.getMainHandItem(); rows.add(stack.isEmpty() ? "Held Hand" : "Held " + stack.getHoverName().getString()); }
-            if (playerInfo.showInventory() && inventoryInfo != null && inventoryInfo.enabled()) rows.add(inventoryInfo.formatted() + "  Slot " + inventoryInfo.selectedSlot());
+            if (playerInfo.showInventory() && inventoryInfo != null && inventoryInfo.enabled()) rows.add(inventoryInfo.formattedDetails());
             if (playerVitals != null && playerVitals.enabled()) {
                 rows.add(playerVitals.formattedFoodState());
                 rows.add(playerVitals.formattedDefense());
