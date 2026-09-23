@@ -39,6 +39,18 @@ class ModuleControlTest {
     }
     
     @Test
+    void enableToggleOnlyChangesKnownModules() {
+        ModuleManager manager = modules();
+        Module module = manager.get("hud");
+
+        assertFalse(ModuleControl.toggleEnabled(manager, "missing-module"));
+        assertTrue(ModuleControl.toggleEnabled(manager, "hud"));
+        assertTrue(module.enabled());
+        assertTrue(ModuleControl.toggleEnabled(manager, "hud"));
+        assertFalse(module.enabled());
+    }
+
+    @Test
     void statusReportsCurrentStateWithoutMutatingIt() {
         ModuleManager manager = modules();
         Module module = manager.get("hud");
