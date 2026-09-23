@@ -39,4 +39,14 @@ public final class InventoryInfoModule extends Module {
     public int selectedSlot() { return selectedSlot; }
     public String selectedItem() { return selectedItem; }
     public String formatted() { return "Inventory " + occupied + "/" + capacity; }
+    public String formattedDetails() { return formatDetails(occupied, capacity, selectedSlot, selectedItem); }
+
+    public static String formatDetails(int occupied, int capacity, int selectedSlot, String selectedItem) {
+        int safeCapacity = Math.max(0, capacity);
+        int safeOccupied = Math.max(0, Math.min(safeCapacity, occupied));
+        String slot = selectedSlot <= 0 ? "—" : Integer.toString(selectedSlot);
+        String item = selectedItem == null || selectedItem.isBlank() ? "Empty" : selectedItem.trim();
+        return "Inventory " + safeOccupied + "/" + safeCapacity + "  Free " + (safeCapacity - safeOccupied)
+                + "  Slot " + slot + ": " + item;
+    }
 }
