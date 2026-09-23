@@ -32,6 +32,7 @@ public final class CombatInfoModule extends Module {
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", true)).group(styleGroup);
     private final ColorSetting textColor = setting(new ColorSetting("text-color", "Text Color", 0xFFFFFFFF)).group(styleGroup);
     private final ColorSetting healthColor = setting(new ColorSetting("health-color", "Health Color", 0xFFFF5555)).group(styleGroup);
+    private final ColorSetting absorptionColor = setting(new ColorSetting("absorption-color", "Absorption Color", 0xFFFFAA00)).group(styleGroup);
     private final ColorSetting healthBarBackgroundColor = setting(new ColorSetting("health-bar-background-color", "Health Bar Background Color", 0x60202020)).group(styleGroup);
     private final ColorSetting backgroundColor = setting(new ColorSetting("background-color", "Background Color", 0xA0101010)).group(styleGroup);
     private final DoubleSetting range = setting(new DoubleSetting("range", "Target Range", 16.0, 4.0, 64.0, 1.0)).group(contentGroup);
@@ -71,6 +72,7 @@ public final class CombatInfoModule extends Module {
         healthBarHeight.description("Thickness of the health indicator bar.");
         textColor.description("ARGB color used for informational text.");
         healthColor.description("ARGB color used for the health fill.");
+        absorptionColor.description("ARGB color used for the absorption segment of the target health bar.");
         healthBarBackgroundColor.description("ARGB color used for the health bar track.");
         backgroundColor.description("ARGB color used for the panel background.");
     }
@@ -95,6 +97,7 @@ public final class CombatInfoModule extends Module {
     public boolean background() { return background.enabled(); }
     public int textColor() { return textColor.get(); }
     public int healthColor() { return healthColor.get(); }
+    public int absorptionColor() { return absorptionColor.get(); }
     public int healthBarBackgroundColor() { return healthBarBackgroundColor.get(); }
     public int backgroundColor() { return backgroundColor.get(); }
     public double range() { return range.get(); }
@@ -104,6 +107,19 @@ public final class CombatInfoModule extends Module {
     public int padding() { return (int) Math.round(padding.get()); }
     public int rowGap() { return (int) Math.round(rowGap.get()); }
     public int healthBarHeight() { return (int) Math.round(healthBarHeight.get()); }
+
+    public record HealthBarSegments(float health, float absorption) {}
+
+    /** Fractions of a health bar reserved for health then absorption, both clamped to [0, 1]. */
+    public static HealthBarSegments healthBarSegments(float health, float maxHealth, float absorption) {
+        float maximum = Float.isFinite(maxHealth) && maxHealth > 0.0f ? maxHealth : 0.0f;
+        if (maximum == 0.0f) return new HealthBarSegments(0.0f, 0.0f);
+        float safeHealth = Float.isFinite(health) ? Math.max(0.0f, health) : 0.0f;
+        float safeAbsorption = Float.isFinite(absorption) ? Math.max(0.0f, absorption) : 0.0f;
+        float healthFraction = Math.min(1.0f, safeHealth / maximum);
+        float combinedFraction = Math.min(1.0f, (safeHealth + safeAbsorption) / maximum);
+        return new HealthBarSegments(healthFraction, Math.max(0.0f, combinedFraction - healthFraction));
+    }
 
     public record EffectSnapshot(String name, int amplifier, int durationTicks) {}
 
