@@ -8,6 +8,7 @@ public final class InventoryInfoModule extends Module {
     private int capacity;
     private int selectedSlot;
     private String selectedItem = "Empty";
+    private int selectedCount;
 
     public InventoryInfoModule() {
         super("inventory-info", "Inventory Info", Category.PLAYER,
@@ -21,6 +22,7 @@ public final class InventoryInfoModule extends Module {
             capacity = 0;
             selectedSlot = 0;
             selectedItem = "Empty";
+            selectedCount = 0;
             return;
         }
         var inventory = client.player.getInventory();
@@ -32,6 +34,7 @@ public final class InventoryInfoModule extends Module {
         selectedSlot = inventory.getSelectedSlot() + 1;
         var stack = client.player.getMainHandItem();
         selectedItem = stack.isEmpty() ? "Empty" : stack.getHoverName().getString();
+        selectedCount = stack.isEmpty() ? 0 : stack.getCount();
     }
 
     public int occupied() { return occupied; }
@@ -39,13 +42,19 @@ public final class InventoryInfoModule extends Module {
     public int selectedSlot() { return selectedSlot; }
     public String selectedItem() { return selectedItem; }
     public String formatted() { return "Inventory " + occupied + "/" + capacity; }
-    public String formattedDetails() { return formatDetails(occupied, capacity, selectedSlot, selectedItem); }
+    public String formattedDetails() { return formatDetails(occupied, capacity, selectedSlot, selectedItem, selectedCount); }
 
     public static String formatDetails(int occupied, int capacity, int selectedSlot, String selectedItem) {
+        return formatDetails(occupied, capacity, selectedSlot, selectedItem, 0);
+    }
+
+    public static String formatDetails(int occupied, int capacity, int selectedSlot, String selectedItem, int selectedCount) {
         int safeCapacity = Math.max(0, capacity);
         int safeOccupied = Math.max(0, Math.min(safeCapacity, occupied));
         String slot = selectedSlot <= 0 ? "—" : Integer.toString(selectedSlot);
         String item = selectedItem == null || selectedItem.isBlank() ? "Empty" : selectedItem.trim();
+        int safeCount = Math.max(0, selectedCount);
+        if (!item.equals("Empty") && safeCount > 0) item += " ×" + safeCount;
         return "Inventory " + safeOccupied + "/" + safeCapacity + "  Free " + (safeCapacity - safeOccupied)
                 + "  Slot " + slot + ": " + item;
     }
