@@ -19,6 +19,7 @@ import io.arson.client.module.PlayerVitalsModule;
 import io.arson.client.module.PlayerVelocityInfoModule;
 import io.arson.client.module.PlayerInputInfoModule;
 import io.arson.client.module.PlayerInteractionInfoModule;
+import io.arson.client.module.PlayerDetectionModule;
 import io.arson.client.module.WorldEntityCountInfoModule;
 import io.arson.client.module.RenderGuiInfoModule;
 import io.arson.client.module.PlayerAirInfoModule;
@@ -64,6 +65,7 @@ public final class HudRenderer {
         PlayerVelocityInfoModule velocityInfo = (PlayerVelocityInfoModule) ArsonClient.getInstance().modules().get("player-velocity-info");
         PlayerInputInfoModule inputInfo = (PlayerInputInfoModule) ArsonClient.getInstance().modules().get("player-input-info");
         PlayerInteractionInfoModule interactionInfo = (PlayerInteractionInfoModule) ArsonClient.getInstance().modules().get("player-interaction-info");
+        PlayerDetectionModule playerDetection = (PlayerDetectionModule) ArsonClient.getInstance().modules().get("player-detection");
         WorldEntityCountInfoModule entityCountInfo = (WorldEntityCountInfoModule) ArsonClient.getInstance().modules().get("world-entity-count-info");
         RenderGuiInfoModule guiInfo = (RenderGuiInfoModule) ArsonClient.getInstance().modules().get("render-gui-info");
         PlayerEquipmentModule equipment = (PlayerEquipmentModule) ArsonClient.getInstance().modules().get("player-equipment");
@@ -126,6 +128,7 @@ public final class HudRenderer {
             if (inputInfo != null && inputInfo.enabled()) rows.add(inputInfo.formatted());
             if (interactionInfo != null && interactionInfo.enabled()) rows.add(interactionInfo.formatted());
             if (airInfo != null && airInfo.enabled()) rows.add(airInfo.formatted());
+            if (playerDetection != null && playerDetection.enabled()) rows.addAll(playerDetection.formattedLines());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
         if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
