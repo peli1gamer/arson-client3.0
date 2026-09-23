@@ -30,11 +30,11 @@ class HudRowFormatterTest {
     void compactUsesCustomSeparatorAndFlattensLineBreaks() {
         assertEquals(
             List.of(new HudRowFormatter.Row("Health 20 · Food 18", "")),
-            HudRowFormatter.format(List.of("Health 20", "Food 18"), HudModule.RowFormat.COMPACT, " |\n| ")
+            HudRowFormatter.format(List.of("Health 20", "Food 18"), HudModule.RowFormat.COMPACT, " · ")
         );
         assertEquals(
             List.of(new HudRowFormatter.Row("Health 20 | | Food 18", "")),
-            HudRowFormatter.format(List.of("Health 20", "Food 18"), HudModule.RowFormat.COMPACT, " \n ")
+            HudRowFormatter.format(List.of("Health 20", "Food 18"), HudModule.RowFormat.COMPACT, " |\n| ")
         );
         assertEquals(
             HudRowFormatter.format(List.of("Health 20", "Food 18"), HudModule.RowFormat.COMPACT),
