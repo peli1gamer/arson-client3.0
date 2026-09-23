@@ -108,6 +108,23 @@ public final class ArsonApi {
         }
         return false;
     }
+    public static Optional<HudModule.ElementRowFormat> hudElementRowFormat(String element) {
+        if (ArsonClient.getInstance() == null || element == null) return Optional.empty();
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof HudModule hud)) return Optional.empty();
+        return switch (element.trim().toLowerCase(Locale.ROOT)) {
+            case "player-info" -> Optional.of(hud.playerInfoRowFormat());
+            case "world-info" -> Optional.of(hud.worldInfoRowFormat());
+            default -> Optional.empty();
+        };
+    }
+    public static boolean setHudElementRowFormat(String element, HudModule.ElementRowFormat format) {
+        if (ArsonClient.getInstance() == null || element == null || format == null) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof HudModule hud)) return false;
+        try { hud.setElementRowFormat(element.trim().toLowerCase(Locale.ROOT), format); save(); return true; }
+        catch (IllegalArgumentException ignored) { return false; }
+    }
     public static int categoryCount(Module.Category category) { return ArsonClient.getInstance() == null || category == null ? 0 : ArsonClient.getInstance().modules().categoryCount(category); }
     public static int enabledCount() { return ArsonClient.getInstance() == null ? 0 : ArsonClient.getInstance().modules().enabledCount(); }
     public static int enabledCount(Module.Category category) { return ArsonClient.getInstance() == null || category == null ? 0 : ArsonClient.getInstance().modules().enabledCount(category); }
