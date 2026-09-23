@@ -120,7 +120,10 @@ public final class HudRenderer {
                 rows.add(playerVitals.formattedExperience()); rows.add(playerVitals.formattedAir());
                 rows.add("State " + (playerVitals.sprinting() ? "Sprinting" : "Walking") + (playerVitals.sneaking() ? "  Sneaking" : ""));
             }
-            if (equipment != null && equipment.enabled()) rows.add(equipment.formatted());
+            if (equipment != null && equipment.enabled()) {
+                rows.add(equipment.formatted());
+                rows.add(equipment.formattedArmorSlots());
+            }
             if (experienceInfo != null && experienceInfo.enabled()) rows.add(experienceInfo.formatted());
             if (effectInfo != null && effectInfo.enabled()) rows.add(effectInfo.formatted());
             if (movementInfo != null && movementInfo.enabled()) rows.add(movementInfo.formatted());
