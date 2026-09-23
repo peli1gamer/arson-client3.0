@@ -12,6 +12,14 @@ public final class HudRowFormatter {
 
     private HudRowFormatter() {}
 
+    /** Calculates the pixel width needed by a formatted two-column row. */
+    public static int columnWidth(Row row, int firstColumnWidth, int secondColumnWidth, int gap) {
+        if (row == null) return 0;
+        int first = Math.max(0, firstColumnWidth);
+        if (!row.hasSecond()) return first;
+        return first + Math.max(0, gap) + Math.max(0, secondColumnWidth);
+    }
+
     public static List<Row> format(List<String> values, HudModule.RowFormat format) {
         if (values == null || values.isEmpty()) return List.of();
         List<String> safe = values.stream().map(value -> value == null ? "" : value).toList();
