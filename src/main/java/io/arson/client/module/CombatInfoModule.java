@@ -20,6 +20,7 @@ public final class CombatInfoModule extends Module {
     private final BooleanSetting showTargetItem = setting(new BooleanSetting("show-target-item", "Show Target Item", true)).group(contentGroup);
     private final BooleanSetting showDurability = setting(new BooleanSetting("show-durability", "Show Durability", true)).group(contentGroup);
     private final BooleanSetting showTargetDurability = setting(new BooleanSetting("show-target-durability", "Show Target Durability", true)).group(contentGroup);
+    private final BooleanSetting showTargetEquipment = setting(new BooleanSetting("show-target-equipment", "Show Target Equipment", true)).group(contentGroup);
     private final BooleanSetting showAttackCooldown = setting(new BooleanSetting("show-attack-cooldown", "Show Attack Cooldown", true)).group(contentGroup);
     private final BooleanSetting showDistance = setting(new BooleanSetting("show-distance", "Show Distance", true)).group(contentGroup);
     private final BooleanSetting showHealth = setting(new BooleanSetting("show-health", "Show Health", true)).group(contentGroup);
@@ -52,6 +53,7 @@ public final class CombatInfoModule extends Module {
         showHeldItem.description("Display your own selected hotbar item.");
         showTargetItem.description("Display the selected entity’s main-hand item when available.");
         showTargetDurability.description("Display remaining durability for the selected entity’s held item when available.");
+        showTargetEquipment.description("Display the selected entity’s armor-slot durability and offhand item.");
         showDurability.description("Display held-item durability when the item has durability.");
         showAttackCooldown.description("Display your local attack cooldown progress.");
         showDistance.description("Display distance from you to the selected entity.");
@@ -85,6 +87,7 @@ public final class CombatInfoModule extends Module {
     public boolean showTargetItem() { return showTargetItem.enabled(); }
     public boolean showDurability() { return showDurability.enabled(); }
     public boolean showTargetDurability() { return showTargetDurability.enabled(); }
+    public boolean showTargetEquipment() { return showTargetEquipment.enabled(); }
     public boolean showAttackCooldown() { return showAttackCooldown.enabled(); }
     public boolean showDistance() { return showDistance.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
@@ -119,6 +122,19 @@ public final class CombatInfoModule extends Module {
         float healthFraction = Math.min(1.0f, safeHealth / maximum);
         float combinedFraction = Math.min(1.0f, (safeHealth + safeAbsorption) / maximum);
         return new HealthBarSegments(healthFraction, Math.max(0.0f, combinedFraction - healthFraction));
+    }
+
+    public static List<String> formatTargetEquipment(int helmet, int chestplate, int leggings, int boots,
+                                                       String offhand) {
+        String armor = "Target armor H " + slotPercent(helmet) + " C " + slotPercent(chestplate)
+                + " L " + slotPercent(leggings) + " F " + slotPercent(boots);
+        String item = offhand == null || offhand.isBlank() ? "Empty" : offhand.replaceAll("\\s+", " ").trim();
+        if (item.length() > 32) item = item.substring(0, 31) + "…";
+        return List.of(armor, "Target offhand " + item);
+    }
+
+    private static String slotPercent(int value) {
+        return value < 0 ? "—" : Math.max(0, Math.min(100, value)) + "%";
     }
 
     public record EffectSnapshot(String name, int amplifier, int durationTicks) {}
