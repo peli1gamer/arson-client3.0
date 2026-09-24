@@ -51,6 +51,27 @@ class ModuleControlTest {
     }
 
     @Test
+    void snapshotExposesTypedStateAndRepresentsClearedKeybind() {
+        ModuleManager manager = modules();
+        Module module = manager.get("hud");
+
+        var initial = ModuleControl.snapshot(manager, "hud").orElseThrow();
+        assertEquals("hud", initial.id());
+        assertFalse(initial.enabled());
+        assertFalse(initial.favorite());
+        assertEquals(0, initial.keyCode());
+        assertFalse(initial.hasKeybind());
+        assertEquals(module.settings().size(), initial.settingCount());
+        assertEquals(java.util.Optional.empty(), ModuleControl.snapshot(manager, "unknown"));
+        
+        assertTrue(ModuleControl.setKeyCode(manager, "hud", 75));
+        var bound = ModuleControl.snapshot(manager, "hud").orElseThrow();
+        assertTrue(bound.hasKeybind());
+        assertEquals(75, bound.keyCode());
+        assertTrue(bound.formatted().contains("keybind=75"));
+    }
+
+    @Test
     void statusReportsCurrentStateWithoutMutatingIt() {
         ModuleManager manager = modules();
         Module module = manager.get("hud");
