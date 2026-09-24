@@ -47,6 +47,25 @@ class ConfigPersistenceTest {
     }
 
     @Test
+    void combatAbsorptionBarColorSurvivesConfigReload() throws Exception {
+        Path config = Files.createTempFile("arson-combat-style", ".json");
+        ModuleManager source = new ModuleManager();
+        source.registerDefaults();
+        var sourceCombat = source.get("combat-info");
+        var sourceColor = (io.arson.client.settings.ColorSetting) sourceCombat.settings().stream()
+                .filter(setting -> setting.id().equals("absorption-color")).findFirst().orElseThrow();
+        sourceColor.set(0xFFCCAA22);
+        ConfigManager.saveToPath(config, source);
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        assertTrue(ConfigManager.loadFromPath(config, loaded));
+        var loadedColor = (io.arson.client.settings.ColorSetting) loaded.get("combat-info").settings().stream()
+                .filter(setting -> setting.id().equals("absorption-color")).findFirst().orElseThrow();
+        assertEquals(0xFFCCAA22, loadedColor.get());
+    }
+
+    @Test
     void profileCopyAndRenamePreserveFilesAndNeverOverwrite() throws Exception {
         Path dir = Files.createTempDirectory("arson-profile-ops");
         Path source = dir.resolve("source.json");
