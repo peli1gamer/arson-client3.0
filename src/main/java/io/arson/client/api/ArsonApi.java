@@ -171,5 +171,11 @@ public final class ArsonApi {
         return ModuleControl.status(ArsonClient.getInstance().modules(), id);
     }
 
+    /** Typed module state snapshot for addon integrations. */
+    public static Optional<ModuleControl.Snapshot> moduleState(String id) {
+        if (ArsonClient.getInstance() == null) return Optional.empty();
+        return ModuleControl.snapshot(ArsonClient.getInstance().modules(), id);
+    }
+
     public static void save() { if (ArsonClient.getInstance() != null) ArsonClient.getInstance().saveConfig(); }
 }
