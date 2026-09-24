@@ -14,12 +14,14 @@ class CombatInfoPresentationTest {
         assertTrue(module.showEffects());
         assertTrue(module.showTargetItem());
         assertTrue(module.showTargetDurability());
+        assertTrue(module.showTargetEquipment());
         assertEquals(4, module.effectLimit());
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-absorption")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-armor")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-effects")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-item")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-durability")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-equipment")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("absorption-color")));
         assertEquals(0xFFFFAA00, module.absorptionColor());
         var limit = (io.arson.client.settings.DoubleSetting) module.settings().stream()
@@ -37,16 +39,20 @@ class CombatInfoPresentationTest {
                 .filter(setting -> setting.id().equals("show-target-item")).findFirst().orElseThrow();
         var targetDurability = (io.arson.client.settings.BooleanSetting) module.settings().stream()
                 .filter(setting -> setting.id().equals("show-target-durability")).findFirst().orElseThrow();
+        var targetEquipment = (io.arson.client.settings.BooleanSetting) module.settings().stream()
+                .filter(setting -> setting.id().equals("show-target-equipment")).findFirst().orElseThrow();
         absorption.set(false);
         armor.set(false);
         effects.set(false);
         targetItem.set(false);
         targetDurability.set(false);
+        targetEquipment.set(false);
         assertFalse(module.showAbsorption());
         assertFalse(module.showArmor());
         assertFalse(module.showEffects());
         assertFalse(module.showTargetItem());
         assertFalse(module.showTargetDurability());
+        assertFalse(module.showTargetEquipment());
     }
 
     @Test
@@ -61,6 +67,18 @@ class CombatInfoPresentationTest {
         assertTrue(CombatInfoModule.formatEffects(effects, 0).isEmpty());
         assertEquals("Strength 2 1:05", CombatInfoModule.formatEffect("Strength", 1, 1300));
         assertEquals("Unknown 1 ∞", CombatInfoModule.formatEffect(" ", -1, -1));
+    }
+
+    @Test
+    void targetEquipmentRowsFormatMissingDurabilityAndSanitizeLongOffhandNames() {
+        assertEquals(java.util.List.of(
+                        "Target armor H 100% C — L 0% F 52%",
+                        "Target offhand Totem of Undying"),
+                CombatInfoModule.formatTargetEquipment(100, -1, -4, 52, "Totem of Undying"));
+        assertEquals("Target offhand Empty",
+                CombatInfoModule.formatTargetEquipment(-1, -1, -1, -1, " ").get(1));
+        assertEquals(32, CombatInfoModule.formatTargetEquipment(0, 0, 0, 0,
+                "An intentionally extremely long offhand item display name").get(1).substring("Target offhand ".length()).length());
     }
 
     @Test
