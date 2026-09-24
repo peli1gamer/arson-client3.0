@@ -34,13 +34,23 @@ public final class ModuleControl {
         return true;
     }
 
-    public static java.util.Optional<String> status(ModuleManager modules, String id) {
+    public record Snapshot(String id, boolean enabled, boolean favorite, int keyCode, int settingCount) {
+        public boolean hasKeybind() { return keyCode != 0; }
+        public String formatted() {
+            return id + " enabled=" + enabled + " favorite=" + favorite
+                    + " keybind=" + (hasKeybind() ? keyCode : "none") + " settings=" + settingCount;
+        }
+    }
+
+    public static java.util.Optional<Snapshot> snapshot(ModuleManager modules, String id) {
         Module module = find(modules, id);
         if (module == null) return java.util.Optional.empty();
-        String keybind = module.hasKeybind() ? Integer.toString(module.keyCode()) : "none";
-        return java.util.Optional.of(module.id() + " enabled=" + module.enabled()
-                + " favorite=" + module.favorite() + " keybind=" + keybind
-                + " settings=" + module.settings().size());
+        return java.util.Optional.of(new Snapshot(module.id(), module.enabled(), module.favorite(),
+                module.keyCode(), module.settings().size()));
+    }
+
+    public static java.util.Optional<String> status(ModuleManager modules, String id) {
+        return snapshot(modules, id).map(Snapshot::formatted);
     }
 
     private static Module find(ModuleManager modules, String id) {
