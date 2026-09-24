@@ -6,6 +6,7 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.Mob;
@@ -44,6 +45,14 @@ public final class CombatInfoRenderer {
         }
         if (target != null && module.showArmor()) {
             rows.add(CombatInfoModule.formatArmor(target.getArmorValue()));
+        }
+        if (target != null && module.showTargetEquipment()) {
+            rows.addAll(CombatInfoModule.formatTargetEquipment(
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.HEAD)),
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.CHEST)),
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.LEGS)),
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.FEET)),
+                    target.getOffhandItem().isEmpty() ? "Empty" : target.getOffhandItem().getHoverName().getString()));
         }
         if (target != null && module.showEffects()) {
             var effects = target.getActiveEffects().stream()
@@ -113,6 +122,13 @@ public final class CombatInfoRenderer {
             }
         }
         graphics.pose().popMatrix();
+    }
+
+    private static int durabilityPercent(ItemStack stack) {
+        if (stack.isEmpty()) return -1;
+        if (!stack.isDamageableItem() || stack.getMaxDamage() <= 0) return 100;
+        int remaining = stack.getMaxDamage() - stack.getDamageValue();
+        return Math.max(0, Math.min(100, Math.round(remaining * 100.0f / stack.getMaxDamage())));
     }
 
     private static LivingEntity findTarget(Minecraft client, CombatInfoModule module) {
