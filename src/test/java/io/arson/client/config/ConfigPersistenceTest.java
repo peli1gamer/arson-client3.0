@@ -55,6 +55,9 @@ class ConfigPersistenceTest {
         var sourceColor = (io.arson.client.settings.ColorSetting) sourceCombat.settings().stream()
                 .filter(setting -> setting.id().equals("absorption-color")).findFirst().orElseThrow();
         sourceColor.set(0xFFCCAA22);
+        var sourceEquipmentSetting = (io.arson.client.settings.BooleanSetting) sourceCombat.settings().stream()
+                .filter(setting -> setting.id().equals("show-target-equipment")).findFirst().orElseThrow();
+        sourceEquipmentSetting.set(false);
         ConfigManager.saveToPath(config, source);
 
         ModuleManager loaded = new ModuleManager();
@@ -63,6 +66,9 @@ class ConfigPersistenceTest {
         var loadedColor = (io.arson.client.settings.ColorSetting) loaded.get("combat-info").settings().stream()
                 .filter(setting -> setting.id().equals("absorption-color")).findFirst().orElseThrow();
         assertEquals(0xFFCCAA22, loadedColor.get());
+        var loadedEquipmentSetting = (io.arson.client.settings.BooleanSetting) loaded.get("combat-info").settings().stream()
+                .filter(setting -> setting.id().equals("show-target-equipment")).findFirst().orElseThrow();
+        assertFalse(loadedEquipmentSetting.enabled());
     }
 
     @Test
