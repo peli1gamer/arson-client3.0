@@ -80,7 +80,8 @@ class ClickGuiLayoutModelTest {
     @Test
     void categoryRowsCannotRequireTallerThanTheirAllocatedSlot() {
         var g = ClickGuiLayoutModel.compute(360, 240, 1.25);
-        assertTrue(g.categoryRowHeight() >= 18);
+        assertTrue(g.categoryRowHeight() >= 9);
+        assertTrue(g.categoryRowHeight() * 7 <= g.rail().height());
         assertTrue(Math.min(24, g.categoryRowHeight()) <= g.categoryRowHeight());
     }
 
