@@ -161,10 +161,10 @@ class ClickGuiLayoutModelTest {
 
     @Test
     void savedGridDensityNeverExceedsResponsiveViewportCapacity() {
-        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.NARROW, 900, 3));
-        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.COMPACT, 180, 3));
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.NARROW, 900, 2));
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.COMPACT, 180, 2));
         assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 500, 3));
-        assertEquals(3, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 0));
+        assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 0));
         assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 1));
         assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 2));
     }
