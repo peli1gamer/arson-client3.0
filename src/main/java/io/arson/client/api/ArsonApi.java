@@ -10,6 +10,7 @@ import io.arson.client.module.ModuleControl;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingValueParser;
 import io.arson.client.module.ServerInfoModule;
+import io.arson.client.module.WaypointInfoModule;
 import java.util.List;
 import java.util.Optional;
 import java.util.Locale;
@@ -17,6 +18,7 @@ import java.util.Locale;
 /** Stable public facade for addons that need Arson module discovery/control. */
 public final class ArsonApi {
     public record HudPosition(int x, int y) {}
+    public record WaypointSnapshot(String label, double x, double y, double z, double distance, String formatted) {}
     private ArsonApi() {}
     public static String moduleSummary(Module.Category category) {
         if (ArsonClient.getInstance() == null || category == null) return "";
@@ -79,6 +81,16 @@ public final class ArsonApi {
         return module("server-info").filter(ServerInfoModule.class::isInstance)
                 .map(ServerInfoModule.class::cast).map(ServerInfoModule::formatted)
                 .orElse("Server info unavailable");
+    }
+
+    /** Read-only waypoint telemetry for the HUD, commands, and addons. */
+    public static Optional<WaypointSnapshot> waypointSnapshot() {
+        return module("waypoint-info")
+                .filter(WaypointInfoModule.class::isInstance)
+                .map(WaypointInfoModule.class::cast)
+                .filter(Module::enabled)
+                .map(waypoint -> new WaypointSnapshot(waypoint.label(), waypoint.x(), waypoint.y(), waypoint.z(),
+                        waypoint.distance(), waypoint.formatted()));
     }
     public static List<String> profiles() {
         return ArsonClient.getInstance() == null ? List.of() : ConfigManager.listProfiles(Minecraft.getInstance());
