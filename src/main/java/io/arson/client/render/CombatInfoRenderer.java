@@ -63,6 +63,13 @@ public final class CombatInfoRenderer {
             rows.addAll(CombatInfoModule.formatEffects(effects, module.effectLimit()));
         }
         if (target != null && module.showDistance()) rows.add("Distance " + format((float) client.player.distanceTo(target)) + "m");
+        if (target != null && module.showLookOffset()) {
+            CombatInfoModule.LookOffset offset = CombatInfoModule.lookOffset(
+                    client.player.getX(), client.player.getEyeY(), client.player.getZ(),
+                    client.player.getYRot(), client.player.getXRot(),
+                    target.getX(), target.getEyeY(), target.getZ());
+            rows.add(CombatInfoModule.formatLookOffset(offset.yaw(), offset.pitch()));
+        }
         if (module.showHeldItem()) rows.add("Held " + weapon);
         if (target != null && (module.showTargetItem() || module.showTargetDurability())) {
             ItemStack targetHeld = target.getMainHandItem();
