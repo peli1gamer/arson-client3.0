@@ -160,6 +160,16 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void savedGridDensityNeverExceedsResponsiveViewportCapacity() {
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.NARROW, 900, 3));
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.COMPACT, 180, 3));
+        assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 500, 3));
+        assertEquals(3, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 0));
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 1));
+        assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 2));
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));
