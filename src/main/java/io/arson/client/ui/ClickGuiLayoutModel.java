@@ -122,7 +122,7 @@ public final class ClickGuiLayoutModel {
     /** Resolves saved grid density against the current viewport; narrow layouts always remain single-column. */
     public static int effectiveColumns(Mode mode, int contentWidth, int requestedColumns) {
         if (mode == Mode.NARROW) return 1;
-        int available = Math.max(1, Math.min(3, (Math.max(0, contentWidth) + 8) / 220));
+        int available = Math.max(1, Math.min(2, (Math.max(0, contentWidth) + 8) / 220));
         return requestedColumns <= 0 ? available : Math.min(available, Math.max(1, requestedColumns));
     }
 
