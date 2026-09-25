@@ -45,7 +45,7 @@ public abstract class Module {
     public boolean hasKeybind() { return keyCode > 0; }
     public List<Setting<?>> settings() { return Collections.unmodifiableList(settings); }
     public enum Category {
-        COMBAT("Combat"), MOVEMENT("Movement"), RENDER("Render"), PLAYER("Player"), WORLD("World"), MISC("Misc");
+        COMBAT("Combat"), MOVEMENT("Movement"), PLAYER("Player"), RENDER("Visuals"), WORLD("World"), DONUTSMP("DonutSMP"), MISC("Misc");
         private final String displayName;
         Category(String displayName) { this.displayName = displayName; }
         public String displayName() { return displayName; }
