@@ -52,3 +52,19 @@ class HudPersistenceTest {
         assertFalse(hud.showWorldInfo());
     }
 }
+
+    class HudWidgetPositionTest {
+@Test
+    void widgetPositionsAreReadableAndRespectSnapAndNonNegativeBounds() {
+        HudModule hud = new HudModule();
+        hud.setEditorPosition("player-info", 31, 43);
+        assertEquals(32, hud.elementX("player-info"));
+        assertEquals(44, hud.elementY("player-info"));
+
+        hud.setGridSnap(false);
+        hud.setEditorPosition("world-info", -5, 17);
+        assertEquals(0, hud.elementX("world-info"));
+        assertEquals(17, hud.elementY("world-info"));
+        assertThrows(IllegalArgumentException.class, () -> hud.elementX("unknown"));
+    }
+}

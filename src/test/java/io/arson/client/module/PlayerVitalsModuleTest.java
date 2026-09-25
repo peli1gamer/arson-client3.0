@@ -13,6 +13,10 @@ class PlayerVitalsModuleTest {
         assertTrue(module.description().contains("health"));
         assertEquals(0, module.level());
         assertEquals(0, module.totalExperience());
+        assertEquals(0.0f, module.absorption());
+        assertEquals(0.0f, module.exhaustion());
+        assertEquals("Saturation 0.0  Exhaustion 0.0", module.formattedFoodState());
+        assertEquals("Absorption 0.0  Armor 0", module.formattedDefense());
         assertEquals("Air 0/0", module.formattedAir());
         assertTrue(module.formattedExperience().contains("Level 0"));
         assertFalse(module.sprinting());

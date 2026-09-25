@@ -1,5 +1,6 @@
 package io.arson.client.module;
 
+import io.arson.client.accessor.FoodDataAccessor;
 import net.minecraft.client.Minecraft;
 
 /** Tracks live local player vitals for HUD and addon presentation. */
@@ -8,6 +9,8 @@ public final class PlayerVitalsModule extends Module {
     private float maxHealth;
     private int hunger;
     private float saturation;
+    private float exhaustion;
+    private float absorption;
     private int armor;
     private int air;
     private int maxAir;
@@ -19,7 +22,7 @@ public final class PlayerVitalsModule extends Module {
 
     public PlayerVitalsModule() {
         super("player-vitals", "Player Vitals", Category.PLAYER,
-                "Tracks live local health, food, saturation, armor, air, experience, sprint, and sneak state for HUD presentation.");
+                "Tracks live local health, food, saturation, exhaustion, absorption, armor, air, experience, sprint, and sneak state for HUD presentation.");
     }
 
     @Override
@@ -29,6 +32,8 @@ public final class PlayerVitalsModule extends Module {
             maxHealth = 0;
             hunger = 0;
             saturation = 0;
+            exhaustion = 0;
+            absorption = 0;
             armor = 0;
             air = 0;
             maxAir = 0;
@@ -44,6 +49,8 @@ public final class PlayerVitalsModule extends Module {
         maxHealth = player.getMaxHealth();
         hunger = player.getFoodData().getFoodLevel();
         saturation = player.getFoodData().getSaturationLevel();
+        exhaustion = ((FoodDataAccessor) player.getFoodData()).arson$getExhaustionLevel();
+        absorption = player.getAbsorptionAmount();
         armor = player.getArmorValue();
         air = player.getAirSupply();
         maxAir = player.getMaxAirSupply();
@@ -58,6 +65,8 @@ public final class PlayerVitalsModule extends Module {
     public float maxHealth() { return maxHealth; }
     public int hunger() { return hunger; }
     public float saturation() { return saturation; }
+    public float exhaustion() { return exhaustion; }
+    public float absorption() { return absorption; }
     public int armor() { return armor; }
     public int air() { return air; }
     public int maxAir() { return maxAir; }
@@ -73,5 +82,13 @@ public final class PlayerVitalsModule extends Module {
 
     public String formattedAir() {
         return "Air " + air + "/" + maxAir;
+    }
+
+    public String formattedFoodState() {
+        return String.format(java.util.Locale.ROOT, "Saturation %.1f  Exhaustion %.1f", saturation, exhaustion);
+    }
+
+    public String formattedDefense() {
+        return String.format(java.util.Locale.ROOT, "Absorption %.1f  Armor %d", absorption, armor);
     }
 }

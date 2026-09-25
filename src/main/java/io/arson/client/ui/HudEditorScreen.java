@@ -46,6 +46,7 @@ public final class HudEditorScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Reset Selected"),b->{resetSelected();save();rebuild();}).bounds(748,y,105,22).build());
         addRenderableWidget(Button.builder(Component.literal("Select All"),b->{selection.replace(Set.of(ELEMENTS));rebuild();}).bounds(10,106,85,22).build());
         addRenderableWidget(Button.builder(Component.literal("Clear Selection"),b->{selection.clear();rebuild();}).bounds(100,106,100,22).build());
+        addRenderableWidget(Button.builder(Component.literal(formatLabel()),b->{cycleRowFormat();save();rebuild();}).bounds(205,106,145,22).build());
         addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(width-85,height-30,75,22).build());
     }
     private void rebuild(){clearWidgets();init();}
@@ -60,16 +61,37 @@ public final class HudEditorScreen extends Screen {
     private void adjustScale(double delta){for(String e:selection.elements()){if("array-list".equals(e)){if(arrayList!=null)arrayList.adjustScale(delta);continue;}for(Setting<?> setting:hud.settings())if(setting instanceof DoubleSetting d&&d.id().equals(e+"-scale"))d.set(d.get()+delta);}}
     private void toggleBackground(){for(String e:selection.elements()){if("array-list".equals(e)){if(arrayList!=null)arrayList.toggleBackground();continue;}for(Setting<?> setting:hud.settings())if(setting instanceof BooleanSetting b&&b.id().equals(e+"-background"))b.set(!b.enabled());}}
     private void cycleAlignment(){for(String e:selection.elements())if(!"array-list".equals(e))hud.cycleAlignment(e);}
-    private void resetSelected(){for(String e:selection.elements())if("array-list".equals(e)){if(arrayList!=null)arrayList.resetSettings();}else{hud.resetElement(e);if(layout!=null)layout.resetElement(e);}}
+    private void resetSelected(){
+        for(String e:selection.elements())if("array-list".equals(e)){if(arrayList!=null)arrayList.resetSettings();}
+        else{hud.resetElement(e);if(layout!=null)layout.resetElement(e);if(supportsRowFormat(e))hud.setElementRowFormat(e,HudModule.ElementRowFormat.INHERIT);}
+    }
+    private boolean supportsRowFormat(String element){return "player-info".equals(element)||"world-info".equals(element);}
+    private HudModule.ElementRowFormat rowFormatOverride(String element){return switch(element){case "player-info"->hud.playerInfoRowFormat();case "world-info"->hud.worldInfoRowFormat();default->null;};}
+    private String formatLabel(){
+        HudModule.ElementRowFormat common=null;
+        for(String e:selection.elements())if(supportsRowFormat(e)){
+            HudModule.ElementRowFormat current=rowFormatOverride(e);
+            if(common==null)common=current;else if(common!=current)return "Format: Mixed";
+        }
+        if(common==null)return "Format: —";
+        return "Format: "+switch(common){case INHERIT->"Inherit";case STACKED->"Stacked";case COMPACT->"Compact";case DENSE->"Dense";case TWO_COLUMN->"Two Col";};
+    }
+    private void cycleRowFormat(){
+        HudModule.ElementRowFormat[] values=HudModule.ElementRowFormat.values();
+        for(String e:selection.elements())if(supportsRowFormat(e)){
+            HudModule.ElementRowFormat current=rowFormatOverride(e);
+            hud.setElementRowFormat(e,values[(current.ordinal()+1)%values.length]);
+        }
+    }
     private void save(){if(minecraft!=null)ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}
     private double[] position(String e){if("array-list".equals(e))return new double[]{arrayList.x(),arrayList.y()};if(layout==null)return switch(e){case "coordinates"->new double[]{hud.coordinatesX(),hud.coordinatesY()};case "fps"->new double[]{hud.fpsX(),hud.fpsY()};case "player-info"->new double[]{hud.playerInfoX(),hud.playerInfoY()};case "world-info"->new double[]{hud.worldInfoX(),hud.worldInfoY()};default->new double[]{hud.x(),hud.y()};};return layout.resolve(e,width,height,190,hud.scale()*hud.elementScale(e)*35);}
     private void setPosition(String e,double x,double y){if("array-list".equals(e)){arrayList.setEditorPosition(x,y);return;}if(layout!=null)layout.setPositionPreservingAnchor(e,x,y,width,height,190,hud.scale()*hud.elementScale(e)*35);else hud.setEditorPosition(e,x,y);}
     private boolean hit(String e,double x,double y){if(!visible(e))return false;double[]p=position(e);double s="array-list".equals(e)?arrayList.scale():hud.scale()*hud.elementScale(e);return x>=p[0]-8&&x<=p[0]+190*s&&y>=p[1]-8&&y<=p[1]+35*s;}
-    private Snapshot snapshot(String e){if("array-list".equals(e)||hud==null)return null;double[]p=position(e);HudLayoutModule.Anchor anchor=layout==null?HudLayoutModule.Anchor.TOP_LEFT:layout.anchor(e);return new Snapshot(e,visible(e),p[0],p[1],hud.elementScale(e),hud.elementBackground(e),hud.elementAlignment(e),hud.elementColor(e),anchor);}
+    private Snapshot snapshot(String e){if("array-list".equals(e)||hud==null)return null;double[]p=position(e);HudLayoutModule.Anchor anchor=layout==null?HudLayoutModule.Anchor.TOP_LEFT:layout.anchor(e);HudModule.ElementRowFormat format=supportsRowFormat(e)?rowFormatOverride(e):null;return new Snapshot(e,visible(e),p[0],p[1],hud.elementScale(e),hud.elementBackground(e),hud.elementAlignment(e),hud.elementColor(e),anchor,format);}
     private void copySelected(){clipboard.clear();for(String e:selection.elements()){Snapshot s=snapshot(e);if(s!=null)clipboard.put(e,s);}}
     private void pasteSelected(){if(clipboard.isEmpty()||hud==null)return;List<Snapshot> values=new ArrayList<>(clipboard.values());for(String target:selection.elements()){if("array-list".equals(target))continue;Snapshot source=clipboard.get(target);if(source==null)source=values.get(0);if(source!=null&&HudClipboardCompatible.isCompatible(source.source,target))applySnapshot(target,source);}}
-    private void duplicateSelected(){if(selection.size()!=1)return;String source=selection.elements().iterator().next();Snapshot s=snapshot(source);if(s==null)return;for(String target:ELEMENTS){if(target.equals(source)||selection.contains(target)||"array-list".equals(target))continue;if(HudClipboardCompatible.isCompatible(source,target)){applySnapshot(target,new Snapshot(source,s.visible,s.x+12,s.y+12,s.scale,s.background,s.alignment,s.color,s.anchor));selection.select(target,false);break;}}}
-    private void applySnapshot(String e,Snapshot s){if(s==null||"array-list".equals(e))return;hud.setElementVisible(e,s.visible);if(layout!=null){layout.setAnchor(e,s.anchor);layout.setPositionPreservingAnchor(e,s.x,s.y,width,height,190,hud.scale()*s.scale*35);}else hud.setEditorPosition(e,s.x,s.y);for(Setting<?> setting:hud.settings()){
+    private void duplicateSelected(){if(selection.size()!=1)return;String source=selection.elements().iterator().next();Snapshot s=snapshot(source);if(s==null)return;for(String target:ELEMENTS){if(target.equals(source)||selection.contains(target)||"array-list".equals(target))continue;if(HudClipboardCompatible.isCompatible(source,target)){applySnapshot(target,new Snapshot(source,s.visible,s.x+12,s.y+12,s.scale,s.background,s.alignment,s.color,s.anchor,s.rowFormat));selection.select(target,false);break;}}}
+    private void applySnapshot(String e,Snapshot s){if(s==null||"array-list".equals(e))return;hud.setElementVisible(e,s.visible);if(supportsRowFormat(e)&&s.rowFormat!=null)hud.setElementRowFormat(e,s.rowFormat);if(layout!=null){layout.setAnchor(e,s.anchor);layout.setPositionPreservingAnchor(e,s.x,s.y,width,height,190,hud.scale()*s.scale*35);}else hud.setEditorPosition(e,s.x,s.y);for(Setting<?> setting:hud.settings()){
             if(setting instanceof DoubleSetting d&&d.id().equals(e+"-scale"))d.set(s.scale);
             else if(setting instanceof BooleanSetting b&&b.id().equals(e+"-background"))b.set(s.background);
             else if(setting instanceof ColorSetting c&&c.id().equals(e+"-color"))c.set(s.color);
@@ -82,7 +104,7 @@ public final class HudEditorScreen extends Screen {
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
     @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(0,0,width,height,0x66000000);graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);graphics.drawString(font,"Shift-click group | drag | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);for(String e:selection.elements())if(visible(e)){double[]p=position(e);int x=(int)p[0],y=(int)p[1];graphics.renderOutline(x-4,y-4,190,35,0xFF55AAFF);graphics.drawString(font,e,x,y+6,0xFFFFFFFF);}super.render(graphics,mouseX,mouseY,delta);}
     @Override public void onClose(){save();minecraft.setScreen(parent);}
-    private record Snapshot(String source,boolean visible,double x,double y,double scale,boolean background,String alignment,int color,HudLayoutModule.Anchor anchor){}
+    private record Snapshot(String source,boolean visible,double x,double y,double scale,boolean background,String alignment,int color,HudLayoutModule.Anchor anchor,HudModule.ElementRowFormat rowFormat){}
     static final class HudClipboardCompatible {
         private HudClipboardCompatible() {}
         static boolean isCompatible(String source,String target){return source!=null&&target!=null&&!source.equals("array-list")&&!target.equals("array-list")&&STANDARD.contains(source)&&STANDARD.contains(target);}

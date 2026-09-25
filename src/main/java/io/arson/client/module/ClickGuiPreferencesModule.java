@@ -13,6 +13,7 @@ public final class ClickGuiPreferencesModule extends Module {
     private final BooleanSetting enabledOnly = setting(new BooleanSetting("enabled-only", "Enabled Only", false));
     private final BooleanSetting compactMode = setting(new BooleanSetting("compact-mode", "Compact Mode", false));
     private final DoubleSetting panelScale = setting(new DoubleSetting("panel-scale", "Panel Scale", 1.0, 0.75, 1.25, 0.05));
+    private final DoubleSetting gridColumns = setting(new DoubleSetting("grid-columns", "Grid Columns (0 = Auto)", 0.0, 0.0, 2.0, 1.0));
 
     public ClickGuiPreferencesModule() {
         super("clickgui-preferences", "ClickGUI Preferences", Category.MISC,
@@ -31,4 +32,6 @@ public final class ClickGuiPreferencesModule extends Module {
     public void setCompactMode(boolean value) { compactMode.set(value); }
     public double panelScale() { return panelScale.get(); }
     public void setPanelScale(double value) { panelScale.set(value); }
+    public int gridColumns() { return (int) Math.round(gridColumns.get()); }
+    public void setGridColumns(double value) { gridColumns.set(value); }
 }

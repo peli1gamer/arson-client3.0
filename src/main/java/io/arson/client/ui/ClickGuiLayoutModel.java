@@ -1,5 +1,6 @@
 package io.arson.client.ui;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Pure geometry/navigation model for the responsive Arson ClickGUI. */
@@ -11,6 +12,8 @@ public final class ClickGuiLayoutModel {
         public boolean contains(double px,double py){return px>=x&&px<right()&&py>=y&&py<bottom();}
         public boolean intersects(Rect other){return other!=null&&x<other.right()&&right()>other.x&&y<other.bottom()&&bottom()>other.y;}
     }
+    public record CardActionBounds(Rect details, Rect toggle) {}
+    public record ModuleCardRegions(Rect details, Rect favorite, Rect toggle) {}
     public record Geometry(Mode mode,int panelX,int panelY,int panelWidth,int panelHeight,Rect rail,Rect search,Rect toolbar,
                            Rect content,Rect moduleList,Rect detail,Rect footer,int columns,int cardWidth,int cardHeight,int cardGap,
                            int safeMargin,int categoryRowHeight){
@@ -44,7 +47,7 @@ public final class ClickGuiLayoutModel {
         Rect content=new Rect(contentX,contentY,contentW,contentH);
         Rect rail=new Rect(x+pad,contentY,Math.max(46,railW-pad),contentH);
         int categoryRows=Math.max(1,ModuleCategoryCountHolder.COUNT);
-        int categoryRowHeight=Math.max(18,Math.min(28,Math.max(18,(rail.height()-4)/categoryRows)));
+        int categoryRowHeight=Math.max(9,Math.min(28,(rail.height()-4)/categoryRows));
         int cols=mode==Mode.NARROW?1:contentW>=540?2:1,cardGap=mode==Mode.NARROW?6:9;
         Rect list,detail;
         if(cols==2){
@@ -64,6 +67,65 @@ public final class ClickGuiLayoutModel {
         return new Geometry(mode,x,y,pw,ph,rail,search,toolbar,content,list,detail,footer,cols,cardW,cardH,cardGap,safe,categoryRowHeight);
     }
 
+    /** Splits a module card into a details target and a non-overlapping direct toggle target. */
+    public static CardActionBounds moduleCardActions(Rect card, int requestedToggleWidth, int gap) {
+        if (card == null || card.width() <= 0 || card.height() <= 0) {
+            Rect empty = new Rect(0, 0, 0, 0);
+            return new CardActionBounds(empty, empty);
+        }
+        int toggleWidth = Math.min(Math.max(1, requestedToggleWidth), Math.max(1, card.width() - 1));
+        int spacing = Math.min(Math.max(0, gap), Math.max(0, card.width() - toggleWidth - 1));
+        int detailsWidth = card.width() - toggleWidth - spacing;
+        return new CardActionBounds(
+                new Rect(card.x(), card.y(), detailsWidth, card.height()),
+                new Rect(card.x() + detailsWidth + spacing, card.y(), toggleWidth, card.height()));
+    }
+
+    /** Splits the details side of a card into separate details and favorite hit regions. */
+    public static ModuleCardRegions moduleCardRegions(Rect card, int requestedToggleWidth,
+                                                       int requestedFavoriteWidth, int gap) {
+        CardActionBounds actions = moduleCardActions(card, requestedToggleWidth, gap);
+        Rect detailsSide = actions.details();
+        if (detailsSide.width() <= 1 || detailsSide.height() <= 0) {
+            Rect empty = new Rect(detailsSide.right(), detailsSide.y(), 0, Math.max(0, detailsSide.height()));
+            return new ModuleCardRegions(detailsSide, empty, actions.toggle());
+        }
+
+        int favoriteWidth = Math.min(Math.max(1, requestedFavoriteWidth), detailsSide.width() - 1);
+        int spacing = Math.min(Math.max(0, gap), detailsSide.width() - favoriteWidth - 1);
+        int detailsWidth = detailsSide.width() - favoriteWidth - spacing;
+        return new ModuleCardRegions(
+                new Rect(detailsSide.x(), detailsSide.y(), detailsWidth, detailsSide.height()),
+                new Rect(detailsSide.x() + detailsWidth + spacing, detailsSide.y(), favoriteWidth, detailsSide.height()),
+                actions.toggle());
+    }
+
+    /** Builds a bounded grid of module cards without allowing overlap or viewport overflow. */
+    public static List<Rect> gridCards(Rect area, int itemCount, int requestedColumns, int requestedCardHeight, int gap) {
+        if (area == null || itemCount <= 0 || area.width() <= 0 || area.height() <= 0) return List.of();
+        int spacing = Math.max(0, gap);
+        int columns = Math.max(1, requestedColumns);
+        columns = Math.min(columns, Math.max(1, (area.width() + spacing) / (spacing + 1)));
+        int cardWidth = Math.max(1, (area.width() - spacing * (columns - 1)) / columns);
+        int cardHeight = Math.max(1, Math.min(requestedCardHeight, area.height()));
+        int rows = Math.max(1, (area.height() + spacing) / (cardHeight + spacing));
+        int count = Math.min(itemCount, rows * columns);
+        ArrayList<Rect> cards = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            int row = i / columns, column = i % columns;
+            cards.add(new Rect(area.x() + column * (cardWidth + spacing),
+                    area.y() + row * (cardHeight + spacing), cardWidth, cardHeight));
+        }
+        return List.copyOf(cards);
+    }
+
+    /** Resolves saved grid density against the current viewport; narrow layouts always remain single-column. */
+    public static int effectiveColumns(Mode mode, int contentWidth, int requestedColumns) {
+        if (mode == Mode.NARROW) return 1;
+        int available = Math.max(1, Math.min(2, (Math.max(0, contentWidth) + 8) / 220));
+        return requestedColumns <= 0 ? available : Math.min(available, Math.max(1, requestedColumns));
+    }
+
     public static boolean pairwiseNonIntersecting(List<Rect> rects){
         for(int i=0;i<rects.size();i++)for(int j=i+1;j<rects.size();j++)if(rects.get(i).intersects(rects.get(j)))return false;
         return true;
@@ -72,5 +134,5 @@ public final class ClickGuiLayoutModel {
     public static int moveModule(int current,int delta,int moduleCount,int columns){if(moduleCount<=0)return -1;int cols=Math.max(1,columns);if(delta==1||delta==-1)return Math.floorMod(current+delta,moduleCount);return Math.max(0,Math.min(moduleCount-1,current+delta*cols));}
     public static <T>T safeGet(List<T> values,int index){return values==null||index<0||index>=values.size()?null:values.get(index);}
     private static double clamp(double value,double min,double max){return Double.isNaN(value)||Double.isInfinite(value)?min:Math.max(min,Math.min(max,value));}
-    private static final class ModuleCategoryCountHolder { private static final int COUNT=6; }
+    private static final class ModuleCategoryCountHolder { private static final int COUNT=7; }
 }

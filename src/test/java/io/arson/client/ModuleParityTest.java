@@ -22,8 +22,10 @@ class ModuleParityTest {
         assertTrue(manager.categoryCount(Module.Category.RENDER) > 0);
         assertTrue(manager.categoryCount(Module.Category.PLAYER) > 0);
         assertTrue(manager.categoryCount(Module.Category.WORLD) > 0);
+        assertTrue(manager.categoryCount(Module.Category.DONUTSMP) > 0);
         assertTrue(manager.categoryCount(Module.Category.MISC) > 0);
         assertNotNull(manager.get("sprint")); assertNotNull(manager.get("hud")); assertNotNull(manager.get("entity-esp"));
+        assertEquals(Module.Category.DONUTSMP, manager.get("waypoint-info").category());
     }
 
     @Test

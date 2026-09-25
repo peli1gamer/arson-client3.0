@@ -20,7 +20,13 @@ public final class TargetingModule extends Module {
     private final BooleanSetting ignoreDead = setting(new BooleanSetting("ignore-dead", "Ignore Dead", true));
 
     public TargetingModule() {
-        super("targeting", "Targeting", Category.COMBAT);
+        super("targeting", "Targeting", Category.COMBAT, "Read-only entity selection shared by combat information displays; it never aims, attacks or changes inventory.");
+        range.description("Maximum distance for considering living entities.");
+        players.description("Include player entities, excluding players on your friends list.");
+        monsters.description("Include hostile monster entities.");
+        animals.description("Include passive animal entities.");
+        ignoreInvisible.description("Exclude invisible entities from selection.");
+        ignoreDead.description("Exclude dead or removed entities from selection.");
     }
 
     public double range() { return range.get(); }

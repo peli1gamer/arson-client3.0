@@ -6,6 +6,7 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.Mob;
@@ -39,10 +40,48 @@ public final class CombatInfoRenderer {
             healthRow = rows.size();
             rows.add("HP " + format(target.getHealth()) + "/" + format(target.getMaxHealth()));
         }
+        if (target != null && module.showAbsorption()) {
+            rows.add(CombatInfoModule.formatAbsorption(target.getAbsorptionAmount()));
+        }
+        if (target != null && module.showArmor()) {
+            rows.add(CombatInfoModule.formatArmor(target.getArmorValue()));
+        }
+        if (target != null && module.showTargetEquipment()) {
+            rows.addAll(CombatInfoModule.formatTargetEquipment(
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.HEAD)),
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.CHEST)),
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.LEGS)),
+                    durabilityPercent(target.getItemBySlot(EquipmentSlot.FEET)),
+                    target.getOffhandItem().isEmpty() ? "Empty" : target.getOffhandItem().getHoverName().getString()));
+        }
+        if (target != null && module.showEffects()) {
+            var effects = target.getActiveEffects().stream()
+                    .map(effect -> new CombatInfoModule.EffectSnapshot(
+                            effect.getEffect().value().getDisplayName().getString(),
+                            effect.getAmplifier(), effect.getDuration()))
+                    .toList();
+            rows.addAll(CombatInfoModule.formatEffects(effects, module.effectLimit()));
+        }
         if (target != null && module.showDistance()) rows.add("Distance " + format((float) client.player.distanceTo(target)) + "m");
+        if (target != null && module.showLookOffset()) {
+            CombatInfoModule.LookOffset offset = CombatInfoModule.lookOffset(
+                    client.player.getX(), client.player.getEyeY(), client.player.getZ(),
+                    client.player.getYRot(), client.player.getXRot(),
+                    target.getX(), target.getEyeY(), target.getZ());
+            rows.add(CombatInfoModule.formatLookOffset(offset.yaw(), offset.pitch()));
+        }
         if (module.showHeldItem()) rows.add("Held " + weapon);
-        if (durability != null) rows.add(durability);
-        if (cooldown != null) rows.add(cooldown);
+        if (target != null && (module.showTargetItem() || module.showTargetDurability())) {
+            ItemStack targetHeld = target.getMainHandItem();
+            if (module.showTargetItem()) {
+                rows.add("Target held " + (targetHeld.isEmpty() ? "Empty" : targetHeld.getHoverName().getString()));
+            }
+            if (module.showTargetDurability() && !targetHeld.isEmpty() && targetHeld.isDamageableItem()) {
+                rows.add("Target durability " + (targetHeld.getMaxDamage() - targetHeld.getDamageValue())
+                        + "/" + targetHeld.getMaxDamage());
+            }
+        }
+        if (durability != null) rows.add(durability);        if (cooldown != null) rows.add(cooldown);
         if (rows.isEmpty() && !(target != null && module.healthBar())) return;
 
         float scale = (float) module.infoScale();
@@ -79,18 +118,37 @@ public final class CombatInfoRenderer {
             if (module.healthBarBackground()) {
                 graphics.fill(0, barTop, panelWidth, barTop + barHeight, module.healthBarBackgroundColor());
             }
-            float maxHealth = Math.max(0.001f, target.getMaxHealth());
-            float ratio = Math.max(0.0f, Math.min(1.0f, target.getHealth() / maxHealth));
-            int filled = Math.round(panelWidth * ratio);
-            if (filled > 0) graphics.fill(0, barTop, filled, barTop + barHeight, module.healthColor());
+            CombatInfoModule.HealthBarSegments segments = CombatInfoModule.healthBarSegments(
+                    target.getHealth(), target.getMaxHealth(), target.getAbsorptionAmount());
+            int healthEnd = Math.round(panelWidth * segments.health());
+            int totalEnd = Math.round(panelWidth * (segments.health() + segments.absorption()));
+            if (healthEnd > 0) graphics.fill(0, barTop, healthEnd, barTop + barHeight, module.healthColor());
+            if (module.showAbsorption() && totalEnd > healthEnd) {
+                graphics.fill(healthEnd, barTop, totalEnd, barTop + barHeight, module.absorptionColor());
+            }
         }
         graphics.pose().popMatrix();
+    }
+
+    private static int durabilityPercent(ItemStack stack) {
+        if (stack.isEmpty()) return -1;
+        if (!stack.isDamageableItem() || stack.getMaxDamage() <= 0) return 100;
+        int remaining = stack.getMaxDamage() - stack.getDamageValue();
+        return Math.max(0, Math.min(100, Math.round(remaining * 100.0f / stack.getMaxDamage())));
     }
 
     private static LivingEntity findTarget(Minecraft client, CombatInfoModule module) {
         double range = module.range();
         double maxDistance = range * range;
-        LivingEntity best = null;
+                if (module.targetSource() == CombatInfoModule.TargetSource.CROSSHAIR) {
+            if (client.crosshairPickEntity instanceof LivingEntity target
+                    && target != client.player && target.isAlive() && !target.isSpectator()
+                    && client.player.distanceToSqr(target) <= maxDistance && allowed(target, module)) {
+                return target;
+            }
+            return null;
+        }
+LivingEntity best = null;
         double bestDistance = maxDistance;
         for (LivingEntity entity : client.level.getEntitiesOfClass(LivingEntity.class,
                 client.player.getBoundingBox().inflate(range),
