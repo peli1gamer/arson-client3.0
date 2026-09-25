@@ -213,7 +213,7 @@ public final class CombatInfoModule extends Module {
         return "Armor " + Math.max(0, points);
     }
     private final io.arson.client.settings.EnumSetting<TargetSource> targetSource = setting(
-            new io.arson.client.settings.EnumSetting<>("target-source", "Target Source", TargetSource.NEAREST, TargetSource.class));
+            new io.arson.client.settings.EnumSetting<>("target-source", "Target Source", TargetSource.NEAREST));
 
     public TargetSource targetSource() { return targetSource.get(); }
 
