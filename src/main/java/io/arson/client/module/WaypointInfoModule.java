@@ -40,7 +40,8 @@ public final class WaypointInfoModule extends Module {
     public static double distance(double x, double y, double z, double targetX, double targetY, double targetZ) {
         if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
                 || !Double.isFinite(targetX) || !Double.isFinite(targetY) || !Double.isFinite(targetZ)) return -1.0;
-        return Math.sqrt(Math.pow(targetX - x, 2) + Math.pow(targetY - y, 2) + Math.pow(targetZ - z, 2));
+        double result = Math.hypot(Math.hypot(targetX - x, targetY - y), targetZ - z);
+        return Double.isFinite(result) ? result : -1.0;
     }
 
     public static String formatDistance(double distance) {
