@@ -119,6 +119,13 @@ public final class ClickGuiLayoutModel {
         return List.copyOf(cards);
     }
 
+    /** Resolves saved grid density against the current viewport; narrow layouts always remain single-column. */
+    public static int effectiveColumns(Mode mode, int contentWidth, int requestedColumns) {
+        if (mode == Mode.NARROW) return 1;
+        int available = Math.max(1, Math.min(3, (Math.max(0, contentWidth) + 8) / 220));
+        return requestedColumns <= 0 ? available : Math.min(available, Math.max(1, requestedColumns));
+    }
+
     public static boolean pairwiseNonIntersecting(List<Rect> rects){
         for(int i=0;i<rects.size();i++)for(int j=i+1;j<rects.size();j++)if(rects.get(i).intersects(rects.get(j)))return false;
         return true;
