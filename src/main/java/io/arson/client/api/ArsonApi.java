@@ -16,6 +16,7 @@ import java.util.Locale;
 
 /** Stable public facade for addons that need Arson module discovery/control. */
 public final class ArsonApi {
+    public record HudPosition(int x, int y) {}
     private ArsonApi() {}
     public static String moduleSummary(Module.Category category) {
         if (ArsonClient.getInstance() == null || category == null) return "";
@@ -38,6 +39,15 @@ public final class ArsonApi {
         if (!(module instanceof io.arson.client.module.HudModule hud)) return false;
         try { hud.setEditorPosition(element, x, y); save(); return true; }
         catch (IllegalArgumentException ignored) { return false; }
+    }
+
+    public static Optional<HudPosition> hudElementPosition(String element) {
+        if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return Optional.empty();
+        Module module = ArsonClient.getInstance().modules().get("hud");
+        if (!(module instanceof HudModule hud)) return Optional.empty();
+        String key = element.trim().toLowerCase(Locale.ROOT);
+        try { return Optional.of(new HudPosition(hud.elementX(key), hud.elementY(key))); }
+        catch (IllegalArgumentException ignored) { return Optional.empty(); }
     }
 
     public static int resetAllModules() {
