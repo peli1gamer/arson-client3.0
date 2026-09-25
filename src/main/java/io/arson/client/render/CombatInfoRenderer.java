@@ -81,8 +81,7 @@ public final class CombatInfoRenderer {
                         + "/" + targetHeld.getMaxDamage());
             }
         }
-        if (durability != null) rows.add(durability);
-        if (cooldown != null) rows.add(cooldown);
+        if (durability != null) rows.add(durability);        if (cooldown != null) rows.add(cooldown);
         if (rows.isEmpty() && !(target != null && module.healthBar())) return;
 
         float scale = (float) module.infoScale();
@@ -141,7 +140,15 @@ public final class CombatInfoRenderer {
     private static LivingEntity findTarget(Minecraft client, CombatInfoModule module) {
         double range = module.range();
         double maxDistance = range * range;
-        LivingEntity best = null;
+                if (module.targetSource() == CombatInfoModule.TargetSource.CROSSHAIR) {
+            if (client.crosshairPickEntity instanceof LivingEntity target
+                    && target != client.player && target.isAlive() && !target.isSpectator()
+                    && client.player.distanceToSqr(target) <= maxDistance && allowed(target, module)) {
+                return target;
+            }
+            return null;
+        }
+LivingEntity best = null;
         double bestDistance = maxDistance;
         for (LivingEntity entity : client.level.getEntitiesOfClass(LivingEntity.class,
                 client.player.getBoundingBox().inflate(range),
