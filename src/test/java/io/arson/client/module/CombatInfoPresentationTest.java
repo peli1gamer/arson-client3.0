@@ -62,6 +62,19 @@ class CombatInfoPresentationTest {
     }
 
     @Test
+    void targetSourceIsSavedAsATypedConfigurableSetting() {
+        CombatInfoModule module = new CombatInfoModule();
+        assertEquals(CombatInfoModule.TargetSource.NEAREST, module.targetSource());
+
+        var source = (io.arson.client.settings.EnumSetting<CombatInfoModule.TargetSource>) module.settings().stream()
+                .filter(setting -> setting.id().equals("target-source")).findFirst().orElseThrow();
+        assertEquals(java.util.List.of(CombatInfoModule.TargetSource.NEAREST,
+                CombatInfoModule.TargetSource.CROSSHAIR), source.values());
+        source.set(CombatInfoModule.TargetSource.CROSSHAIR);
+        assertEquals(CombatInfoModule.TargetSource.CROSSHAIR, module.targetSource());
+    }
+
+    @Test
     void effectRowsAreSortedLimitedAndShowRemainingCount() {
         var effects = java.util.List.of(
                 new CombatInfoModule.EffectSnapshot("Speed", 0, 400),
