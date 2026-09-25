@@ -134,7 +134,7 @@ public final class CombatInfoModule extends Module {
     }
 
     private static String slotPercent(int value) {
-        return value < 0 ? "—" : Math.max(0, Math.min(100, value)) + "%";
+        return value == -1 ? "—" : Math.max(0, Math.min(100, value)) + "%";
     }
 
     public record EffectSnapshot(String name, int amplifier, int durationTicks) {}
