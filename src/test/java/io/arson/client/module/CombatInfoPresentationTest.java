@@ -15,6 +15,7 @@ class CombatInfoPresentationTest {
         assertTrue(module.showTargetItem());
         assertTrue(module.showTargetDurability());
         assertTrue(module.showTargetEquipment());
+        assertTrue(module.showLookOffset());
         assertEquals(4, module.effectLimit());
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-absorption")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-armor")));
@@ -22,6 +23,7 @@ class CombatInfoPresentationTest {
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-item")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-durability")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-target-equipment")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("show-look-offset")));
         assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("absorption-color")));
         assertEquals(0xFFFFAA00, module.absorptionColor());
         var limit = (io.arson.client.settings.DoubleSetting) module.settings().stream()
@@ -41,18 +43,22 @@ class CombatInfoPresentationTest {
                 .filter(setting -> setting.id().equals("show-target-durability")).findFirst().orElseThrow();
         var targetEquipment = (io.arson.client.settings.BooleanSetting) module.settings().stream()
                 .filter(setting -> setting.id().equals("show-target-equipment")).findFirst().orElseThrow();
+        var lookOffset = (io.arson.client.settings.BooleanSetting) module.settings().stream()
+                .filter(setting -> setting.id().equals("show-look-offset")).findFirst().orElseThrow();
         absorption.set(false);
         armor.set(false);
         effects.set(false);
         targetItem.set(false);
         targetDurability.set(false);
         targetEquipment.set(false);
+        lookOffset.set(false);
         assertFalse(module.showAbsorption());
         assertFalse(module.showArmor());
         assertFalse(module.showEffects());
         assertFalse(module.showTargetItem());
         assertFalse(module.showTargetDurability());
         assertFalse(module.showTargetEquipment());
+        assertFalse(module.showLookOffset());
     }
 
     @Test
@@ -67,6 +73,30 @@ class CombatInfoPresentationTest {
         assertTrue(CombatInfoModule.formatEffects(effects, 0).isEmpty());
         assertEquals("Strength 2 1:05", CombatInfoModule.formatEffect("Strength", 1, 1300));
         assertEquals("Unknown 1 ∞", CombatInfoModule.formatEffect(" ", -1, -1));
+    }
+
+    @Test
+    void lookOffsetUsesShortestYawAndSanitizesFormatting() {
+        double radians = Math.toRadians(-89.0);
+        var wrapped = CombatInfoModule.lookOffset(0.0, 0.0, 0.0, 179.0f, 0.0f,
+                Math.cos(radians), 0.0, Math.sin(radians));
+        assertEquals(2.0f, wrapped.yaw(), 0.02f);
+        assertEquals(0.0f, wrapped.pitch(), 0.02f);
+
+        var above = CombatInfoModule.lookOffset(0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0, 10.0, 1.0);
+        assertEquals(0.0f, above.yaw(), 0.02f);
+        assertTrue(above.pitch() < 0.0f);
+        assertEquals("Look offset yaw -90.0° pitch +0.0°",
+                CombatInfoModule.formatLookOffset(270.0f, Float.NaN));
+
+        var samePoint = CombatInfoModule.lookOffset(2.0, 3.0, 4.0, 45.0f, 10.0f,
+                2.0, 3.0, 4.0);
+        assertEquals(0.0f, samePoint.yaw());
+        assertEquals(0.0f, samePoint.pitch());
+        var invalid = CombatInfoModule.lookOffset(Double.NaN, 0.0, 0.0, 0.0f, 0.0f,
+                1.0, 0.0, 1.0);
+        assertEquals(0.0f, invalid.yaw());
+        assertEquals(0.0f, invalid.pitch());
     }
 
     @Test
