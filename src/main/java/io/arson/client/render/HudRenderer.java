@@ -42,6 +42,7 @@ import io.arson.client.module.WorldSpawnInfoModule;
 import io.arson.client.module.RenderResolutionInfoModule;
 import io.arson.client.module.WorldMoonInfoModule;
 import io.arson.client.module.WorldChunkInfoModule;
+import io.arson.client.module.WaypointInfoModule;
 import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -85,6 +86,7 @@ public final class HudRenderer {
         WorldSpawnInfoModule spawnInfo = (WorldSpawnInfoModule) ArsonClient.getInstance().modules().get("world-spawn-info");
         WorldMoonInfoModule moonInfo = (WorldMoonInfoModule) ArsonClient.getInstance().modules().get("world-moon-info");
         WorldChunkInfoModule chunkInfo = (WorldChunkInfoModule) ArsonClient.getInstance().modules().get("world-chunk-info");
+        WaypointInfoModule waypointInfo = (WaypointInfoModule) ArsonClient.getInstance().modules().get("waypoint-info");
         RenderInfoModule renderInfo = (RenderInfoModule) ArsonClient.getInstance().modules().get("render-info");
         RenderTargetInfoModule targetInfo = (RenderTargetInfoModule) ArsonClient.getInstance().modules().get("render-target-info");
         CameraInfoModule cameraInfo = (CameraInfoModule) ArsonClient.getInstance().modules().get("camera-info");
@@ -159,6 +161,7 @@ public final class HudRenderer {
             if (spawnInfo != null && spawnInfo.enabled()) rows.add(spawnInfo.formatted());
             if (moonInfo != null && moonInfo.enabled()) rows.add(moonInfo.formatted());
             if (chunkInfo != null && chunkInfo.enabled()) rows.add(chunkInfo.formatted());
+            if (waypointInfo != null && waypointInfo.enabled()) rows.add(waypointInfo.formatted());
             if (worldHeightInfo != null && worldHeightInfo.enabled()) rows.add(worldHeightInfo.formatted());
             if (renderInfo != null && renderInfo.enabled()) rows.add(renderInfo.formatted());
             if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
