@@ -92,8 +92,38 @@ public final class ArsonCommand {
         .then(ClientCommandManager.literal("info").then(categoryArgument().executes(ctx->{Module.Category c=category(StringArgumentType.getString(ctx,"category"));if(c==null){error(ctx,"Unknown category");return 0;}feedback(ctx,c.displayName()+": "+ArsonClient.getInstance().modules().categoryCount(c)+" modules, "+ArsonClient.getInstance().modules().enabledCount(c)+" enabled.");return 1;})))
         .then(ClientCommandManager.literal("enable").then(categoryArgument().executes(ctx->{Module.Category c=category(StringArgumentType.getString(ctx,"category"));if(c==null){error(ctx,"Unknown category");return 0;}int changed=io.arson.client.api.ArsonApi.setEnabled(c,true);feedback(ctx,c.displayName()+": enabled "+changed+" module(s)");return 1;})))
         .then(ClientCommandManager.literal("disable").then(categoryArgument().executes(ctx->{Module.Category c=category(StringArgumentType.getString(ctx,"category"));if(c==null){error(ctx,"Unknown category");return 0;}int changed=io.arson.client.api.ArsonApi.setEnabled(c,false);feedback(ctx,c.displayName()+": disabled "+changed+" module(s)");return 1;})));}
+
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> hudPositionCommand() {
+        return ClientCommandManager.literal("position")
+            .then(ClientCommandManager.argument("element", StringArgumentType.word())
+                .suggests((ctx, builder) -> {
+                    for (String element : java.util.List.of("watermark", "coordinates", "fps", "player-info", "world-info")) builder.suggest(element);
+                    return builder.buildFuture();
+                })
+                .executes(ctx -> {
+                    String element = StringArgumentType.getString(ctx, "element");
+                    var position = io.arson.client.api.ArsonApi.hudElementPosition(element);
+                    if (position.isEmpty()) { error(ctx, "Unknown HUD element"); return 0; }
+                    var value = position.get();
+                    feedback(ctx, element + " position: " + value.x() + ", " + value.y());
+                    return 1;
+                })
+                .then(ClientCommandManager.argument("x", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg(0.0, 1000.0))
+                    .then(ClientCommandManager.argument("y", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg(0.0, 1000.0))
+                        .executes(ctx -> {
+                            String element = StringArgumentType.getString(ctx, "element");
+                            double x = com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(ctx, "x");
+                            double y = com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(ctx, "y");
+                            if (!io.arson.client.api.ArsonApi.setHudElementPosition(element, x, y)) { error(ctx, "Unknown HUD element"); return 0; }
+                            var position = io.arson.client.api.ArsonApi.hudElementPosition(element).orElseThrow();
+                            feedback(ctx, element + " position set to " + position.x() + ", " + position.y());
+                            return 1;
+                        }))));
+    }
+
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> hudCommands() {
         return ClientCommandManager.literal("hud")
+            .then(hudPositionCommand())
             .then(ClientCommandManager.literal("element-format")
                 .then(ClientCommandManager.argument("element", StringArgumentType.word())
                     .suggests((ctx, builder) -> { builder.suggest("player-info"); builder.suggest("world-info"); return builder.buildFuture(); })
