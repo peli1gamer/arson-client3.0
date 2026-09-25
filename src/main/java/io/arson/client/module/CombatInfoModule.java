@@ -23,6 +23,7 @@ public final class CombatInfoModule extends Module {
     private final BooleanSetting showTargetEquipment = setting(new BooleanSetting("show-target-equipment", "Show Target Equipment", true)).group(contentGroup);
     private final BooleanSetting showAttackCooldown = setting(new BooleanSetting("show-attack-cooldown", "Show Attack Cooldown", true)).group(contentGroup);
     private final BooleanSetting showDistance = setting(new BooleanSetting("show-distance", "Show Distance", true)).group(contentGroup);
+    private final BooleanSetting showLookOffset = setting(new BooleanSetting("show-look-offset", "Show Look Offset", true)).group(contentGroup);
     private final BooleanSetting showHealth = setting(new BooleanSetting("show-health", "Show Health", true)).group(contentGroup);
     private final BooleanSetting showAbsorption = setting(new BooleanSetting("show-absorption", "Show Absorption", true)).group(contentGroup);
     private final BooleanSetting showArmor = setting(new BooleanSetting("show-armor", "Show Armor", true)).group(contentGroup);
@@ -57,6 +58,7 @@ public final class CombatInfoModule extends Module {
         showDurability.description("Display held-item durability when the item has durability.");
         showAttackCooldown.description("Display your local attack cooldown progress.");
         showDistance.description("Display distance from you to the selected entity.");
+        showLookOffset.description("Display the yaw and pitch offset to the selected entity without changing your rotation.");
         showHealth.description("Display the selected entity’s current health.");
         showAbsorption.description("Display the selected entity’s temporary absorption health.");
         showArmor.description("Display the selected entity’s armor points.");
@@ -90,6 +92,7 @@ public final class CombatInfoModule extends Module {
     public boolean showTargetEquipment() { return showTargetEquipment.enabled(); }
     public boolean showAttackCooldown() { return showAttackCooldown.enabled(); }
     public boolean showDistance() { return showDistance.enabled(); }
+    public boolean showLookOffset() { return showLookOffset.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
     public boolean showAbsorption() { return showAbsorption.enabled(); }
     public boolean showArmor() { return showArmor.enabled(); }
@@ -163,6 +166,42 @@ public final class CombatInfoModule extends Module {
 
     private static String normalizedEffectName(String name) {
         return name == null || name.isBlank() ? "Unknown" : name.trim();
+    }
+
+    public record LookOffset(float yaw, float pitch) {}
+
+    /** Returns the shortest yaw and direct pitch offset from the player view to a target point. */
+    public static LookOffset lookOffset(double playerX, double playerEyeY, double playerZ,
+                                        float playerYaw, float playerPitch,
+                                        double targetX, double targetEyeY, double targetZ) {
+        if (!Double.isFinite(playerX) || !Double.isFinite(playerEyeY) || !Double.isFinite(playerZ)
+                || !Float.isFinite(playerYaw) || !Float.isFinite(playerPitch)
+                || !Double.isFinite(targetX) || !Double.isFinite(targetEyeY) || !Double.isFinite(targetZ)) {
+            return new LookOffset(0.0f, 0.0f);
+        }
+        double dx = targetX - playerX;
+        double dy = targetEyeY - playerEyeY;
+        double dz = targetZ - playerZ;
+        double horizontal = Math.hypot(dx, dz);
+        if (horizontal == 0.0 && dy == 0.0) return new LookOffset(0.0f, 0.0f);
+
+        double targetYaw = horizontal == 0.0 ? playerYaw : Math.toDegrees(Math.atan2(dz, dx)) - 90.0;
+        double targetPitch = -Math.toDegrees(Math.atan2(dy, horizontal));
+        return new LookOffset(wrapDegrees((float) (targetYaw - playerYaw)),
+                (float) (targetPitch - playerPitch));
+    }
+
+    public static String formatLookOffset(float yaw, float pitch) {
+        float safeYaw = Float.isFinite(yaw) ? wrapDegrees(yaw) : 0.0f;
+        float safePitch = Float.isFinite(pitch) ? Math.max(-180.0f, Math.min(180.0f, pitch)) : 0.0f;
+        return String.format(java.util.Locale.ROOT, "Look offset yaw %+.1f° pitch %+.1f°", safeYaw, safePitch);
+    }
+
+    private static float wrapDegrees(float degrees) {
+        float wrapped = degrees % 360.0f;
+        if (wrapped >= 180.0f) wrapped -= 360.0f;
+        if (wrapped < -180.0f) wrapped += 360.0f;
+        return wrapped;
     }
 
     public static String formatAbsorption(float value) {
