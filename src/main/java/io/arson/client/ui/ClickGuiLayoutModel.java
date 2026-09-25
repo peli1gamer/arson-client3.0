@@ -134,5 +134,5 @@ public final class ClickGuiLayoutModel {
     public static int moveModule(int current,int delta,int moduleCount,int columns){if(moduleCount<=0)return -1;int cols=Math.max(1,columns);if(delta==1||delta==-1)return Math.floorMod(current+delta,moduleCount);return Math.max(0,Math.min(moduleCount-1,current+delta*cols));}
     public static <T>T safeGet(List<T> values,int index){return values==null||index<0||index>=values.size()?null:values.get(index);}
     private static double clamp(double value,double min,double max){return Double.isNaN(value)||Double.isInfinite(value)?min:Math.max(min,Math.min(max,value));}
-    private static final class ModuleCategoryCountHolder { private static final int COUNT=6; }
+    private static final class ModuleCategoryCountHolder { private static final int COUNT=7; }
 }
