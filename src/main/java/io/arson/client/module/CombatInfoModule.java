@@ -212,4 +212,10 @@ public final class CombatInfoModule extends Module {
     public static String formatArmor(int points) {
         return "Armor " + Math.max(0, points);
     }
+    private final io.arson.client.settings.EnumSetting<TargetSource> targetSource = setting(
+            new io.arson.client.settings.EnumSetting<>("target-source", "Target Source", TargetSource.NEAREST, TargetSource.class));
+
+    public TargetSource targetSource() { return targetSource.get(); }
+
+    public enum TargetSource { NEAREST, CROSSHAIR }
 }
