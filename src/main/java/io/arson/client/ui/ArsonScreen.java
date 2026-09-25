@@ -200,8 +200,9 @@ public final class ArsonScreen extends Screen {
     }
 
     private int visibleModuleColumns() {
-        if (geometry.mode() == ClickGuiLayoutModel.Mode.NARROW) return 1;
-        return Math.max(1, Math.min(3, (geometry.content().width() + 8) / 220));
+        ClickGuiPreferencesModule p = preferences();
+        int requested = p == null ? 0 : p.gridColumns();
+        return ClickGuiLayoutModel.effectiveColumns(geometry.mode(), geometry.content().width(), requested);
     }
 
     private void addModuleCards(List<Module> visible) {
