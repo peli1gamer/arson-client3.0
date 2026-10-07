@@ -50,7 +50,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                 || scanner.revision() != lastScannerRevision) {
             cachedTargets = scanner.scan(client, overlay.range());
             cachedClusters = module.clusterEnabled()
-                    ? StorageClusterDetector.detect(cachedTargets.stream().filter(this::isVisibleType).toList(), module.clusterRadius())
+                    ? StorageClusterDetector.detect(cachedTargets.stream().filter(target -> isVisibleType(target.type())).toList(), module.clusterRadius())
                     : List.of();
             lastScanTick = gameTime;
             lastScannerRevision = scanner.revision();
