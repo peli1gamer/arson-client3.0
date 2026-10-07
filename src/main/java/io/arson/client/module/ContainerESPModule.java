@@ -19,6 +19,7 @@ public final class ContainerESPModule extends VisualModule {
     private final DoubleSetting clusterRadius = setting(new DoubleSetting("cluster-radius", "Cluster Radius", 8.0, 2.0, 32.0, 1.0));
     private final ColorSetting clusterColor = setting(new ColorSetting("cluster-color", "Cluster Color", 0xFFFFAA33));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
+    private final DoubleSetting chunkRadius = setting(new DoubleSetting("chunk-radius", "Loaded Chunk Radius", 2.0, 1.0, 16.0, 1.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 5.0, 1.0, 20.0, 1.0));
     private final BooleanSetting showLabels = setting(new BooleanSetting("show-labels", "Show Labels", false));
     private final BooleanSetting labelDistance = setting(new BooleanSetting("label-distance", "Label Distance", true));
@@ -71,6 +72,7 @@ public final class ContainerESPModule extends VisualModule {
     public double clusterRadius() { return clusterRadius.get(); }
     public int clusterColor() { return clusterColor.get(); }
     public double range() { return range.get(); }
+    public int chunkRadius() { return Math.max(1, (int) Math.round(chunkRadius.get())); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
     public boolean showLabels() { return showLabels.enabled(); }
     public boolean labelDistance() { return labelDistance.enabled(); }

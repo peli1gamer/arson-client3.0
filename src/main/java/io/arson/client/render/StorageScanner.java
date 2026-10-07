@@ -58,7 +58,7 @@ public final class StorageScanner {
         cachedTargets = flattenIndex();
     }
 
-    public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range) {
+    public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range, int requestedChunkRadius) {
         if (client.level == null || client.player == null) {
             clear();
             return List.of();
@@ -67,7 +67,7 @@ public final class StorageScanner {
         ClientLevel level = client.level;
         switchLevel(level);
         double clampedRange = Math.max(1.0, Math.min(256.0, range));
-        int radius = (int) Math.ceil(clampedRange / 16.0);
+        int radius = effectiveChunkRadius(requestedChunkRadius, client.options.renderDistance().get(), clampedRange);
         int chunkX = client.player.blockPosition().getX() >> 4;
         int chunkZ = client.player.blockPosition().getZ() >> 4;
         long gameTime = level.getGameTime();
@@ -96,6 +96,14 @@ public final class StorageScanner {
             if (dx * dx + dy * dy + dz * dz <= rangeSquared) visible.add(target);
         }
         return visible.isEmpty() ? List.of() : List.copyOf(visible);
+    }
+
+    public static int effectiveChunkRadius(int requestedChunkRadius, int clientRenderDistance, double range) {
+        if (!Double.isFinite(range)) return 1;
+        int configured = Math.max(1, Math.min(32, requestedChunkRadius));
+        int view = Math.max(1, Math.min(32, clientRenderDistance));
+        int rangeChunks = Math.max(1, (int) Math.ceil(Math.max(1.0, Math.min(256.0, range)) / 16.0));
+        return Math.min(configured, Math.min(view, rangeChunks));
     }
 
     private void switchLevel(Object level) {
