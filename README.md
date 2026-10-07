@@ -1,73 +1,54 @@
 # Arson Client V3
 
-A modular Fabric client foundation for Minecraft 1.21.11.
+A modular Fabric client for Minecraft 1.21.11, built for Java 21.
 
-## Current foundation
+## Current capabilities
 
-- Fabric 1.21.11 / Java 21 target
-- Central module registry
-- Module categories
-- Enable/disable lifecycle
-- Right Shift menu keybind
-- Client menu that works from the title screen and in-game
-- Category-based ClickGUI with scrolling settings panels
-- Boolean, numeric, and color settings
-- Configuration-friendly structure for future settings
-- Renderer-agnostic render command pipeline
-- Per-storage-type render profiles and colors
-- Configurable storage overlay range
-- Entity ESP filtering, range, fill, outline, and per-category colors
-- HUD rendering pipeline
-- Combat information HUD foundation
-- GitHub Actions Java 21 build
+- Module registry with categories, enable/disable lifecycle, keybinds, favorites, and per-module settings
+- Orange-themed module grid and settings pages
+- Persistent module, setting, profile, and HUD layout configuration
+- HUD widgets with layout editing, formatting, and saved positions
+- Entity, item, block, and storage visualization
+- Player, world, render, server, and combat telemetry modules
+- Client-side `/arson` commands and a public `ArsonApi` facade
+- Fabric client runtime smoke check and packaged JAR verification in GitHub Actions
+
+## Storage ESP
+
+Storage ESP indexes containers only in chunks already loaded by the Minecraft client. It uses the client render-distance setting as its search boundary and checks that a chunk is available before reading it; it never requests an unloaded chunk. The index updates as chunks and block entities load or unload, with a periodic refresh to catch changes.
+
+The renderer always draws storage boxes, outlines, tracers, and enabled labels through terrain. Nearby targets can be summarized as storage clusters. The target range setting filters what is shown after scanning the loaded chunk boundary.
+
+Supported built-in types include chests, barrels, shulker boxes, ender chests, hoppers, dispensers, and droppers. To include other blocks, enter comma-separated registry IDs in the Container ESP **Custom Block IDs** setting, for example:
+
+```text
+minecraft:chest, examplemod:storage_crate
+```
+
+Custom matches are read from loaded block entities. Enable **Other and Custom Storage** to render those matches. You can change settings in the ClickGUI or with `/arson setting <module> <setting> <value>`.
 
 ## Render architecture
 
-The render layer is split into three stages:
+World visualization is separated into three stages:
 
-1. **Discovery** finds relevant world objects/entities.
-2. **Render commands** convert discovered objects into lightweight `RenderBox` data.
-3. **Drawing** consumes those commands from the Minecraft/Fabric render lifecycle.
+1. Discovery reads client-available world objects and entities.
+2. Render commands convert targets into lightweight render data.
+3. Drawing consumes that data from the Fabric world-render lifecycle.
 
-This keeps world scanning separate from drawing and makes visual modules easier to test and extend.
+This keeps scanning separate from rendering and makes the visual modules easier to test and extend. World ESP layers use no-depth rendering so qualifying targets remain visible through blocks.
 
-Storage profiles currently support:
+## Commands and API
 
-- Chest
-- Barrel
-- Shulker
-- Ender Chest
-- Other storage
+Run `/arson help` in game for the current command tree. Commands cover module discovery and control, settings, categories, HUD formatting, configuration, profiles, and ClickGUI preferences.
 
-Each category has an independent enabled state and color.
+Addons can use `ArsonApi` for module discovery, settings, HUD positions, favorites, server summaries, and waypoint telemetry.
 
-Entity ESP currently supports separate Player, Mob, Animal, and Item filters/colors plus range, fill, outline, fill alpha, and outline width settings.
+## Build and verification
 
-## Development direction
-
-The V3 architecture is intentionally modular. New systems should live behind focused managers/modules instead of growing one monolithic client class.
-
-Planned areas include:
-
-- More ClickGUI themes and layout controls
-- Render utilities and additional visual modules
-- Storage/entity information overlays
-- Player/world utilities
-- Combat and movement modules where appropriate
-- Config persistence expansion
-- Addon/API layer
-- Performance profiling and diagnostics
-
-The project prioritizes predictable behavior, low overhead, compatibility, and isolated module failures.
-
-## Build
-
-Use Java 21 with a current Gradle installation, then run:
+Use Java 21 with Gradle:
 
 ```text
 gradle build
 ```
 
-GitHub Actions also runs the Java 21 build automatically on pushes and pull requests.
-
-<!-- CI verification trigger: repository-native Actions validation. -->
+GitHub Actions runs focused tests, a Fabric client runtime smoke check, the complete remapped build, and packaged JAR inspection on pushes and pull requests.
