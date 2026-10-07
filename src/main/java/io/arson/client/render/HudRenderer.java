@@ -109,8 +109,9 @@ public final class HudRenderer {
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
         if (hud.showCoordinates()) drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())});
         if (hud.showFps()) drawElement(graphics, client, hud, layout, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getFps()});
-        if (hud.showPlayerInfo() && playerInfo != null && playerInfo.enabled()) {
+        if (hud.showPlayerInfo()) {
             java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+            if (playerInfo != null && playerInfo.enabled()) {
             if (playerInfo.showHealth()) rows.add(String.format(java.util.Locale.ROOT, "Health %.1f/%.1f", client.player.getHealth(), client.player.getMaxHealth()));
             if (playerInfo.showHunger()) rows.add("Food " + client.player.getFoodData().getFoodLevel());
             if (playerInfo.showArmor()) rows.add(armor(client));
@@ -135,11 +136,13 @@ public final class HudRenderer {
             if (interactionInfo != null && interactionInfo.enabled()) rows.add(interactionInfo.formatted());
             if (airInfo != null && airInfo.enabled()) rows.add(airInfo.formatted());
             if (playerDetection != null && playerDetection.enabled()) rows.addAll(playerDetection.formattedLines());
+            }
             rows.addAll(ArsonClient.getInstance().modules().playerStatusRows());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
-        if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
+        if (hud.showWorldInfo()) {
             java.util.ArrayList<String> rows = new java.util.ArrayList<>();
+            if (worldInfo != null && worldInfo.enabled()) {
             if (worldInfo.showTime()) {
                 long dayTime = Math.floorMod(client.level.getDayTime(), 24000L); long hours = (dayTime / 1000L + 6L) % 24L; long minutes = Math.round((dayTime % 1000L) * 60.0 / 1000.0);
                 if (minutes == 60) { minutes = 0; hours = (hours + 1) % 24; }
@@ -177,6 +180,7 @@ public final class HudRenderer {
             if (entityCountInfo != null && entityCountInfo.enabled()) rows.add(entityCountInfo.formatted());
             if (guiInfo != null && guiInfo.enabled()) rows.add(guiInfo.formatted());
             if (frameInfo != null && frameInfo.enabled()) rows.add(frameInfo.formatted());
+            }
             rows.addAll(ArsonClient.getInstance().modules().worldStatusRows());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
