@@ -27,6 +27,13 @@ class StorageScannerTest {
     }
 
     @Test
+    void targetRangeCanCoverTheMaximumRenderDistanceBoundary() {
+        assertEquals(768.0, StorageScanner.clampTargetRange(768.0));
+        assertEquals(768.0, StorageScanner.clampTargetRange(900.0));
+        assertEquals(1.0, StorageScanner.clampTargetRange(0.0));
+    }
+
+    @Test
     void clientRenderDistanceDefinesTheLoadedChunkSearchBoundary() {
         assertEquals(2, StorageScanner.effectiveChunkRadius(2));
         assertEquals(12, StorageScanner.effectiveChunkRadius(12));

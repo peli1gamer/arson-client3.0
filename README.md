@@ -17,7 +17,7 @@ A modular Fabric client for Minecraft 1.21.11, built for Java 21.
 
 Storage ESP indexes containers only in chunks already loaded by the Minecraft client. It uses the client render-distance setting as its search boundary and checks that a chunk is available before reading it; it never requests an unloaded chunk. The index updates as chunks and block entities load or unload, with a periodic refresh to catch changes.
 
-The renderer always draws storage boxes, outlines, tracers, and enabled labels through terrain. Nearby targets can be summarized as storage clusters. The target range setting filters what is shown after scanning the loaded chunk boundary.
+The renderer always draws storage boxes, outlines, tracers, and enabled labels through terrain. Nearby targets can be summarized as storage clusters. The target display range defaults to 768 blocks, enough to cover the maximum supported render-distance boundary; you can lower it to filter targets after scanning the loaded chunks.
 
 Supported built-in types include chests, barrels, shulker boxes, ender chests, hoppers, dispensers, and droppers. To include other blocks, enter comma-separated registry IDs in the Container ESP **Custom Block IDs** setting, for example:
 

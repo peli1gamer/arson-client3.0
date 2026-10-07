@@ -88,7 +88,7 @@ public final class StorageScanner {
         Set<String> requestedCustomBlockIds = parseCustomBlockIds(customBlocks);
         boolean customFilterChanged = !customBlockIds.equals(requestedCustomBlockIds);
         if (customFilterChanged) customBlockIds = requestedCustomBlockIds;
-        double clampedRange = Math.max(1.0, Math.min(256.0, range));
+        double clampedRange = clampTargetRange(range);
         int radius = effectiveChunkRadius(client.options.renderDistance().get());
         int chunkX = client.player.blockPosition().getX() >> 4;
         int chunkZ = client.player.blockPosition().getZ() >> 4;
@@ -118,6 +118,11 @@ public final class StorageScanner {
             if (dx * dx + dy * dy + dz * dz <= rangeSquared) visible.add(target);
         }
         return visible.isEmpty() ? List.of() : List.copyOf(visible);
+    }
+
+    /** Caps optional target filtering to the largest supported client render-distance boundary. */
+    public static double clampTargetRange(double range) {
+        return Math.max(1.0, Math.min(768.0, range));
     }
 
     /** Uses Minecraft's client render-distance setting as the scan boundary. */
