@@ -27,6 +27,14 @@ public final class RenderBoxRenderer {
 
     private RenderBoxRenderer() {}
 
+    public static VertexConsumer fillBuffer(MultiBufferSource consumers) {
+        return consumers.getBuffer(THROUGH_WALLS_FILL);
+    }
+
+    public static VertexConsumer lineBuffer(MultiBufferSource consumers) {
+        return consumers.getBuffer(THROUGH_WALLS_LINES);
+    }
+
     public static void fill(PoseStack matrices, MultiBufferSource consumers,
                             double cameraX, double cameraY, double cameraZ,
                             List<RenderBox> boxes) {

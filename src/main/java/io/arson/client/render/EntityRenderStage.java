@@ -10,7 +10,6 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
@@ -97,7 +96,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
                                   double cameraX, double cameraY, double cameraZ,
                                   List<EntityTarget> targets) {
         PoseStack.Pose pose = matrices.last();
-        VertexConsumer buffer = consumers.getBuffer(RenderTypes.debugFilledBox());
+        VertexConsumer buffer = RenderBoxRenderer.fillBuffer(consumers);
         RenderStyle healthStyle = module.healthStyle();
         RenderStyle backgroundStyle = module.healthBackgroundStyle();
         float width = (float) module.healthWidth();
