@@ -63,7 +63,6 @@ public final class HudModule extends Module {
     private final DoubleSetting gridSize = setting(new DoubleSetting("grid-size", "Grid Size", 4.0, 1.0, 32.0, 1.0));
     private final ColorSetting textColor = setting(new ColorSetting("text-color", "Text Color", 0xFFFFFFFF));
     private final ColorSetting secondaryColor = setting(new ColorSetting("secondary-color", "Secondary Color", 0xFFD0D0D0));
-    private final ColorSetting backgroundColor = setting(new ColorSetting("background-color", "Background Color", 0x80000000));
 
     public HudModule() {
         super("hud", "HUD", Category.RENDER);
@@ -130,7 +129,7 @@ public final class HudModule extends Module {
     public int gridSize() { return (int) Math.round(gridSize.get()); }
     public int textColor() { return textColor.get(); }
     public int secondaryColor() { return secondaryColor.get(); }
-    public int backgroundColor() { return backgroundColor.get(); }
+    public int backgroundColor() { return elementBackgroundColor(); }
 
     public void cycleElementColor(String element) {
         int next = switch (elementColor(element)) {
@@ -202,8 +201,8 @@ public final class HudModule extends Module {
     public void applyPreset(String preset) {
         switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "minimal" -> { watermark.set(true); coordinates.set(false); fps.set(true); playerInfo.set(false); worldInfo.set(false); background.set(false); shadow.set(true); scale.set(1.0); resetElement("watermark"); resetElement("fps"); }
-            case "compact" -> { watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true); background.set(true); shadow.set(true); scale.set(0.90); backgroundColor.set(0x90000000); resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info"); }
-            case "full" -> { watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true); background.set(true); shadow.set(true); scale.set(1.10); backgroundColor.set(0xA0000000); resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info"); }
+            case "compact" -> { watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true); background.set(true); shadow.set(true); scale.set(0.90); elementBackgroundColor.set(0x90000000); resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info"); }
+            case "full" -> { watermark.set(true); coordinates.set(true); fps.set(true); playerInfo.set(true); worldInfo.set(true); background.set(true); shadow.set(true); scale.set(1.10); elementBackgroundColor.set(0xA0000000); resetElement("watermark"); resetElement("coordinates"); resetElement("fps"); resetElement("player-info"); resetElement("world-info"); }
             default -> throw new IllegalArgumentException("Unknown HUD preset: " + preset);
         }
     }
