@@ -27,6 +27,9 @@ public final class RenderBoxRenderer {
 
     private RenderBoxRenderer() {}
 
+    /** Eagerly registers the custom no-depth pipelines during client initialization. */
+    public static void initialize() {}
+
     public static VertexConsumer fillBuffer(MultiBufferSource consumers) {
         return consumers.getBuffer(THROUGH_WALLS_FILL);
     }

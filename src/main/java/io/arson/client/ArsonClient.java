@@ -1,5 +1,6 @@
 package io.arson.client;
 
+import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.command.ArsonCommand;
@@ -63,6 +64,7 @@ public final class ArsonClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         instance = this;
+        RenderBoxRenderer.initialize();
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
