@@ -2,7 +2,7 @@ package io.arson.client.render;
 
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -14,45 +14,74 @@ import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Cached storage discovery. Positions are reused while range filtering stays dynamic. */
+/** Incremental storage index for chunks the client has already loaded. */
 public final class StorageScanner {
-    private static final long CACHE_REFRESH_TICKS = 20L;
+    private static final long FALLBACK_REFRESH_TICKS = 20L;
 
-    private Object cachedLevel;
-    private long cachedTick = Long.MIN_VALUE;
-    private int cachedChunkX = Integer.MIN_VALUE;
-    private int cachedChunkZ = Integer.MIN_VALUE;
-    private int cachedRadius = Integer.MIN_VALUE;
+    private Object indexedLevel;
+    private long indexedTick = Long.MIN_VALUE;
+    private int indexedChunkX = Integer.MIN_VALUE;
+    private int indexedChunkZ = Integer.MIN_VALUE;
+    private int indexedRadius = Integer.MIN_VALUE;
+    private long revision;
+    private final Map<Long, IndexedChunk> chunks = new HashMap<>();
     private List<StorageOverlay.StorageTarget> cachedTargets = List.of();
 
-    public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range) {
+    public long revision() { return revision; }
+
+    public void onChunkLoaded(ClientLevel level, LevelChunk chunk) {
+        switchLevel(level);
+        indexChunk(level, chunk);
+        cachedTargets = flattenIndex();
+        revision++;
+    }
+
+    public void onChunkUnloaded(ClientLevel level, LevelChunk chunk) {
+        if (indexedLevel != level) return;
+        if (chunks.remove(chunkKey(chunk.getPos().x, chunk.getPos().z)) != null) revision++;
+        cachedTargets = flattenIndex();
+    }
+
+    /** Invalidates one loaded chunk so the next render scan refreshes its block entities. */
+    public void invalidateBlockEntity(ClientLevel level, BlockPos pos) {
+        if (indexedLevel != level) return;
+        chunks.remove(chunkKey(pos.getX() >> 4, pos.getZ() >> 4));
+        indexedTick = Long.MIN_VALUE;
+        revision++;
+        cachedTargets = flattenIndex();
+    }
+
+    public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range) {
         if (client.level == null || client.player == null) {
+            clear();
             return List.of();
         }
 
+        ClientLevel level = client.level;
+        switchLevel(level);
         double clampedRange = Math.max(1.0, Math.min(256.0, range));
         int radius = (int) Math.ceil(clampedRange / 16.0);
         int chunkX = client.player.blockPosition().getX() >> 4;
         int chunkZ = client.player.blockPosition().getZ() >> 4;
-        long gameTime = client.level.getGameTime();
+        long gameTime = level.getGameTime();
 
-        boolean worldChanged = cachedLevel != client.level;
-        boolean chunkChanged = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
-        boolean radiusChanged = cachedRadius != radius;
-        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
-
-        if (worldChanged || chunkChanged || radiusChanged || refreshDue) {
-            cachedTargets = scanLoadedStorage(client, radius);
-            cachedLevel = client.level;
-            cachedTick = gameTime;
-            cachedChunkX = chunkX;
-            cachedChunkZ = chunkZ;
-            cachedRadius = radius;
+        boolean chunkChanged = indexedChunkX != chunkX || indexedChunkZ != chunkZ;
+        boolean radiusChanged = indexedRadius != radius;
+        boolean refreshDue = gameTime - indexedTick >= FALLBACK_REFRESH_TICKS || gameTime < indexedTick;
+        if (chunkChanged || radiusChanged || refreshDue) {
+            refreshLoadedChunks(level, radius, chunkX, chunkZ);
+            indexedTick = gameTime;
+            indexedChunkX = chunkX;
+            indexedChunkZ = chunkZ;
+            indexedRadius = radius;
+            cachedTargets = flattenIndex();
         }
 
         double playerX = client.player.getX();
@@ -60,68 +89,114 @@ public final class StorageScanner {
         double playerZ = client.player.getZ();
         double rangeSquared = clampedRange * clampedRange;
         List<StorageOverlay.StorageTarget> visible = new ArrayList<>(cachedTargets.size());
-
         for (StorageOverlay.StorageTarget target : cachedTargets) {
             double dx = target.x() + target.width() * 0.5 - playerX;
             double dy = target.y() + target.height() * 0.5 - playerY;
             double dz = target.z() + target.depth() * 0.5 - playerZ;
-            if (dx * dx + dy * dy + dz * dz <= rangeSquared) {
-                visible.add(target);
-            }
+            if (dx * dx + dy * dy + dz * dz <= rangeSquared) visible.add(target);
         }
         return visible.isEmpty() ? List.of() : List.copyOf(visible);
     }
 
-    private static List<StorageOverlay.StorageTarget> scanLoadedStorage(Minecraft client, int chunkRadius) {
-        int centerChunkX = client.player.blockPosition().getX() >> 4;
-        int centerChunkZ = client.player.blockPosition().getZ() >> 4;
-        List<StorageOverlay.StorageTarget> targets = new ArrayList<>();
-        Set<BlockPos> emittedChestPositions = new HashSet<>();
-
-        for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
-            for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
-                if (!client.level.hasChunk(chunkX, chunkZ)) continue;
-
-                LevelChunk chunk = client.level.getChunkSource().getChunkNow(chunkX, chunkZ);
-                if (chunk == null) continue;
-
-                for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
-                    BlockEntity entity = entry.getValue();
-                    StorageType type = classify(entity);
-                    if (type == null) continue;
-
-                    BlockPos pos = entry.getKey();
-                    if (entity instanceof ChestBlockEntity) {
-                        if (emittedChestPositions.contains(pos)) continue;
-                        targets.add(buildChestTarget(client, pos, emittedChestPositions));
-                    } else {
-                        targets.add(new StorageOverlay.StorageTarget(
-                                type, pos.getX(), pos.getY(), pos.getZ(), 1.0, 1.0, 1.0));
-                    }
-                }
-            }
-        }
-        return targets.isEmpty() ? List.of() : List.copyOf(targets);
+    private void switchLevel(Object level) {
+        if (indexedLevel == level) return;
+        chunks.clear();
+        cachedTargets = List.of();
+        indexedLevel = level;
+        indexedTick = Long.MIN_VALUE;
+        indexedChunkX = Integer.MIN_VALUE;
+        indexedChunkZ = Integer.MIN_VALUE;
+        indexedRadius = Integer.MIN_VALUE;
+        revision++;
     }
 
-    private static StorageOverlay.StorageTarget buildChestTarget(Minecraft client, BlockPos pos,
+    private void clear() {
+        if (indexedLevel != null || !chunks.isEmpty()) revision++;
+        indexedLevel = null;
+        indexedTick = Long.MIN_VALUE;
+        indexedChunkX = Integer.MIN_VALUE;
+        indexedChunkZ = Integer.MIN_VALUE;
+        indexedRadius = Integer.MIN_VALUE;
+        chunks.clear();
+        cachedTargets = List.of();
+    }
+
+    private void refreshLoadedChunks(ClientLevel level, int chunkRadius, int centerChunkX, int centerChunkZ) {
+        Set<Long> seen = new HashSet<>();
+        for (int x = centerChunkX - chunkRadius; x <= centerChunkX + chunkRadius; x++) {
+            for (int z = centerChunkZ - chunkRadius; z <= centerChunkZ + chunkRadius; z++) {
+                long key = chunkKey(x, z);
+                if (!level.hasChunk(x, z)) {
+                    if (chunks.remove(key) != null) revision++;
+                    continue;
+                }
+                LevelChunk chunk = level.getChunkSource().getChunkNow(x, z);
+                if (chunk == null) {
+                    if (chunks.remove(key) != null) revision++;
+                    continue;
+                }
+                seen.add(key);
+                indexChunk(level, chunk);
+            }
+        }
+        int before = chunks.size();
+        chunks.keySet().retainAll(seen);
+        if (chunks.size() != before) revision++;
+    }
+
+    private void indexChunk(ClientLevel level, LevelChunk chunk) {
+        int chunkX = chunk.getPos().x;
+        int chunkZ = chunk.getPos().z;
+        List<StorageOverlay.StorageTarget> targets = new ArrayList<>();
+        Set<BlockPos> emittedChestPositions = new HashSet<>();
+        for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
+            BlockEntity entity = entry.getValue();
+            StorageType type = classify(entity);
+            if (type == null) continue;
+            BlockPos pos = entry.getKey();
+            if (entity instanceof ChestBlockEntity) {
+                if (emittedChestPositions.contains(pos)) continue;
+                targets.add(buildChestTarget(level, pos, emittedChestPositions));
+            } else {
+                targets.add(new StorageOverlay.StorageTarget(type, pos.getX(), pos.getY(), pos.getZ(), 1.0, 1.0, 1.0));
+            }
+        }
+        List<StorageOverlay.StorageTarget> indexedTargets = List.copyOf(targets);
+        long key = chunkKey(chunkX, chunkZ);
+        IndexedChunk previous = chunks.put(key, new IndexedChunk(chunkX, chunkZ, indexedTargets));
+        if (previous == null || !previous.targets().equals(indexedTargets)) revision++;
+    }
+
+    private List<StorageOverlay.StorageTarget> flattenIndex() {
+        Map<TargetKey, StorageOverlay.StorageTarget> unique = new LinkedHashMap<>();
+        for (IndexedChunk chunk : chunks.values()) {
+            for (StorageOverlay.StorageTarget target : chunk.targets()) {
+                TargetKey key = new TargetKey(target.type(), (int) Math.floor(target.x()),
+                        (int) Math.floor(target.y()), (int) Math.floor(target.z()));
+                unique.putIfAbsent(key, target);
+            }
+        }
+        return unique.isEmpty() ? List.of() : List.copyOf(unique.values());
+    }
+
+    private static long chunkKey(int x, int z) {
+        return ((long) x << 32) | (z & 0xffffffffL);
+    }
+
+    private static StorageOverlay.StorageTarget buildChestTarget(ClientLevel level, BlockPos pos,
                                                                   Set<BlockPos> emittedPositions) {
-        BlockPos east = pos.east();
-        BlockPos south = pos.south();
-        BlockPos west = pos.west();
-        BlockPos north = pos.north();
-
+        BlockPos[] neighbors = {pos.east(), pos.south(), pos.west(), pos.north()};
         BlockPos partner = null;
-        if (isChest(client, east)) partner = east;
-        else if (isChest(client, south)) partner = south;
-        else if (isChest(client, west)) partner = west;
-        else if (isChest(client, north)) partner = north;
-
+        for (BlockPos neighbor : neighbors) {
+            if (level.getBlockEntity(neighbor) instanceof ChestBlockEntity) {
+                partner = neighbor;
+                break;
+            }
+        }
         double x = pos.getX();
         double z = pos.getZ();
         double width = 1.0;
         double depth = 1.0;
-
         if (partner != null) {
             x = Math.min(pos.getX(), partner.getX());
             z = Math.min(pos.getZ(), partner.getZ());
@@ -129,15 +204,8 @@ public final class StorageScanner {
             depth = pos.getZ() == partner.getZ() ? 1.0 : 2.0;
             emittedPositions.add(partner);
         }
-
         emittedPositions.add(pos);
-        return new StorageOverlay.StorageTarget(
-                StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
-    }
-
-    private static boolean isChest(Minecraft client, BlockPos pos) {
-        BlockEntity entity = client.level.getBlockEntity(pos);
-        return entity instanceof ChestBlockEntity;
+        return new StorageOverlay.StorageTarget(StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
     }
 
     private static StorageType classify(BlockEntity entity) {
@@ -146,9 +214,11 @@ public final class StorageScanner {
         if (entity instanceof ShulkerBoxBlockEntity) return StorageType.SHULKER;
         if (entity.getBlockState().is(Blocks.BARREL)) return StorageType.BARREL;
         if (entity.getBlockState().is(Blocks.ENDER_CHEST)) return StorageType.ENDER_CHEST;
-        if (entity instanceof HopperBlockEntity
-                || entity instanceof DispenserBlockEntity
+        if (entity instanceof HopperBlockEntity || entity instanceof DispenserBlockEntity
                 || entity instanceof DropperBlockEntity) return StorageType.OTHER;
         return null;
     }
+
+    private record IndexedChunk(int x, int z, List<StorageOverlay.StorageTarget> targets) {}
+    private record TargetKey(StorageType type, int x, int y, int z) {}
 }

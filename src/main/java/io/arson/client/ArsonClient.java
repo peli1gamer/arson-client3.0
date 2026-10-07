@@ -33,12 +33,15 @@ import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientBlockEntityEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -75,8 +78,15 @@ public final class ArsonClient implements ClientModInitializer {
         contextAdapter.initialize(featureContext);
         worldRenderBridge = new WorldRenderBridge(featureContext, contextAdapter);
 
+        StorageScanner storageScanner = new StorageScanner();
+        ClientChunkEvents.CHUNK_LOAD.register(storageScanner::onChunkLoaded);
+        ClientChunkEvents.CHUNK_UNLOAD.register(storageScanner::onChunkUnloaded);
+        ClientBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, level) ->
+                storageScanner.invalidateBlockEntity(level, blockEntity.getBlockPos()));
+        ClientBlockEntityEvents.BLOCK_ENTITY_UNLOAD.register((blockEntity, level) ->
+                storageScanner.invalidateBlockEntity(level, blockEntity.getBlockPos()));
         StorageOverlay storageOverlay = new StorageOverlay(new StorageRenderProfile());
-        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), (ContainerESPModule) moduleManager.get("container-esp")));
+        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, storageScanner, (ContainerESPModule) moduleManager.get("container-esp")));
         EntityScanner entityScanner = new EntityScanner();
         worldRenderBridge.register(new EntityRenderStage(client, entityScanner, (EntityESPModule) moduleManager.get("entity-esp")));
         worldRenderBridge.register(new ItemRenderStage(client, entityScanner, (ItemESPModule) moduleManager.get("item-esp")));

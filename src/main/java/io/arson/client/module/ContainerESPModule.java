@@ -14,6 +14,10 @@ public final class ContainerESPModule extends VisualModule {
     private final BooleanSetting enderChests = setting(new BooleanSetting("ender-chests", "Ender Chests", true));
     private final BooleanSetting otherStorage = setting(new BooleanSetting("other-storage", "Other Storage", false));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
+    private final BooleanSetting tracers = setting(new BooleanSetting("tracers", "Tracers", true));
+    private final BooleanSetting clusterEnabled = setting(new BooleanSetting("cluster-enabled", "Storage Clusters", true));
+    private final DoubleSetting clusterRadius = setting(new DoubleSetting("cluster-radius", "Cluster Radius", 8.0, 2.0, 32.0, 1.0));
+    private final ColorSetting clusterColor = setting(new ColorSetting("cluster-color", "Cluster Color", 0xFFFFAA33));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 5.0, 1.0, 20.0, 1.0));
     private final BooleanSetting showLabels = setting(new BooleanSetting("show-labels", "Show Labels", false));
@@ -62,6 +66,10 @@ public final class ContainerESPModule extends VisualModule {
     public boolean showEnderChests() { return enderChests.enabled(); }
     public boolean showOtherStorage() { return otherStorage.enabled(); }
     public boolean distanceFade() { return distanceFade.enabled(); }
+    public boolean showTracers() { return tracers.enabled(); }
+    public boolean clusterEnabled() { return clusterEnabled.enabled(); }
+    public double clusterRadius() { return clusterRadius.get(); }
+    public int clusterColor() { return clusterColor.get(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
     public boolean showLabels() { return showLabels.enabled(); }
