@@ -61,7 +61,6 @@ public final class HudModule extends Module {
     private final StringSetting compactSeparator = setting(new StringSetting("compact-separator", "Compact Separator", "  |  ", 16));
     private final BooleanSetting snap = setting(new BooleanSetting("snap", "Grid Snap", true));
     private final DoubleSetting gridSize = setting(new DoubleSetting("grid-size", "Grid Size", 4.0, 1.0, 32.0, 1.0));
-    private final ColorSetting textColor = setting(new ColorSetting("text-color", "Text Color", 0xFFFFFFFF));
     private final ColorSetting secondaryColor = setting(new ColorSetting("secondary-color", "Secondary Color", 0xFFD0D0D0));
 
     public HudModule() {
@@ -94,7 +93,7 @@ public final class HudModule extends Module {
     public String fpsAlign() { return fpsAlign.get(); }
     public String playerInfoAlign() { return playerInfoAlign.get(); }
     public String worldInfoAlign() { return worldInfoAlign.get(); }
-    public int elementColor(String element) { return switch (element) { case "watermark" -> watermarkColor.get(); case "coordinates" -> coordinatesColor.get(); case "fps" -> fpsColor.get(); case "player-info" -> playerInfoColor.get(); case "world-info" -> worldInfoColor.get(); default -> textColor.get(); }; }
+    public int elementColor(String element) { return switch (element) { case "watermark" -> watermarkColor.get(); case "coordinates" -> coordinatesColor.get(); case "fps" -> fpsColor.get(); case "player-info" -> playerInfoColor.get(); case "world-info" -> worldInfoColor.get(); default -> 0xFFFFFFFF; }; }
     public int elementX(String element) { return (int) Math.round(switch (element) { case "watermark" -> x.get(); case "coordinates" -> coordinatesX.get(); case "fps" -> fpsX.get(); case "player-info" -> playerInfoX.get(); case "world-info" -> worldInfoX.get(); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); }); }
     public int elementY(String element) { return (int) Math.round(switch (element) { case "watermark" -> y.get(); case "coordinates" -> coordinatesY.get(); case "fps" -> fpsY.get(); case "player-info" -> playerInfoY.get(); case "world-info" -> worldInfoY.get(); default -> throw new IllegalArgumentException("Unknown HUD element: " + element); }); }
     public double elementScale(String element) { return switch (element) { case "watermark" -> watermarkScale.get(); case "coordinates" -> coordinatesScale.get(); case "fps" -> fpsScale.get(); case "player-info" -> playerInfoScale.get(); case "world-info" -> worldInfoScale.get(); default -> 1.0; }; }
@@ -127,7 +126,6 @@ public final class HudModule extends Module {
     public boolean gridSnap() { return snap.enabled(); }
     public void setGridSnap(boolean enabled) { snap.set(enabled); }
     public int gridSize() { return (int) Math.round(gridSize.get()); }
-    public int textColor() { return textColor.get(); }
     public int secondaryColor() { return secondaryColor.get(); }
     public int backgroundColor() { return elementBackgroundColor(); }
 
