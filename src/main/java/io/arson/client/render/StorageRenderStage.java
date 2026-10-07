@@ -149,8 +149,9 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         matrices.scale(-.025f * scale, -.025f * scale, .025f * scale);
         int width = font.width(text);
         Matrix4f pose = matrices.last().pose();
+        int background = module.labelBackground() ? fadeColor(module.labelBackgroundColor(), fade) : 0;
         font.drawInBatch(Component.literal(text), -width / 2f, 0, fadeColor(argb, fade), false,
-                pose, consumers, Font.DisplayMode.SEE_THROUGH, 0, 0xF000F0);
+                pose, consumers, Font.DisplayMode.SEE_THROUGH, background, 0xF000F0);
         matrices.popPose();
     }
 
