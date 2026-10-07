@@ -18,12 +18,12 @@ public final class RenderBoxRenderer {
             RenderSetup.builder(RenderPipelines.register(RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
                     .withLocation(Identifier.fromNamespaceAndPath("arson", "pipeline/debug_filled_box_through_walls"))
                     .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).build()))
-                    .translucent().bufferSize(RenderType.SMALL_BUFFER_SIZE).createRenderSetup());
+                    .sortOnUpload().bufferSize(RenderType.SMALL_BUFFER_SIZE).createRenderSetup());
     private static final RenderType THROUGH_WALLS_LINES = RenderType.create("arson_through_walls_lines",
             RenderSetup.builder(RenderPipelines.register(RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
                     .withLocation(Identifier.fromNamespaceAndPath("arson", "pipeline/lines_through_walls"))
                     .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).build()))
-                    .translucent().bufferSize(RenderType.SMALL_BUFFER_SIZE).createRenderSetup());
+                    .sortOnUpload().bufferSize(RenderType.SMALL_BUFFER_SIZE).createRenderSetup());
 
     private RenderBoxRenderer() {}
 
