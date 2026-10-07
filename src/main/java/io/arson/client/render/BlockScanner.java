@@ -1,6 +1,7 @@
 package io.arson.client.render;
 
 import io.arson.client.module.BlockESPModule;
+import com.arson.client.render.RenderStyle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
@@ -109,7 +110,26 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = styleHash(hash, module.diamondStyle());
+        hash = styleHash(hash, module.emeraldStyle());
+        hash = styleHash(hash, module.goldStyle());
+        hash = styleHash(hash, module.ironStyle());
+        hash = styleHash(hash, module.copperStyle());
+        hash = styleHash(hash, module.coalStyle());
+        hash = styleHash(hash, module.redstoneStyle());
+        hash = styleHash(hash, module.lapisStyle());
+        hash = styleHash(hash, module.quartzStyle());
+        hash = styleHash(hash, module.ancientDebrisStyle());
         return hash;
+    }
+
+    private static int styleHash(int hash, RenderStyle style) {
+        hash = 31 * hash + style.color().argb();
+        hash = 31 * hash + Boolean.hashCode(style.filled());
+        hash = 31 * hash + Boolean.hashCode(style.outline());
+        hash = 31 * hash + Float.floatToIntBits(style.fillAlpha());
+        hash = 31 * hash + Float.floatToIntBits(style.outlineAlpha());
+        return 31 * hash + Float.floatToIntBits(style.lineWidth());
     }
 
     private static RenderStyleMatch match(Block block, BlockESPModule module) {
