@@ -56,17 +56,16 @@ class ModuleParityTest {
     }
 
     @Test
-    void defaultCatalogueOmitsUnconsumedStatusPlaceholders() {
+    void statusModulesProduceHudRowsWhenEnabled() {
         ModuleManager manager = new ModuleManager();
         manager.registerDefaults();
-        for (String id : java.util.List.of("client-info", "performance", "combat-status", "player-status",
-                "movement-status", "render-profile", "world-status", "storage-status", "utility-status")) {
-            assertNull(manager.get(id), id);
-        }
-        assertNotNull(manager.get("client-performance-info"));
-        assertNotNull(manager.get("player-vitals"));
-        assertNotNull(manager.get("player-movement-info"));
-        assertNotNull(manager.get("world-details"));
+        manager.get("player-status").setEnabled(true);
+        manager.get("world-status").setEnabled(true);
+        manager.get("utility-status").setEnabled(true);
+
+        assertTrue(manager.playerStatusRows().stream().anyMatch(row -> row.startsWith("Status ")));
+        assertTrue(manager.worldStatusRows().stream().anyMatch(row -> row.startsWith("World ")));
+        assertTrue(manager.worldStatusRows().stream().anyMatch(row -> row.startsWith("Modules ")));
     }
 
     @Test
@@ -111,9 +110,9 @@ class ModuleParityTest {
 
     @Test
     void favoritesSortBeforeEnabledAndCanBeCounted() {
-        ModuleManager manager = new ModuleManager(); ModuleManager manager2 = new ModuleManager(); manager.registerDefaults(); Module sprint = manager.get("sprint"); Module clientPerformance = manager.get("client-performance-info");
-        assertNotNull(sprint); assertNotNull(clientPerformance); sprint.setFavorite(true); clientPerformance.setFavorite(true); assertEquals(2, manager.favoriteCount());
-        assertEquals("client-performance-info", manager.organized(Module.Category.MISC).iterator().next().id());
+        ModuleManager manager = new ModuleManager(); ModuleManager manager2 = new ModuleManager(); manager.registerDefaults(); Module sprint = manager.get("sprint"); Module performance = manager.get("performance");
+        assertNotNull(sprint); assertNotNull(performance); sprint.setFavorite(true); performance.setFavorite(true); assertEquals(2, manager.favoriteCount());
+        assertEquals("performance", manager.organized(Module.Category.MISC).iterator().next().id());
         assertEquals(0, manager2.favoriteCount());
     }
 

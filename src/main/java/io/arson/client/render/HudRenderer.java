@@ -135,6 +135,7 @@ public final class HudRenderer {
             if (interactionInfo != null && interactionInfo.enabled()) rows.add(interactionInfo.formatted());
             if (airInfo != null && airInfo.enabled()) rows.add(airInfo.formatted());
             if (playerDetection != null && playerDetection.enabled()) rows.addAll(playerDetection.formattedLines());
+            rows.addAll(ArsonClient.getInstance().modules().playerStatusRows());
             drawElement(graphics, client, hud, layout, "player-info", hud.playerInfoX(), hud.playerInfoY(), rows.toArray(String[]::new));
         }
         if (hud.showWorldInfo() && worldInfo != null && worldInfo.enabled()) {
@@ -176,6 +177,7 @@ public final class HudRenderer {
             if (entityCountInfo != null && entityCountInfo.enabled()) rows.add(entityCountInfo.formatted());
             if (guiInfo != null && guiInfo.enabled()) rows.add(guiInfo.formatted());
             if (frameInfo != null && frameInfo.enabled()) rows.add(frameInfo.formatted());
+            rows.addAll(ArsonClient.getInstance().modules().worldStatusRows());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
         graphics.pose().popMatrix();
