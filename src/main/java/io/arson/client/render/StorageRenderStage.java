@@ -7,7 +7,9 @@ import com.arson.client.render.RenderStyle;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import com.arson.client.render.StorageType;
+import io.arson.client.ArsonClient;
 import io.arson.client.module.ContainerESPModule;
+import io.arson.client.module.ModuleManager;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -66,6 +68,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                     case OTHER -> module.otherStorageStyle();
                 }));
         for (StorageClusterDetector.Cluster cluster : cachedClusters) boxes.add(clusterBox(cluster));
+        boxes = applyRenderMode(boxes, ArsonClient.getInstance().modules().renderMode());
 
         if (module.distanceFade() && !boxes.isEmpty()) {
             List<RenderBox> faded = new ArrayList<>(boxes.size());
@@ -200,6 +203,28 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         return new RenderBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ(),
                 new RenderStyle(style.color(), style.fill(), style.outline(), style.fillAlpha() * fade,
                         style.outlineAlpha() * fade, style.lineWidth()));
+    }
+
+    public static List<RenderBox> applyRenderMode(List<RenderBox> boxes, ModuleManager.RenderMode mode) {
+        if (boxes == null || boxes.isEmpty()) return List.of();
+        if (mode == null || mode == ModuleManager.RenderMode.STANDARD) return List.copyOf(boxes);
+        List<RenderBox> styled = new ArrayList<>(boxes.size());
+        for (RenderBox box : boxes) {
+            var original = box.style();
+            boolean fill = mode == ModuleManager.RenderMode.HIGH_CONTRAST && original.filled();
+            boolean outline = mode == ModuleManager.RenderMode.MINIMAL || original.outline();
+            float fillAlpha = mode == ModuleManager.RenderMode.HIGH_CONTRAST
+                    ? Math.max(original.fillAlpha(), 0.55f) : 0.0f;
+            float outlineAlpha = mode == ModuleManager.RenderMode.HIGH_CONTRAST
+                    ? Math.max(original.outlineAlpha(), 0.95f) : original.outlineAlpha();
+            float lineWidth = mode == ModuleManager.RenderMode.HIGH_CONTRAST
+                    ? Math.max(original.lineWidth(), 2.0f) : original.lineWidth();
+            RenderStyle style = new RenderStyle(original.color(), fill, outline,
+                    fillAlpha, outlineAlpha, lineWidth);
+            styled.add(new RenderBox(box.minX(), box.minY(), box.minZ(),
+                    box.maxX(), box.maxY(), box.maxZ(), style));
+        }
+        return List.copyOf(styled);
     }
 
     public int lastVisibleCount() { return lastVisibleCount; }
