@@ -43,14 +43,29 @@ public final class StorageScanner {
         switchLevel(level);
         if (!isInsideIndexedBoundary(chunk.getPos().x, chunk.getPos().z)) return;
         indexChunk(level, chunk);
+        reindexLoadedAdjacentChunks(level, chunk.getPos().x, chunk.getPos().z);
         cachedTargets = flattenIndex();
         revision++;
     }
 
     public void onChunkUnloaded(ClientLevel level, LevelChunk chunk) {
         if (indexedLevel != level) return;
-        if (chunks.remove(chunkKey(chunk.getPos().x, chunk.getPos().z)) != null) revision++;
+        int chunkX = chunk.getPos().x;
+        int chunkZ = chunk.getPos().z;
+        if (chunks.remove(chunkKey(chunkX, chunkZ)) != null) revision++;
+        reindexLoadedAdjacentChunks(level, chunkX, chunkZ);
         cachedTargets = flattenIndex();
+    }
+
+    private void reindexLoadedAdjacentChunks(ClientLevel level, int chunkX, int chunkZ) {
+        int[][] offsets = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int[] offset : offsets) {
+            int adjacentX = chunkX + offset[0];
+            int adjacentZ = chunkZ + offset[1];
+            if (!isInsideIndexedBoundary(adjacentX, adjacentZ)) continue;
+            LevelChunk adjacent = level.getChunkSource().getChunkNow(adjacentX, adjacentZ);
+            if (adjacent != null) indexChunk(level, adjacent);
+        }
     }
 
     /** Invalidates one loaded chunk so the next render scan refreshes its block entities. */
@@ -230,7 +245,12 @@ public final class StorageScanner {
         BlockPos[] neighbors = {pos.east(), pos.south(), pos.west(), pos.north()};
         BlockPos partner = null;
         for (BlockPos neighbor : neighbors) {
-            if (level.getBlockEntity(neighbor) instanceof ChestBlockEntity) {
+            int neighborChunkX = neighbor.getX() >> 4;
+            int neighborChunkZ = neighbor.getZ() >> 4;
+            if (!isInsideIndexedBoundary(neighborChunkX, neighborChunkZ)) continue;
+            LevelChunk neighborChunk = level.getChunkSource().getChunkNow(neighborChunkX, neighborChunkZ);
+            if (neighborChunk != null
+                    && neighborChunk.getBlockEntities().get(neighbor) instanceof ChestBlockEntity) {
                 partner = neighbor;
                 break;
             }
