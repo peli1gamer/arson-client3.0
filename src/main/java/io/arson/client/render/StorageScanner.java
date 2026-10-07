@@ -240,8 +240,8 @@ public final class StorageScanner {
         return ((long) x << 32) | (z & 0xffffffffL);
     }
 
-    private static StorageOverlay.StorageTarget buildChestTarget(ClientLevel level, BlockPos pos,
-                                                                  Set<BlockPos> emittedPositions) {
+    private StorageOverlay.StorageTarget buildChestTarget(ClientLevel level, BlockPos pos,
+                                                           Set<BlockPos> emittedPositions) {
         BlockPos[] neighbors = {pos.east(), pos.south(), pos.west(), pos.north()};
         BlockPos partner = null;
         for (BlockPos neighbor : neighbors) {
