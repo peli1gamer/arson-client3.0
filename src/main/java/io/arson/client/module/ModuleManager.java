@@ -401,6 +401,6 @@ public final class ModuleManager {
 
     public RenderMode renderMode() {
         Module module = get("render-profile");
-        return module instanceof RenderProfileModule profile ? profile.mode() : RenderMode.STANDARD;
+        return module instanceof RenderProfileModule profile && profile.enabled() ? profile.mode() : RenderMode.STANDARD;
     }
 }
