@@ -41,6 +41,7 @@ public final class StorageScanner {
 
     public void onChunkLoaded(ClientLevel level, LevelChunk chunk) {
         switchLevel(level);
+        if (!isInsideIndexedBoundary(chunk.getPos().x, chunk.getPos().z)) return;
         indexChunk(level, chunk);
         cachedTargets = flattenIndex();
         revision++;
@@ -107,6 +108,18 @@ public final class StorageScanner {
     /** Uses Minecraft's client render-distance setting as the scan boundary. */
     public static int effectiveChunkRadius(int clientRenderDistance) {
         return Math.max(1, Math.min(32, clientRenderDistance));
+    }
+
+    private boolean isInsideIndexedBoundary(int chunkX, int chunkZ) {
+        return indexedRadius != Integer.MIN_VALUE
+                && isWithinChunkBoundary(chunkX, chunkZ, indexedChunkX, indexedChunkZ, indexedRadius);
+    }
+
+    /** Tests membership in the square chunk boundary used by the render-distance scan. */
+    public static boolean isWithinChunkBoundary(int chunkX, int chunkZ, int centerChunkX, int centerChunkZ, int radius) {
+        long dx = Math.abs((long) chunkX - centerChunkX);
+        long dz = Math.abs((long) chunkZ - centerChunkZ);
+        return dx <= radius && dz <= radius;
     }
 
     /** Parses comma, semicolon, or whitespace-separated block registry IDs. */

@@ -20,6 +20,13 @@ class StorageScannerTest {
     }
 
     @Test
+    void chunkLoadEventsCannotIndexOutsideTheLastRenderDistanceBoundary() {
+        assertEquals(true, StorageScanner.isWithinChunkBoundary(12, -4, 10, -6, 2));
+        assertEquals(false, StorageScanner.isWithinChunkBoundary(13, -4, 10, -6, 2));
+        assertEquals(false, StorageScanner.isWithinChunkBoundary(10, -9, 10, -6, 2));
+    }
+
+    @Test
     void clientRenderDistanceDefinesTheLoadedChunkSearchBoundary() {
         assertEquals(2, StorageScanner.effectiveChunkRadius(2));
         assertEquals(12, StorageScanner.effectiveChunkRadius(12));
