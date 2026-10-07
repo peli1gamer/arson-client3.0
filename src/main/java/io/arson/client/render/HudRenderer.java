@@ -260,7 +260,7 @@ public final class HudRenderer {
                 graphics.drawString(client.font, row.first(), left, index * line, hud.elementColor(element), hud.showShadow());
                 if (row.hasSecond()) {
                     graphics.drawString(client.font, row.second(), left + firstColumnWidth + hud.columnGap(), index * line,
-                        hud.elementColor(element), hud.showShadow());
+                        hud.secondaryColor(), hud.showShadow());
                 }
             } else {
                 int rowX = alignedX(0, client.font.width(row.first()), alignment);
