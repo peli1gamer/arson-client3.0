@@ -6,6 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StorageScannerTest {
     @Test
+    void parsesCustomBlockIdsWithDefaultMinecraftNamespaceAndNormalization() {
+        assertEquals(java.util.Set.of("minecraft:chest", "mod:crate"),
+                StorageScanner.parseCustomBlockIds(" Chest, mod:crate; chest "));
+        assertEquals(java.util.Set.of(), StorageScanner.parseCustomBlockIds("  "));
+    }
+
+    @Test
     void clientRenderDistanceDefinesTheLoadedChunkSearchBoundary() {
         assertEquals(2, StorageScanner.effectiveChunkRadius(2));
         assertEquals(12, StorageScanner.effectiveChunkRadius(12));

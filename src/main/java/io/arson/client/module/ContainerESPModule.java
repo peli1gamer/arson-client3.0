@@ -5,6 +5,7 @@ import io.arson.client.render.RenderStyle;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
+import io.arson.client.settings.StringSetting;
 
 /** Configurable container visualization. Drawing is performed by the render stage. */
 public final class ContainerESPModule extends VisualModule {
@@ -12,7 +13,8 @@ public final class ContainerESPModule extends VisualModule {
     private final BooleanSetting barrels = setting(new BooleanSetting("barrels", "Barrels", true));
     private final BooleanSetting shulkers = setting(new BooleanSetting("shulkers", "Shulkers", true));
     private final BooleanSetting enderChests = setting(new BooleanSetting("ender-chests", "Ender Chests", true));
-    private final BooleanSetting otherStorage = setting(new BooleanSetting("other-storage", "Other Storage", false));
+    private final BooleanSetting otherStorage = setting(new BooleanSetting("other-storage", "Other and Custom Storage", false));
+    private final StringSetting customStorageBlocks = setting(new StringSetting("custom-storage-blocks", "Custom Block IDs (comma separated)", "", 512));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final BooleanSetting tracers = setting(new BooleanSetting("tracers", "Tracers", true));
     private final BooleanSetting clusterEnabled = setting(new BooleanSetting("cluster-enabled", "Storage Clusters", true));
@@ -65,6 +67,7 @@ public final class ContainerESPModule extends VisualModule {
     public boolean showShulkers() { return shulkers.enabled(); }
     public boolean showEnderChests() { return enderChests.enabled(); }
     public boolean showOtherStorage() { return otherStorage.enabled(); }
+    public String customStorageBlocks() { return customStorageBlocks.get(); }
     public boolean distanceFade() { return distanceFade.enabled(); }
     public boolean showTracers() { return tracers.enabled(); }
     public boolean clusterEnabled() { return clusterEnabled.enabled(); }

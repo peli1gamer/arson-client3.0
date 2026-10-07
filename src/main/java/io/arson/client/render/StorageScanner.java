@@ -3,6 +3,7 @@ package io.arson.client.render;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +34,7 @@ public final class StorageScanner {
     private int indexedRadius = Integer.MIN_VALUE;
     private long revision;
     private final Map<Long, IndexedChunk> chunks = new HashMap<>();
+    private Set<String> customBlockIds = Set.of();
     private List<StorageOverlay.StorageTarget> cachedTargets = List.of();
 
     public long revision() { return revision; }
@@ -58,7 +61,7 @@ public final class StorageScanner {
         cachedTargets = flattenIndex();
     }
 
-    public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range) {
+    public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range, String customBlocks) {
         if (client.level == null || client.player == null) {
             clear();
             return List.of();
@@ -66,6 +69,9 @@ public final class StorageScanner {
 
         ClientLevel level = client.level;
         switchLevel(level);
+        Set<String> requestedCustomBlockIds = parseCustomBlockIds(customBlocks);
+        boolean customFilterChanged = !customBlockIds.equals(requestedCustomBlockIds);
+        if (customFilterChanged) customBlockIds = requestedCustomBlockIds;
         double clampedRange = Math.max(1.0, Math.min(256.0, range));
         int radius = effectiveChunkRadius(client.options.renderDistance().get());
         int chunkX = client.player.blockPosition().getX() >> 4;
@@ -75,7 +81,7 @@ public final class StorageScanner {
         boolean chunkChanged = indexedChunkX != chunkX || indexedChunkZ != chunkZ;
         boolean radiusChanged = indexedRadius != radius;
         boolean refreshDue = gameTime - indexedTick >= FALLBACK_REFRESH_TICKS || gameTime < indexedTick;
-        if (chunkChanged || radiusChanged || refreshDue) {
+        if (chunkChanged || radiusChanged || refreshDue || customFilterChanged) {
             refreshLoadedChunks(level, radius, chunkX, chunkZ);
             indexedTick = gameTime;
             indexedChunkX = chunkX;
@@ -101,6 +107,19 @@ public final class StorageScanner {
     /** Uses Minecraft's client render-distance setting as the scan boundary. */
     public static int effectiveChunkRadius(int clientRenderDistance) {
         return Math.max(1, Math.min(32, clientRenderDistance));
+    }
+
+    /** Parses comma, semicolon, or whitespace-separated block registry IDs. */
+    public static Set<String> parseCustomBlockIds(String input) {
+        if (input == null || input.isBlank()) return Set.of();
+        Set<String> ids = new HashSet<>();
+        for (String token : input.split("[,;\\s]+")) {
+            String id = token.trim().toLowerCase(Locale.ROOT);
+            if (id.isEmpty()) continue;
+            if (!id.contains(":")) id = "minecraft:" + id;
+            ids.add(id);
+        }
+        return Set.copyOf(ids);
     }
 
     private void switchLevel(Object level) {
@@ -156,7 +175,7 @@ public final class StorageScanner {
         Set<BlockPos> emittedChestPositions = new HashSet<>();
         for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
             BlockEntity entity = entry.getValue();
-            StorageType type = classify(entity);
+            StorageType type = classify(entity, customBlockIds);
             if (type == null) continue;
             BlockPos pos = entry.getKey();
             if (entity instanceof ChestBlockEntity) {
@@ -213,7 +232,7 @@ public final class StorageScanner {
         return new StorageOverlay.StorageTarget(StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
     }
 
-    private static StorageType classify(BlockEntity entity) {
+    private static StorageType classify(BlockEntity entity, Set<String> customBlockIds) {
         if (entity == null) return null;
         if (entity instanceof ChestBlockEntity) return StorageType.CHEST;
         if (entity instanceof ShulkerBoxBlockEntity) return StorageType.SHULKER;
@@ -221,7 +240,8 @@ public final class StorageScanner {
         if (entity.getBlockState().is(Blocks.ENDER_CHEST)) return StorageType.ENDER_CHEST;
         if (entity instanceof HopperBlockEntity || entity instanceof DispenserBlockEntity
                 || entity instanceof DropperBlockEntity) return StorageType.OTHER;
-        return null;
+        String blockId = BuiltInRegistries.BLOCK.getKey(entity.getBlockState().getBlock()).toString();
+        return customBlockIds.contains(blockId) ? StorageType.OTHER : null;
     }
 
     private record IndexedChunk(int x, int z, List<StorageOverlay.StorageTarget> targets) {}
