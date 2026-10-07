@@ -1,5 +1,6 @@
 package io.arson.client.module;
 
+import io.arson.client.settings.BooleanSetting;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
@@ -141,14 +142,21 @@ public final class ModuleManager {
         for (Module module : modules.values()) module.tick(client);
     }
 
+    public enum DisplayMode { COMPACT, DETAILED }
+    public enum RenderMode { STANDARD, HIGH_CONTRAST, MINIMAL }
+
     private static final class SprintModule extends Module {
+        private final BooleanSetting forwardOnly = setting(new BooleanSetting("forward-only", "Forward Only", true));
+
         private SprintModule() {
             super("sprint", "Sprint", Category.MOVEMENT,
                     "Local sprint state helper; it only affects the local player's sprint flag while enabled.");
         }
 
         @Override protected void onTick(Minecraft client) {
-            if (client.player != null && client.options.keyUp.isDown()) client.player.setSprinting(true);
+            if (client.player == null) return;
+            if (forwardOnly.enabled() && !client.options.keyUp.isDown()) return;
+            client.player.setSprinting(true);
         }
     }
 }
