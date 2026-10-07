@@ -6,6 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StorageScannerTest {
     @Test
+    void unchangedLoadedChunksAreNotReindexedUntilFallbackRefresh() {
+        assertEquals(true, StorageScanner.shouldIndexChunk(false, false));
+        assertEquals(false, StorageScanner.shouldIndexChunk(true, false));
+        assertEquals(true, StorageScanner.shouldIndexChunk(true, true));
+    }
+
+    @Test
     void parsesCustomBlockIdsWithDefaultMinecraftNamespaceAndNormalization() {
         assertEquals(java.util.Set.of("minecraft:chest", "mod:crate"),
                 StorageScanner.parseCustomBlockIds(" Chest, mod:crate; chest "));

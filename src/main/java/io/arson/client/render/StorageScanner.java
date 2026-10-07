@@ -25,7 +25,7 @@ import java.util.Set;
 
 /** Incremental storage index for chunks the client has already loaded. */
 public final class StorageScanner {
-    private static final long FALLBACK_REFRESH_TICKS = 20L;
+    private static final long FALLBACK_REFRESH_TICKS = 100L;
 
     private Object indexedLevel;
     private long indexedTick = Long.MIN_VALUE;
@@ -82,7 +82,7 @@ public final class StorageScanner {
         boolean radiusChanged = indexedRadius != radius;
         boolean refreshDue = gameTime - indexedTick >= FALLBACK_REFRESH_TICKS || gameTime < indexedTick;
         if (chunkChanged || radiusChanged || refreshDue || customFilterChanged) {
-            refreshLoadedChunks(level, radius, chunkX, chunkZ);
+            refreshLoadedChunks(level, radius, chunkX, chunkZ, refreshDue || customFilterChanged);
             indexedTick = gameTime;
             indexedChunkX = chunkX;
             indexedChunkZ = chunkZ;
@@ -145,7 +145,8 @@ public final class StorageScanner {
         cachedTargets = List.of();
     }
 
-    private void refreshLoadedChunks(ClientLevel level, int chunkRadius, int centerChunkX, int centerChunkZ) {
+    private void refreshLoadedChunks(ClientLevel level, int chunkRadius, int centerChunkX, int centerChunkZ,
+                                     boolean forceRefresh) {
         Set<Long> seen = new HashSet<>();
         for (int x = centerChunkX - chunkRadius; x <= centerChunkX + chunkRadius; x++) {
             for (int z = centerChunkZ - chunkRadius; z <= centerChunkZ + chunkRadius; z++) {
@@ -160,7 +161,7 @@ public final class StorageScanner {
                     continue;
                 }
                 seen.add(key);
-                indexChunk(level, chunk);
+                if (shouldIndexChunk(chunks.containsKey(key), forceRefresh)) indexChunk(level, chunk);
             }
         }
         int before = chunks.size();
@@ -201,6 +202,10 @@ public final class StorageScanner {
             }
         }
         return unique.isEmpty() ? List.of() : List.copyOf(unique.values());
+    }
+
+    public static boolean shouldIndexChunk(boolean alreadyIndexed, boolean forceRefresh) {
+        return forceRefresh || !alreadyIndexed;
     }
 
     private static long chunkKey(int x, int z) {
