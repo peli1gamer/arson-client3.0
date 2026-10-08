@@ -184,36 +184,36 @@ public final class ArsonCommand {
                 return 1;
             }))
             .then(ClientCommandManager.literal("save").then(ClientCommandManager.argument("name", StringArgumentType.word()).executes(ctx -> {
-                String name = StringArgumentType.getString(ctx, "name");
-                boolean ok = ConfigManager.saveProfile(Minecraft.getInstance(), ArsonClient.getInstance().modules(), name);
+                String name = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "name"));
+                boolean ok = !name.isEmpty() && ConfigManager.saveProfile(Minecraft.getInstance(), ArsonClient.getInstance().modules(), name);
                 feedback(ctx, ok ? "Profile saved: " + name : "Invalid profile name");
                 return ok ? 1 : 0;
             })))
             .then(ClientCommandManager.literal("load").then(profileNameArgument("name").executes(ctx -> {
-                String name = StringArgumentType.getString(ctx, "name");
-                boolean ok = ConfigManager.loadProfile(Minecraft.getInstance(), ArsonClient.getInstance().modules(), name);
+                String name = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "name"));
+                boolean ok = !name.isEmpty() && ConfigManager.loadProfile(Minecraft.getInstance(), ArsonClient.getInstance().modules(), name);
                 feedback(ctx, ok ? "Profile loaded: " + name : "Profile not found or invalid");
                 return ok ? 1 : 0;
             })))
             .then(ClientCommandManager.literal("delete").then(profileNameArgument("name").executes(ctx -> {
-                String name = StringArgumentType.getString(ctx, "name");
-                boolean ok = ConfigManager.deleteProfile(Minecraft.getInstance(), name);
+                String name = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "name"));
+                boolean ok = !name.isEmpty() && ConfigManager.deleteProfile(Minecraft.getInstance(), name);
                 feedback(ctx, ok ? "Profile deleted: " + name : "Profile not found or invalid");
                 return ok ? 1 : 0;
             })))
             .then(ClientCommandManager.literal("duplicate").then(profileNameArgument("source")
                 .then(ClientCommandManager.argument("target", StringArgumentType.word()).executes(ctx -> {
-                    String source = StringArgumentType.getString(ctx, "source");
-                    String target = StringArgumentType.getString(ctx, "target");
-                    boolean ok = io.arson.client.api.ArsonApi.duplicateProfile(source, target);
+                    String source = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "source"));
+                    String target = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "target"));
+                    boolean ok = !source.isEmpty() && !target.isEmpty() && io.arson.client.api.ArsonApi.duplicateProfile(source, target);
                     feedback(ctx, ok ? "Profile duplicated: " + source + " -> " + target : "Could not duplicate profile");
                     return ok ? 1 : 0;
                 }))))
             .then(ClientCommandManager.literal("rename").then(profileNameArgument("source")
                 .then(ClientCommandManager.argument("target", StringArgumentType.word()).executes(ctx -> {
-                    String source = StringArgumentType.getString(ctx, "source");
-                    String target = StringArgumentType.getString(ctx, "target");
-                    boolean ok = io.arson.client.api.ArsonApi.renameProfile(source, target);
+                    String source = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "source"));
+                    String target = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "target"));
+                    boolean ok = !source.isEmpty() && !target.isEmpty() && io.arson.client.api.ArsonApi.renameProfile(source, target);
                     feedback(ctx, ok ? "Profile renamed: " + source + " -> " + target : "Could not rename profile");
                     return ok ? 1 : 0;
                 }))));
