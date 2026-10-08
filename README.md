@@ -2,6 +2,20 @@
 
 A modular Fabric client for Minecraft 1.21.11, built for Java 21.
 
+## Installation
+
+Arson Client requires Minecraft 1.21.11, Java 21, Fabric Loader 0.18.1 or newer, and Fabric API for Minecraft 1.21.11.
+
+To build it locally, run:
+
+```text
+gradle build
+```
+
+Copy the remapped `arson-client-0.1.0.jar` from `build/libs` into the `mods` folder for your Fabric installation. Do not use the `-sources.jar`.
+
+You can also download the `arson-client-verified` artifact from a successful [Build Arson Client GitHub Actions run](https://github.com/peli1gamer/arson-client3.0/actions/workflows/build.yml). The artifact contains the client JAR and verification files; place the non-sources JAR in the Fabric `mods` folder.
+
 ## Current capabilities
 
 - Module registry with categories, enable/disable lifecycle, keybinds, favorites, and per-module settings
