@@ -143,6 +143,7 @@ public final class ArsonClient implements ClientModInitializer {
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
             if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
                 module.toggle();
+                saveConfig();
                 NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
             }
         }
