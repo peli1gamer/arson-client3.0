@@ -6,7 +6,10 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.DispenserBlockEntity;
 import net.minecraft.world.level.block.entity.DropperBlockEntity;
@@ -247,19 +250,31 @@ public final class StorageScanner {
 
     private StorageOverlay.StorageTarget buildChestTarget(ClientLevel level, BlockPos pos,
                                                            Set<BlockPos> emittedPositions) {
-        BlockPos[] neighbors = {pos.east(), pos.south(), pos.west(), pos.north()};
-        BlockPos partner = null;
-        for (BlockPos neighbor : neighbors) {
-            int neighborChunkX = neighbor.getX() >> 4;
-            int neighborChunkZ = neighbor.getZ() >> 4;
-            if (!isInsideIndexedBoundary(neighborChunkX, neighborChunkZ)) continue;
-            LevelChunk neighborChunk = level.getChunkSource().getChunkNow(neighborChunkX, neighborChunkZ);
-            if (neighborChunk != null
-                    && neighborChunk.getBlockEntities().get(neighbor) instanceof ChestBlockEntity) {
-                partner = neighbor;
-                break;
+        BlockState state = level.getBlockState(pos);
+        BlockPos partner = state.hasProperty(ChestBlock.TYPE)
+                && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE
+                ? ChestBlock.getConnectedBlockPos(pos, state) : null;
+        if (partner != null) {
+            int neighborChunkX = partner.getX() >> 4;
+            int neighborChunkZ = partner.getZ() >> 4;
+            if (!isInsideIndexedBoundary(neighborChunkX, neighborChunkZ)) {
+                partner = null;
+            } else {
+                LevelChunk neighborChunk = level.getChunkSource().getChunkNow(neighborChunkX, neighborChunkZ);
+                if (neighborChunk == null
+                        || !(neighborChunk.getBlockEntities().get(partner) instanceof ChestBlockEntity)) {
+                    partner = null;
+                } else {
+                    BlockState partnerState = neighborChunk.getBlockState(partner);
+                    if (!partnerState.hasProperty(ChestBlock.TYPE)
+                            || partnerState.getValue(ChestBlock.TYPE) == ChestType.SINGLE
+                            || !partner.equals(ChestBlock.getConnectedBlockPos(partner, partnerState))) {
+                        partner = null;
+                    }
+                }
             }
         }
+
         double x = pos.getX();
         double z = pos.getZ();
         double width = 1.0;
