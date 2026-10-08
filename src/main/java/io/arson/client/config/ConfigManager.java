@@ -138,11 +138,18 @@ public final class ConfigManager {
             JsonElement raw = elements.get(element);
             if (raw == null || !raw.isJsonObject()) continue;
             JsonObject value = raw.getAsJsonObject();
-            if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
-            if (value.has("x") && value.get("x").isJsonPrimitive()) settings.add(element + "-x", value.get("x"));
-            if (value.has("y") && value.get("y").isJsonPrimitive()) settings.add(element + "-y", value.get("y"));
-            if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.add(element + "-anchor", value.get("anchor"));
-            migrated = true;
+            if (!settings.has(element + "-x") && value.has("x") && value.get("x").isJsonPrimitive()) {
+                settings.add(element + "-x", value.get("x"));
+                migrated = true;
+            }
+            if (!settings.has(element + "-y") && value.has("y") && value.get("y").isJsonPrimitive()) {
+                settings.add(element + "-y", value.get("y"));
+                migrated = true;
+            }
+            if (!settings.has(element + "-anchor") && value.has("anchor") && value.get("anchor").isJsonPrimitive()) {
+                settings.add(element + "-anchor", value.get("anchor"));
+                migrated = true;
+            }
         }
         if (migrated) {
             moduleData.add("settings", settings);
