@@ -102,7 +102,7 @@ public final class ConfigManager {
         String safeName = sanitizeProfileName(profileName);
         if (safeName.isEmpty()) return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
-        ConfigLoadStatus fileStatus = loadWithBackup(path, modules);
+        ConfigLoadStatus fileStatus = loadProfileFileWithBackup(path, modules);
         if (fileStatus == ConfigLoadStatus.NOT_FOUND || fileStatus == ConfigLoadStatus.INVALID) {
             return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
         }
@@ -158,44 +158,57 @@ public final class ConfigManager {
     private static boolean samePath(Path first, Path second) {
         return first.toAbsolutePath().normalize().equals(second.toAbsolutePath().normalize());
     }
+    static ConfigLoadStatus loadProfileFileWithBackup(Path path, ModuleManager modules) {
+        JsonObject previousState = serializeConfig(modules);
+        ConfigLoadStatus status = loadWithBackup(path, modules);
+        if (status == ConfigLoadStatus.NOT_FOUND || status == ConfigLoadStatus.INVALID) {
+            applyConfig(previousState, modules);
+        }
+        return status;
+    }
+
     static boolean loadFromPath(Path path, ModuleManager modules) {
         if (!Files.isRegularFile(path)) return false;
         try {
             JsonElement parsed = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
-            if (!parsed.isJsonObject()) return false;
-            JsonObject root = parsed.getAsJsonObject();
-            if (readVersion(root) > CONFIG_VERSION) return false;
-            JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
-            migrateLegacyLayout(root, moduleRoot, modules);
-            for (Module module : modules.all()) {
-                if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
-                JsonObject data = moduleRoot.getAsJsonObject(module.id());
-                JsonElement enabled = data.get("enabled");
-                if (enabled != null && enabled.isJsonPrimitive() && enabled.getAsJsonPrimitive().isBoolean()) {
-                    module.setEnabled(enabled.getAsBoolean());
-                }
-                JsonElement favorite = data.get("favorite");
-                if (favorite != null && favorite.isJsonPrimitive() && favorite.getAsJsonPrimitive().isBoolean()) {
-                    module.setFavorite(favorite.getAsBoolean());
-                }
-                JsonElement keyCode = data.get("keyCode");
-                if (keyCode != null && keyCode.isJsonPrimitive()) {
-                    try { module.setKeyCode(keyCode.getAsInt()); } catch (RuntimeException ignored) {}
-                }
-                JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
-                for (Setting<?> setting : module.settings()) {
-                    JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
-                    try {
-                        if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
-                        else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
-                        else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
-                        else if (setting instanceof StringSetting text) text.set(value.getAsString());
-                        else if (setting instanceof EnumSetting<?> select) setEnum(select, value.getAsString());
-                    } catch (RuntimeException ignored) {}
-                }
-            }
-            return true;
+            return applyConfig(parsed, modules);
         } catch (Exception ignored) { return false; }
+    }
+
+    private static boolean applyConfig(JsonElement parsed, ModuleManager modules) {
+        if (!parsed.isJsonObject()) return false;
+        JsonObject root = parsed.getAsJsonObject();
+        if (readVersion(root) > CONFIG_VERSION) return false;
+        JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
+        migrateLegacyLayout(root, moduleRoot, modules);
+        for (Module module : modules.all()) {
+            if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
+            JsonObject data = moduleRoot.getAsJsonObject(module.id());
+            JsonElement enabled = data.get("enabled");
+            if (enabled != null && enabled.isJsonPrimitive() && enabled.getAsJsonPrimitive().isBoolean()) {
+                module.setEnabled(enabled.getAsBoolean());
+            }
+            JsonElement favorite = data.get("favorite");
+            if (favorite != null && favorite.isJsonPrimitive() && favorite.getAsJsonPrimitive().isBoolean()) {
+                module.setFavorite(favorite.getAsBoolean());
+            }
+            JsonElement keyCode = data.get("keyCode");
+            if (keyCode != null && keyCode.isJsonPrimitive()) {
+                try { module.setKeyCode(keyCode.getAsInt()); } catch (RuntimeException ignored) {}
+            }
+            JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
+            for (Setting<?> setting : module.settings()) {
+                JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
+                try {
+                    if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
+                    else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
+                    else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
+                    else if (setting instanceof StringSetting text) text.set(value.getAsString());
+                    else if (setting instanceof EnumSetting<?> select) setEnum(select, value.getAsString());
+                } catch (RuntimeException ignored) {}
+            }
+        }
+        return true;
     }
 
     /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
@@ -241,15 +254,20 @@ public final class ConfigManager {
     private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
     @SuppressWarnings({"rawtypes", "unchecked"}) private static void setEnumUnchecked(EnumSetting setting, Enum value) { setting.set(value); }
     private static int readVersion(JsonObject root) { try { JsonElement value = root.get("version"); return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1; } catch (RuntimeException ignored) { return 1; } }
-    static boolean saveToPath(Path path, ModuleManager modules) {
-        Path directory = path.getParent(); if (directory == null) return false;
-        Path tempPath = path.resolveSibling(path.getFileName() + ".tmp"), backupPath = path.resolveSibling(path.getFileName() + ".bak");
+    private static JsonObject serializeConfig(ModuleManager modules) {
         JsonObject root = new JsonObject(); root.addProperty("version", CONFIG_VERSION); JsonObject moduleRoot = new JsonObject(); root.add("modules", moduleRoot);
         for (Module module : modules.all()) {
             JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("keyCode", module.keyCode()); JsonObject settings = new JsonObject();
             for (Setting<?> setting : module.settings()) { Object value = setting.get(); if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool); else if (value instanceof Number number) settings.addProperty(setting.id(), number); else if (value instanceof String text) settings.addProperty(setting.id(), text); else if (value instanceof Enum<?> select) settings.addProperty(setting.id(), select.name()); }
             data.add("settings", settings); moduleRoot.add(module.id(), data);
         }
+        return root;
+    }
+
+    static boolean saveToPath(Path path, ModuleManager modules) {
+        Path directory = path.getParent(); if (directory == null) return false;
+        Path tempPath = path.resolveSibling(path.getFileName() + ".tmp"), backupPath = path.resolveSibling(path.getFileName() + ".bak");
+        JsonObject root = serializeConfig(modules);
         try {
             Files.createDirectories(directory); Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);
             if (Files.isRegularFile(path)) try { Files.copy(path, backupPath, StandardCopyOption.REPLACE_EXISTING); } catch (IOException ignored) {}
