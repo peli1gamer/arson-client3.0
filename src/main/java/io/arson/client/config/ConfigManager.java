@@ -97,9 +97,18 @@ public final class ConfigManager {
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
-                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
-                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
-                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
+                JsonElement enabled = data.get("enabled");
+                if (enabled != null && enabled.isJsonPrimitive() && enabled.getAsJsonPrimitive().isBoolean()) {
+                    module.setEnabled(enabled.getAsBoolean());
+                }
+                JsonElement favorite = data.get("favorite");
+                if (favorite != null && favorite.isJsonPrimitive() && favorite.getAsJsonPrimitive().isBoolean()) {
+                    module.setFavorite(favorite.getAsBoolean());
+                }
+                JsonElement keyCode = data.get("keyCode");
+                if (keyCode != null && keyCode.isJsonPrimitive()) {
+                    try { module.setKeyCode(keyCode.getAsInt()); } catch (RuntimeException ignored) {}
+                }
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
                     JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
