@@ -28,7 +28,7 @@ public final class ArsonCommand {
             .then(ClientCommandManager.literal("server").executes(ctx->{feedback(ctx,io.arson.client.api.ArsonApi.serverSummary());return 1;}))
             .then(settingCommand()).then(moduleCommands()).then(categoryCommands()).then(summaryCommand()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
             .then(enableCommand()).then(disableCommand()).then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand())
-            .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
+            .then(ClientCommandManager.literal("save").executes(ctx->{boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,saved?"Arson config saved.":"Could not save Arson config.");return saved?1:0;}))
         ));
     }
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingCommand() {
@@ -175,7 +175,7 @@ public final class ArsonCommand {
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> clickGuiCommands(){return ClientCommandManager.literal("clickgui").then(ClientCommandManager.literal("scale").then(ClientCommandManager.argument("value",com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg(0.75,1.25)).executes(ctx->{double value=com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(ctx,"value");boolean ok=io.arson.client.api.ArsonApi.setClickGuiPanelScale(value);if(!ok){error(ctx,"Invalid ClickGUI scale");return 0;}feedback(ctx,String.format(java.util.Locale.ROOT,"ClickGUI panel scale: %.2f",value));return 1;})));}
 
 
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> configCommands(){return ClientCommandManager.literal("config").then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;})).then(ClientCommandManager.literal("load").executes(ctx->{ConfigManager.load(Minecraft.getInstance(),ArsonClient.getInstance().modules());feedback(ctx,"Arson config loaded.");return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> configCommands(){return ClientCommandManager.literal("config").then(ClientCommandManager.literal("save").executes(ctx->{boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,saved?"Arson config saved.":"Could not save Arson config.");return saved?1:0;})).then(ClientCommandManager.literal("load").executes(ctx->{boolean loaded=ConfigManager.load(Minecraft.getInstance(),ArsonClient.getInstance().modules());feedback(ctx,loaded?"Arson config loaded.":"Arson config was not found or could not be loaded.");return loaded?1:0;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> profileCommands() {
         return ClientCommandManager.literal("profile")
             .then(ClientCommandManager.literal("list").executes(ctx -> {
