@@ -31,7 +31,7 @@ public final class BlockScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
-        boolean refreshDue = gameTime - cachedTick >= module.scanInterval() || gameTime < cachedTick;
+        boolean refreshDue = gameTime - cachedTick >= module.scanInterval() * 20L || gameTime < cachedTick;
 
         if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
