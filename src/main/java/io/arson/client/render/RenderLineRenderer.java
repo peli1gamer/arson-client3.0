@@ -4,7 +4,7 @@ import com.arson.client.render.RenderStyle;
 import com.arson.client.render.RenderStyleUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import com.arson.client.render.RenderBoxRenderer;
 
 /** Shared world-space line renderer used by tracer-style overlays. */
 public final class RenderLineRenderer {
@@ -42,6 +42,6 @@ public final class RenderLineRenderer {
     }
 
     public static VertexConsumer lineBuffer(net.minecraft.client.renderer.MultiBufferSource consumers) {
-        return consumers.getBuffer(RenderTypes.lines());
+        return RenderBoxRenderer.lineBuffer(consumers);
     }
 }

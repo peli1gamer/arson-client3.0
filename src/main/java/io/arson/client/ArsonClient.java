@@ -1,5 +1,6 @@
 package io.arson.client;
 
+import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.command.ArsonCommand;
@@ -33,12 +34,15 @@ import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientBlockEntityEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -56,10 +60,12 @@ public final class ArsonClient implements ClientModInitializer {
     private FeatureContextAdapter contextAdapter;
     private final Map<String, Boolean> moduleKeyStates = new HashMap<>();
     private int runtimeSmokeTick;
+    private boolean runtimeSaveFailureNotified;
     public static ArsonClient getInstance() { return instance; }
 
     @Override public void onInitializeClient() {
         instance = this;
+        RenderBoxRenderer.initialize();
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
@@ -75,8 +81,15 @@ public final class ArsonClient implements ClientModInitializer {
         contextAdapter.initialize(featureContext);
         worldRenderBridge = new WorldRenderBridge(featureContext, contextAdapter);
 
+        StorageScanner storageScanner = new StorageScanner();
+        ClientChunkEvents.CHUNK_LOAD.register(storageScanner::onChunkLoaded);
+        ClientChunkEvents.CHUNK_UNLOAD.register(storageScanner::onChunkUnloaded);
+        ClientBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, level) ->
+                storageScanner.invalidateBlockEntity(level, blockEntity.getBlockPos()));
+        ClientBlockEntityEvents.BLOCK_ENTITY_UNLOAD.register((blockEntity, level) ->
+                storageScanner.invalidateBlockEntity(level, blockEntity.getBlockPos()));
         StorageOverlay storageOverlay = new StorageOverlay(new StorageRenderProfile());
-        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), (ContainerESPModule) moduleManager.get("container-esp")));
+        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, storageScanner, (ContainerESPModule) moduleManager.get("container-esp")));
         EntityScanner entityScanner = new EntityScanner();
         worldRenderBridge.register(new EntityRenderStage(client, entityScanner, (EntityESPModule) moduleManager.get("entity-esp")));
         worldRenderBridge.register(new ItemRenderStage(client, entityScanner, (ItemESPModule) moduleManager.get("item-esp")));
@@ -90,21 +103,44 @@ public final class ArsonClient implements ClientModInitializer {
             contextAdapter.tick(featureContext);
             while (openMenuKey.consumeClick()) {
                 Screen current = clientTick.screen;
-                clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
-                NotificationCenter.push("Arson", current instanceof ArsonScreen ? "GUI closed" : "GUI opened");
+                if (current instanceof ArsonScreen arsonScreen) {
+                    arsonScreen.onClose();
+                    NotificationCenter.push("Arson", "GUI closed");
+                } else {
+                    clientTick.setScreen(new ArsonScreen(current));
+                    NotificationCenter.push("Arson", "GUI opened");
+                }
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
             runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
+            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfigFromRuntime();
         });
-        ConfigManager.load(client, moduleManager);
+        ConfigManager.ConfigLoadStatus configStatus = ConfigManager.loadWithStatus(client, moduleManager);
+        if (configStatus == ConfigManager.ConfigLoadStatus.RECOVERED_FROM_BACKUP) {
+            NotificationCenter.push("Arson config", "Main config was damaged; settings were restored from backup.", 8000L, NotificationCenter.Priority.HIGH);
+        } else if (configStatus == ConfigManager.ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY) {
+            NotificationCenter.push("Arson config", "Loaded backup settings, but could not repair the config file. Use /arson save.", 8000L, NotificationCenter.Priority.HIGH);
+        } else if (configStatus == ConfigManager.ConfigLoadStatus.INVALID) {
+            NotificationCenter.push("Arson config", "Could not load config or backup; files were left unchanged.", 8000L, NotificationCenter.Priority.HIGH);
+        }
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
 
-    public void saveConfig() { ConfigManager.save(Minecraft.getInstance(), moduleManager); }
+    public boolean saveConfig() { return ConfigManager.save(Minecraft.getInstance(), moduleManager); }
+
+    private boolean saveConfigFromRuntime() {
+        boolean saved = saveConfig();
+        if (saved) {
+            runtimeSaveFailureNotified = false;
+        } else if (!runtimeSaveFailureNotified) {
+            NotificationCenter.push("Arson", "Config save failed; use /arson save to retry.");
+            runtimeSaveFailureNotified = true;
+        }
+        return saved;
+    }
 
     private void runRuntimeSmoke(Minecraft client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
@@ -131,6 +167,7 @@ public final class ArsonClient implements ClientModInitializer {
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
             if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
                 module.toggle();
+                saveConfigFromRuntime();
                 NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
             }
         }

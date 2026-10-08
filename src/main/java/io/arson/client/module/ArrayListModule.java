@@ -54,7 +54,7 @@ public final class ArrayListModule extends Module {
             case MOVEMENT -> movementColor.get();
             case RENDER -> renderColor.get();
             case PLAYER -> playerColor.get();
-            case WORLD -> worldColor.get();
+            case WORLD, DONUTSMP -> worldColor.get();
             case MISC -> miscColor.get();
         };
     }

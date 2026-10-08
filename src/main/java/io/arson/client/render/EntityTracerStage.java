@@ -4,7 +4,7 @@ import com.arson.client.render.RenderStyle;
 import io.arson.client.module.EntityTracerModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import com.arson.client.render.RenderBoxRenderer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import java.util.List;
@@ -43,7 +43,7 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
         }
 
         var camera = context.worldState().cameraRenderState.pos;
-        VertexConsumer buffer = context.consumers().getBuffer(RenderTypes.lines());
+        VertexConsumer buffer = RenderBoxRenderer.lineBuffer(context.consumers());
         int visible = 0;
 
         for (EntityTarget target : cachedTargets) {

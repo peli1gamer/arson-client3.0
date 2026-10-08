@@ -1,6 +1,7 @@
 package io.arson.client.render;
 
 import io.arson.client.module.BlockESPModule;
+import com.arson.client.render.RenderStyle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
@@ -12,8 +13,6 @@ import java.util.List;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
-    private static final int CACHE_REFRESH_TICKS = 40;
-
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
@@ -32,7 +31,7 @@ public final class BlockScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
-        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
+        boolean refreshDue = gameTime - cachedTick >= module.scanInterval() * 20L || gameTime < cachedTick;
 
         if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
@@ -99,6 +98,7 @@ public final class BlockScanner {
     private static int configHash(BlockESPModule module) {
         int hash = 17;
         hash = 31 * hash + Double.hashCode(module.range());
+        hash = 31 * hash + module.scanInterval();
         hash = 31 * hash + Boolean.hashCode(module.showDiamond());
         hash = 31 * hash + Boolean.hashCode(module.showEmerald());
         hash = 31 * hash + Boolean.hashCode(module.showGold());
@@ -109,7 +109,26 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = styleHash(hash, module.diamondStyle());
+        hash = styleHash(hash, module.emeraldStyle());
+        hash = styleHash(hash, module.goldStyle());
+        hash = styleHash(hash, module.ironStyle());
+        hash = styleHash(hash, module.copperStyle());
+        hash = styleHash(hash, module.coalStyle());
+        hash = styleHash(hash, module.redstoneStyle());
+        hash = styleHash(hash, module.lapisStyle());
+        hash = styleHash(hash, module.quartzStyle());
+        hash = styleHash(hash, module.ancientDebrisStyle());
         return hash;
+    }
+
+    private static int styleHash(int hash, RenderStyle style) {
+        hash = 31 * hash + style.color().argb();
+        hash = 31 * hash + Boolean.hashCode(style.filled());
+        hash = 31 * hash + Boolean.hashCode(style.outline());
+        hash = 31 * hash + Float.floatToIntBits(style.fillAlpha());
+        hash = 31 * hash + Float.floatToIntBits(style.outlineAlpha());
+        return 31 * hash + Float.floatToIntBits(style.lineWidth());
     }
 
     private static RenderStyleMatch match(Block block, BlockESPModule module) {

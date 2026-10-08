@@ -80,8 +80,94 @@ class ClickGuiLayoutModelTest {
     @Test
     void categoryRowsCannotRequireTallerThanTheirAllocatedSlot() {
         var g = ClickGuiLayoutModel.compute(360, 240, 1.25);
-        assertTrue(g.categoryRowHeight() >= 18);
+        assertTrue(g.categoryRowHeight() >= 9);
+        assertTrue(g.categoryRowHeight() * 7 <= g.rail().height());
         assertTrue(Math.min(24, g.categoryRowHeight()) <= g.categoryRowHeight());
+    }
+
+    @Test
+    void responsiveModuleGridStaysInsideItsAreaWithoutOverlaps() {
+        for (int[] size : new int[][]{{100,64},{320,120},{480,220},{960,300}}) {
+            var area = new ClickGuiLayoutModel.Rect(20, 30, size[0], size[1]);
+            var cards = ClickGuiLayoutModel.gridCards(area, 30, 3, 48, 8);
+            assertFalse(cards.isEmpty());
+            assertTrue(cards.size() <= 30);
+            assertTrue(ClickGuiLayoutModel.pairwiseNonIntersecting(cards));
+            for (var card : cards) {
+                assertTrue(card.x() >= area.x());
+                assertTrue(card.y() >= area.y());
+                assertTrue(card.right() <= area.right());
+                assertTrue(card.bottom() <= area.bottom());
+            }
+        }
+    }
+
+    @Test
+    void moduleCardsReserveRoomForSecondRowKeybindControls() {
+        for (int[] size : new int[][]{{360, 240}, {640, 400}, {960, 640}, {1600, 900}}) {
+            var geometry = ClickGuiLayoutModel.compute(size[0], size[1], 1.0);
+            int requestedHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+            var cards = ClickGuiLayoutModel.gridCards(geometry.moduleList(), 8, geometry.columns(),
+                    requestedHeight, geometry.cardGap());
+            assertFalse(cards.isEmpty());
+            for (var card : cards) {
+                assertTrue(card.height() >= 50);
+                assertTrue(card.right() <= geometry.moduleList().right());
+                assertTrue(card.bottom() <= geometry.moduleList().bottom());
+            }
+        }
+    }
+
+    @Test
+    void moduleCardDetailsAndToggleTargetsStaySeparatedInNarrowAndWideCards() {
+        for (int width : new int[]{70, 100, 180}) {
+            var card = new ClickGuiLayoutModel.Rect(12, 24, width, 40);
+            var actions = ClickGuiLayoutModel.moduleCardActions(card, 38, 5);
+            assertTrue(actions.details().width() > 0);
+            assertFalse(actions.details().intersects(actions.toggle()));
+            assertTrue(actions.details().x() >= card.x());
+            assertTrue(actions.details().right() <= actions.toggle().x());
+            assertEquals(card.right(), actions.toggle().right());
+            assertEquals(card.y(), actions.toggle().y());
+            assertEquals(card.height(), actions.toggle().height());
+        }
+        var empty = ClickGuiLayoutModel.moduleCardActions(null, 38, 5);
+        assertEquals(0, empty.details().width());
+        assertEquals(0, empty.toggle().width());
+    }
+
+    @Test
+    void moduleCardRegionsKeepFavoriteControlAccessibleWithoutOverlaps() {
+        for (int width : new int[]{70, 100, 180, 320}) {
+            var card = new ClickGuiLayoutModel.Rect(12, 24, width, 52);
+            var regions = ClickGuiLayoutModel.moduleCardRegions(card, 38, 18, 5);
+            var controls = java.util.List.of(regions.details(), regions.favorite(), regions.toggle());
+            assertTrue(ClickGuiLayoutModel.pairwiseNonIntersecting(controls));
+            assertTrue(regions.details().width() > 0);
+            assertTrue(regions.favorite().x() >= card.x());
+            assertTrue(regions.favorite().right() <= card.right());
+            assertTrue(regions.toggle().right() == card.right());
+            assertEquals(card.height(), regions.favorite().height());
+        }
+        var tiny = ClickGuiLayoutModel.moduleCardRegions(new ClickGuiLayoutModel.Rect(0, 0, 2, 10), 2, 18, 5);
+        assertTrue(tiny.details().width() >= 0);
+        assertFalse(tiny.favorite().intersects(tiny.toggle()));
+    }
+
+    @Test
+    void moduleGridHandlesEmptyAndDegenerateAreas() {
+        assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 10, 10), 0, 2, 8, 2).isEmpty());
+        assertTrue(ClickGuiLayoutModel.gridCards(new ClickGuiLayoutModel.Rect(0, 0, 0, 10), 4, 2, 8, 2).isEmpty());
+    }
+
+    @Test
+    void savedGridDensityNeverExceedsResponsiveViewportCapacity() {
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.NARROW, 900, 2));
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.COMPACT, 180, 2));
+        assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 500, 3));
+        assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 0));
+        assertEquals(1, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 1));
+        assertEquals(2, ClickGuiLayoutModel.effectiveColumns(ClickGuiLayoutModel.Mode.FULL, 900, 2));
     }
 
     @Test

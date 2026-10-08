@@ -7,6 +7,7 @@ import io.arson.client.module.ModuleManager;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
+import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.StringSetting;
 import org.junit.jupiter.api.Test;
 
@@ -22,8 +23,10 @@ class ModuleParityTest {
         assertTrue(manager.categoryCount(Module.Category.RENDER) > 0);
         assertTrue(manager.categoryCount(Module.Category.PLAYER) > 0);
         assertTrue(manager.categoryCount(Module.Category.WORLD) > 0);
+        assertTrue(manager.categoryCount(Module.Category.DONUTSMP) > 0);
         assertTrue(manager.categoryCount(Module.Category.MISC) > 0);
         assertNotNull(manager.get("sprint")); assertNotNull(manager.get("hud")); assertNotNull(manager.get("entity-esp"));
+        assertEquals(Module.Category.DONUTSMP, manager.get("waypoint-info").category());
     }
 
     @Test
@@ -51,6 +54,33 @@ class ModuleParityTest {
         assertTrue(ArsonApi.modules(Module.Category.PLAYER).stream().anyMatch(m -> m.id().equals("inventory-info")));
         assertTrue(ArsonApi.favorites().stream().allMatch(Module::favorite));
         assertTrue(ArsonApi.module("inventory-info").isPresent());
+    }
+
+    @Test
+    void statusModulesProduceHudRowsWhenEnabled() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        manager.get("player-status").setEnabled(true);
+        manager.get("world-status").setEnabled(true);
+        manager.get("utility-status").setEnabled(true);
+
+        assertTrue(manager.playerStatusRows().stream().anyMatch(row -> row.startsWith("Status ")));
+        assertTrue(manager.worldStatusRows().stream().anyMatch(row -> row.startsWith("World ")));
+        assertTrue(manager.worldStatusRows().stream().anyMatch(row -> row.startsWith("Modules ")));
+    }
+
+    @Test
+    void renderProfileAppliesOnlyWhileItsModuleIsEnabled() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        @SuppressWarnings("unchecked")
+        EnumSetting<ModuleManager.RenderMode> mode =
+                (EnumSetting<ModuleManager.RenderMode>) manager.get("render-profile").settings().get(0);
+
+        mode.set(ModuleManager.RenderMode.HIGH_CONTRAST);
+        assertEquals(ModuleManager.RenderMode.STANDARD, manager.renderMode());
+        manager.get("render-profile").setEnabled(true);
+        assertEquals(ModuleManager.RenderMode.HIGH_CONTRAST, manager.renderMode());
     }
 
     @Test

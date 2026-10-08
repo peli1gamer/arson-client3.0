@@ -27,6 +27,7 @@ public abstract class VisualModule extends Module {
         this.outlineAlpha = setting(new DoubleSetting("outline-alpha", "Outline Alpha", 1.0, 0.0, 1.0, 0.05));
         this.lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 0.5, 8.0, 0.5));
         this.color = setting(new ColorSetting("color", "Color", 0xDCEB5B5B));
+        this.color.description("Overrides per-target colors when changed from its default.");
     }
 
     public int colorArgb() { return color.get(); }
@@ -43,8 +44,10 @@ public abstract class VisualModule extends Module {
 
     /** Snapshot the common visual controls while using a per-target color. */
     protected final RenderStyle renderStyle(int argb) {
+        int globalColor = color.get();
+        int effectiveColor = globalColor == 0xDCEB5B5B ? argb : globalColor;
         return new RenderStyle(
-                color(argb),
+                color(effectiveColor),
                 fill.enabled(),
                 outline.enabled(),
                 fillAlpha.get().floatValue(),
