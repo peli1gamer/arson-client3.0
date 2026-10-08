@@ -184,5 +184,12 @@ public final class ConfigManager {
             return true;
         } catch (IOException ignored) { try { Files.deleteIfExists(tempPath); } catch (IOException ignoredCleanup) {} return false; }
     }
-    static String sanitizeProfileName(String name) { if (name == null) return ""; StringBuilder result = new StringBuilder(); for (int i = 0; i < name.length() && result.length() < 32; i++) { char c = name.charAt(i); if (Character.isLetterOrDigit(c) || c == '-' || c == '_') result.append(c); } return result.toString(); }
+    static String sanitizeProfileName(String name) {
+        if (name == null || name.isEmpty() || name.length() > 32) return "";
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '-' && c != '_') return "";
+        }
+        return name;
+    }
 }
