@@ -48,9 +48,10 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         syncProfile();
         overlay.range(module.range());
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick
+        long scanIntervalTicks = Math.max(1, module.scanInterval()) * 20L;
+        if (gameTime - lastScanTick >= scanIntervalTicks || gameTime < lastScanTick
                 || scanner.revision() != lastScannerRevision) {
-            cachedTargets = scanner.scan(client, overlay.range(), module.customStorageBlocks());
+            cachedTargets = scanner.scan(client, overlay.range(), module.customStorageBlocks(), scanIntervalTicks);
             cachedClusters = module.clusterEnabled()
                     ? StorageClusterDetector.detect(cachedTargets.stream().filter(target -> isVisibleType(target.type())).toList(), module.clusterRadius())
                     : List.of();
