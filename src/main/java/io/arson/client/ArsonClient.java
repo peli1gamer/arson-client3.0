@@ -60,6 +60,7 @@ public final class ArsonClient implements ClientModInitializer {
     private FeatureContextAdapter contextAdapter;
     private final Map<String, Boolean> moduleKeyStates = new HashMap<>();
     private int runtimeSmokeTick;
+    private boolean runtimeSaveFailureNotified;
     public static ArsonClient getInstance() { return instance; }
 
     @Override public void onInitializeClient() {
@@ -110,13 +111,24 @@ public final class ArsonClient implements ClientModInitializer {
             runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
+            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfigFromRuntime();
         });
         ConfigManager.load(client, moduleManager);
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
 
     public boolean saveConfig() { return ConfigManager.save(Minecraft.getInstance(), moduleManager); }
+
+    private boolean saveConfigFromRuntime() {
+        boolean saved = saveConfig();
+        if (saved) {
+            runtimeSaveFailureNotified = false;
+        } else if (!runtimeSaveFailureNotified) {
+            NotificationCenter.push("Arson", "Config save failed; use /arson save to retry.");
+            runtimeSaveFailureNotified = true;
+        }
+        return saved;
+    }
 
     private void runRuntimeSmoke(Minecraft client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
@@ -143,7 +155,7 @@ public final class ArsonClient implements ClientModInitializer {
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
             if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
                 module.toggle();
-                saveConfig();
+                saveConfigFromRuntime();
                 NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
             }
         }
