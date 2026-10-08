@@ -118,11 +118,13 @@ public final class ArsonClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfigFromRuntime();
         });
-        java.nio.file.Path configPath = client.gameDirectory.toPath().resolve("config").resolve("arson-v3.json");
-        boolean existingConfig = java.nio.file.Files.isRegularFile(configPath);
-        boolean configLoaded = ConfigManager.load(client, moduleManager);
-        if (existingConfig && !configLoaded) {
-            NotificationCenter.push("Arson config", "Could not load the existing config; the file was left unchanged.");
+        ConfigManager.ConfigLoadStatus configStatus = ConfigManager.loadWithStatus(client, moduleManager);
+        if (configStatus == ConfigManager.ConfigLoadStatus.RECOVERED_FROM_BACKUP) {
+            NotificationCenter.push("Arson config", "Main config was damaged; settings were restored from backup.", 8000L, NotificationCenter.Priority.HIGH);
+        } else if (configStatus == ConfigManager.ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY) {
+            NotificationCenter.push("Arson config", "Loaded backup settings, but could not repair the config file. Use /arson save.", 8000L, NotificationCenter.Priority.HIGH);
+        } else if (configStatus == ConfigManager.ConfigLoadStatus.INVALID) {
+            NotificationCenter.push("Arson config", "Could not load the existing config; the file was left unchanged.", 8000L, NotificationCenter.Priority.HIGH);
         }
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
