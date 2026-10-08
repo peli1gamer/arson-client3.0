@@ -19,7 +19,7 @@ public final class BlockESPModule extends VisualModule {
     private final BooleanSetting ancientDebris = setting(new BooleanSetting("ancient-debris", "Ancient Debris", true));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 32.0, 8.0, 64.0, 4.0));
-    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 8.0, 1.0, 20.0, 1.0));
+    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval (ticks)", 8.0, 1.0, 20.0, 1.0));
 
     private final ColorSetting diamondColor = setting(new ColorSetting("diamond-color", "Diamond Color", 0xD855FFFF));
     private final ColorSetting emeraldColor = setting(new ColorSetting("emerald-color", "Emerald Color", 0xD855FF78));
