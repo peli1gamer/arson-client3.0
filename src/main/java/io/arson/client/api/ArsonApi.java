@@ -43,6 +43,7 @@ public final class ArsonApi {
         Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
         if (!(module instanceof HudModule hud) || !(layoutModule instanceof HudLayoutModule layout)) return false;
         String key = element.trim().toLowerCase(Locale.ROOT);
+        if (!isHudElement(key)) return false;
         try {
             hud.setEditorPosition(key, x, y);
             layout.setAnchor(key, HudLayoutModule.Anchor.TOP_LEFT);
@@ -58,11 +59,19 @@ public final class ArsonApi {
         Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
         if (!(module instanceof HudModule hud) || !(layoutModule instanceof HudLayoutModule layout)) return Optional.empty();
         String key = element.trim().toLowerCase(Locale.ROOT);
+        if (!isHudElement(key)) return Optional.empty();
         try {
             return Optional.of(new HudPosition(
                     (int) Math.round(layout.offsetX(key) * hud.scale()),
                     (int) Math.round(layout.offsetY(key) * hud.scale())));
         } catch (IllegalArgumentException ignored) { return Optional.empty(); }
+    }
+
+    private static boolean isHudElement(String element) {
+        return switch (element) {
+            case "watermark", "coordinates", "fps", "player-info", "world-info" -> true;
+            default -> false;
+        };
     }
 
     public static int resetAllModules() {
