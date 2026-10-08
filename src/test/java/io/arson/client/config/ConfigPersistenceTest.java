@@ -115,6 +115,22 @@ class ConfigPersistenceTest {
         assertTrue(manager.get("sprint").enabled());
     }
     @Test
+    void invalidProfileLoadPreservesCurrentLiveModuleState() throws Exception {
+        Path profile = Files.createTempFile("arson-invalid-profile", ".json");
+        Files.writeString(profile, "not json");
+
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        manager.get("sprint").setEnabled(true);
+        manager.get("sprint").setKeyCode(65);
+
+        assertEquals(ConfigManager.ConfigLoadStatus.INVALID,
+                ConfigManager.loadProfileFileWithBackup(profile, manager));
+        assertTrue(manager.get("sprint").enabled());
+        assertEquals(65, manager.get("sprint").keyCode());
+    }
+
+    @Test
     void damagedConfigRestoresTheLastValidBackup() throws Exception {
         Path directory = Files.createTempDirectory("arson-config-backup");
         Path config = directory.resolve("arson-v3.json");
