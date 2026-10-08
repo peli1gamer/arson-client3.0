@@ -33,11 +33,17 @@ public final class ConfigManager {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         return saveToPath(directory.resolve(safeName + ".json"), modules);
     }
+    public enum ProfileLoadResult { NOT_LOADED, LOADED, LOADED_NOT_SAVED }
+
     public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
-        String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
+        return loadProfileWithStatus(client, modules, profileName) != ProfileLoadResult.NOT_LOADED;
+    }
+
+    public static ProfileLoadResult loadProfileWithStatus(Minecraft client, ModuleManager modules, String profileName) {
+        String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return ProfileLoadResult.NOT_LOADED;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
-        if (!loadFromPath(path, modules)) return false;
-        save(client, modules); return true;
+        if (!loadFromPath(path, modules)) return ProfileLoadResult.NOT_LOADED;
+        return save(client, modules) ? ProfileLoadResult.LOADED : ProfileLoadResult.LOADED_NOT_SAVED;
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
