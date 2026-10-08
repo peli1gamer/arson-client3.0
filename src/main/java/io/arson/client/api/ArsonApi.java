@@ -4,6 +4,7 @@ import io.arson.client.ArsonClient;
 import io.arson.client.config.ConfigManager;
 import net.minecraft.client.Minecraft;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleControl;
@@ -38,18 +39,29 @@ public final class ArsonApi {
     public static boolean setHudElementPosition(String element, double x, double y) {
         if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return false;
         Module module = ArsonClient.getInstance().modules().get("hud");
-        if (!(module instanceof io.arson.client.module.HudModule hud)) return false;
-        try { hud.setEditorPosition(element, x, y); save(); return true; }
-        catch (IllegalArgumentException ignored) { return false; }
+        Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
+        if (!(module instanceof HudModule hud) || !(layoutModule instanceof HudLayoutModule layout)) return false;
+        String key = element.trim().toLowerCase(Locale.ROOT);
+        try {
+            hud.setEditorPosition(key, x, y);
+            layout.setAnchor(key, HudLayoutModule.Anchor.TOP_LEFT);
+            layout.setOffset(key, hud.elementX(key) / hud.scale(), hud.elementY(key) / hud.scale());
+            save();
+            return true;
+        } catch (IllegalArgumentException ignored) { return false; }
     }
 
     public static Optional<HudPosition> hudElementPosition(String element) {
         if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return Optional.empty();
         Module module = ArsonClient.getInstance().modules().get("hud");
-        if (!(module instanceof HudModule hud)) return Optional.empty();
+        Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
+        if (!(module instanceof HudModule hud) || !(layoutModule instanceof HudLayoutModule layout)) return Optional.empty();
         String key = element.trim().toLowerCase(Locale.ROOT);
-        try { return Optional.of(new HudPosition(hud.elementX(key), hud.elementY(key))); }
-        catch (IllegalArgumentException ignored) { return Optional.empty(); }
+        try {
+            return Optional.of(new HudPosition(
+                    (int) Math.round(layout.offsetX(key) * hud.scale()),
+                    (int) Math.round(layout.offsetY(key) * hud.scale())));
+        } catch (IllegalArgumentException ignored) { return Optional.empty(); }
     }
 
     public static int resetAllModules() {
