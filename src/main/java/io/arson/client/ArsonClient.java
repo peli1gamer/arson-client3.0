@@ -103,8 +103,13 @@ public final class ArsonClient implements ClientModInitializer {
             contextAdapter.tick(featureContext);
             while (openMenuKey.consumeClick()) {
                 Screen current = clientTick.screen;
-                clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
-                NotificationCenter.push("Arson", current instanceof ArsonScreen ? "GUI closed" : "GUI opened");
+                if (current instanceof ArsonScreen arsonScreen) {
+                    arsonScreen.onClose();
+                    NotificationCenter.push("Arson", "GUI closed");
+                } else {
+                    clientTick.setScreen(new ArsonScreen(current));
+                    NotificationCenter.push("Arson", "GUI opened");
+                }
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
