@@ -150,7 +150,7 @@ class ConfigPersistenceTest {
         assertTrue(ConfigManager.saveToPath(config, source));
         source.get("sprint").setEnabled(false);
         assertTrue(ConfigManager.saveToPath(config, source));
-        Files.writeString(config, "{\\"version\\":999,\\"modules\\":{}}");
+        Files.writeString(config, "{\"version\":999,\"modules\":{}}");
         String newerConfig = Files.readString(config);
         String validBackup = Files.readString(config.resolveSibling(config.getFileName() + ".bak"));
 
