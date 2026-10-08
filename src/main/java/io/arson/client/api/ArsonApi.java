@@ -37,7 +37,8 @@ public final class ArsonApi {
     }
 
     public static boolean setHudElementPosition(String element, double x, double y) {
-        if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return false;
+        if (ArsonClient.getInstance() == null || element == null || element.isBlank()
+                || !Double.isFinite(x) || !Double.isFinite(y)) return false;
         Module module = ArsonClient.getInstance().modules().get("hud");
         Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
         if (!(module instanceof HudModule hud) || !(layoutModule instanceof HudLayoutModule layout)) return false;
