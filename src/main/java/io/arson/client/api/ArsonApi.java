@@ -92,7 +92,11 @@ public final class ArsonApi {
     public static List<Module> favorites() { return modules().stream().filter(Module::favorite).toList(); }
     public static String serverSummary() {
         return module("server-info").filter(ServerInfoModule.class::isInstance)
-                .map(ServerInfoModule.class::cast).map(ServerInfoModule::formatted)
+                .map(ServerInfoModule.class::cast)
+                .map(server -> {
+                    server.refresh(Minecraft.getInstance());
+                    return server.formatted();
+                })
                 .orElse("Server info unavailable");
     }
 
