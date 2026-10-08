@@ -106,6 +106,8 @@ public final class ArsonScreen extends Screen {
 
     private void rebuild() {
         String searchValue = search == null ? "" : search.getValue();
+        boolean searchFocused = search != null && search.isFocused();
+        int searchCursor = search == null ? 0 : search.getCursorPosition();
         String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
         moduleButtons.clear();
@@ -124,6 +126,11 @@ public final class ArsonScreen extends Screen {
         search.setHint(Component.literal("Search modules...   Ctrl+K"));
         search.setTooltip(tooltipFor("Keyboard shortcuts: Ctrl+K focuses search, Tab changes sections, arrow keys move through modules, Enter opens details, Space toggles, and F favorites the selected module."));
         search.setValue(searchValue);
+        search.setCursorPosition(Math.min(searchCursor, searchValue.length()));
+        if (searchFocused) {
+            search.setFocused(true);
+            setFocused(search);
+        }
         addRenderableWidget(search);
 
         addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
