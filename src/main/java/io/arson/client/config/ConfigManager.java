@@ -26,7 +26,51 @@ public final class ConfigManager {
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
     private static final int CONFIG_VERSION = 4;
     private ConfigManager() {}
-    public static boolean load(Minecraft client, ModuleManager modules) { return loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    public enum ConfigLoadStatus { NOT_FOUND, LOADED, RECOVERED_FROM_BACKUP, BACKUP_LOADED_IN_MEMORY, INVALID }
+
+    public static boolean load(Minecraft client, ModuleManager modules) {
+        ConfigLoadStatus status = loadWithStatus(client, modules);
+        return status == ConfigLoadStatus.LOADED || status == ConfigLoadStatus.RECOVERED_FROM_BACKUP
+                || status == ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY;
+    }
+
+    public static ConfigLoadStatus loadWithStatus(Minecraft client, ModuleManager modules) {
+        Path configPath = client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME);
+        Path backupPath = configPath.resolveSibling(configPath.getFileName() + ".bak");
+        boolean configExists = Files.isRegularFile(configPath);
+        boolean backupExists = Files.isRegularFile(backupPath);
+        if (configExists && loadFromPath(configPath, modules)) return ConfigLoadStatus.LOADED;
+        if (configExists && hasUnsupportedFutureVersion(configPath)) return ConfigLoadStatus.INVALID;
+        if (!backupExists) return configExists ? ConfigLoadStatus.INVALID : ConfigLoadStatus.NOT_FOUND;
+
+        for (Module module : modules.all()) module.resetToDefaults();
+        if (!loadFromPath(backupPath, modules)) return ConfigLoadStatus.INVALID;
+        return restoreBackup(backupPath, configPath)
+                ? ConfigLoadStatus.RECOVERED_FROM_BACKUP : ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY;
+    }
+
+    private static boolean hasUnsupportedFutureVersion(Path path) {
+        try {
+            JsonElement parsed = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
+            return parsed.isJsonObject() && readVersion(parsed.getAsJsonObject()) > CONFIG_VERSION;
+        } catch (Exception ignored) { return false; }
+    }
+
+    private static boolean restoreBackup(Path backupPath, Path configPath) {
+        Path restorePath = configPath.resolveSibling(configPath.getFileName() + ".restore.tmp");
+        try {
+            Files.copy(backupPath, restorePath, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                Files.move(restorePath, configPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException unsupportedAtomicMove) {
+                Files.move(restorePath, configPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return true;
+        } catch (IOException ignored) {
+            try { Files.deleteIfExists(restorePath); } catch (IOException ignoredCleanup) {}
+            return false;
+        }
+    }
     public static boolean save(Minecraft client, ModuleManager modules) { return saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
     public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
