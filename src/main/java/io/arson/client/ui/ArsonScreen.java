@@ -352,7 +352,7 @@ public final class ArsonScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(closeX,y,closeWidth,controlHeight).build());
         profile=new EditBox(font,profileX,geometry.mode()==ClickGuiLayoutModel.Mode.NARROW?buttonY:y,profileWidth,controlHeight,Component.literal("Profile"));
-        profile.setHint(Component.literal("profile"));
+        profile.setHint(Component.literal("letters, numbers, _ or -"));
         profile.setValue(profileValue);
         addRenderableWidget(profile);
         int actionY = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? buttonY : y;
