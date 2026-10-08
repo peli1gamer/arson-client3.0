@@ -18,7 +18,19 @@ public final class ServerInfoModule extends Module {
                 "Tracks the current server name/address, latency, and connection type for HUD integrations.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(Minecraft client) { refresh(client); }
+
+    /** Refreshes the local connection snapshot for one-shot API and command queries. */
+    public void refresh(Minecraft client) {
+        if (client == null) {
+            name = "Singleplayer";
+            address = "";
+            multiplayer = false;
+            lan = false;
+            latency = -1;
+            onlinePlayers = -1;
+            return;
+        }
         ServerData server = client.getCurrentServer();
         if (server == null) {
             name = "Singleplayer";
