@@ -352,7 +352,7 @@ public final class ArsonScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(closeX,y,closeWidth,controlHeight).build());
         profile=new EditBox(font,profileX,geometry.mode()==ClickGuiLayoutModel.Mode.NARROW?buttonY:y,profileWidth,controlHeight,Component.literal("Profile"));
-        profile.setHint(Component.literal("letters, numbers, _ or -"));
+        profile.setHint(Component.literal("letters/numbers/_/-; max 32"));
         profile.setValue(profileValue);
         addRenderableWidget(profile);
         int actionY = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? buttonY : y;
@@ -363,12 +363,23 @@ public final class ArsonScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(deleteLabel),b->deleteProfile()).bounds(deleteX,actionY,deleteWidth,controlHeight).build());
     }
 
+    private String normalizedProfileName() {
+        if (profile == null) return "";
+        String name = ConfigManager.sanitizeProfileName(profile.getValue());
+        profile.setValue(name);
+        return name;
+    }
+
     private void deleteProfile() {
         if (minecraft == null || profile == null || profile.getValue().isBlank()) {
             NotificationCenter.push("Profile", "Enter a profile name");
             return;
         }
-        String name = profile.getValue();
+        String name = normalizedProfileName();
+        if (name.isBlank()) {
+            NotificationCenter.push("Profile", "Use letters, numbers, underscore, or hyphen");
+            return;
+        }
         if (!name.equals(pendingDeleteProfile)) {
             pendingDeleteProfile = name;
             NotificationCenter.push("Profile", "Click Confirm to delete " + name);
@@ -398,8 +409,22 @@ public final class ArsonScreen extends Screen {
     private static String prettyEnum(Object v){if(v==null)return"None";String raw=v.toString().toLowerCase(Locale.ROOT),out="";for(String p:raw.split("_"))if(!p.isEmpty())out+=(out.isEmpty()?"":" ")+Character.toUpperCase(p.charAt(0))+p.substring(1);return out;}
     private void applyEdit(){if(editBox!=null){if(editingString!=null)editingString.set(editBox.getValue());else if(editingColor!=null){try{String raw=editBox.getValue().trim().replace("#","");if(raw.length()==6)raw="FF"+raw;if(raw.length()!=8)throw new NumberFormatException();editingColor.set((int)Long.parseLong(raw,16));}catch(NumberFormatException ignored){NotificationCenter.push("Invalid color","Use RRGGBB or AARRGGBB");return;}}saveConfig();}editingString=null;editingColor=null;editBox=null;rebuild();}
     private void saveConfig(){if(minecraft!=null)ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}
-    private void saveProfile(){pendingDeleteProfile=null;if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue()))NotificationCenter.push("Profile","Saved "+profile.getValue());else NotificationCenter.push("Profile","Invalid profile name");}
-    private void loadProfile(){pendingDeleteProfile=null;if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
+    private void saveProfile(){
+        pendingDeleteProfile=null;
+        if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}
+        String name=normalizedProfileName();
+        if(name.isBlank()){NotificationCenter.push("Profile","Use letters, numbers, underscore, or hyphen");return;}
+        if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),name))NotificationCenter.push("Profile","Saved "+name);
+        else NotificationCenter.push("Profile","Could not save profile");
+    }
+    private void loadProfile(){
+        pendingDeleteProfile=null;
+        if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}
+        String name=normalizedProfileName();
+        if(name.isBlank()){NotificationCenter.push("Profile","Use letters, numbers, underscore, or hyphen");return;}
+        if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),name)){NotificationCenter.push("Profile","Loaded "+name);rebuild();}
+        else NotificationCenter.push("Profile","Profile not found or invalid");
+    }
 
     @Override public boolean keyPressed(KeyEvent event){
         int key=event.key();
