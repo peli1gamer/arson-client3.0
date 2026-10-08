@@ -127,11 +127,11 @@ public final class ArsonScreen extends Screen {
         search.setTooltip(tooltipFor("Keyboard shortcuts: Ctrl+K focuses search, Tab changes sections, arrow keys move through modules, Enter opens details, Space toggles, and F favorites the selected module."));
         search.setValue(searchValue);
         search.setCursorPosition(Math.min(searchCursor, searchValue.length()));
+        addRenderableWidget(search);
         if (searchFocused) {
             search.setFocused(true);
             setFocused(search);
         }
-        addRenderableWidget(search);
 
         addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
             favoritesOnly = false; enabledOnly = false; alphabetical = false;
