@@ -36,15 +36,25 @@ public final class ConfigManager {
 
     public static ConfigLoadStatus loadWithStatus(Minecraft client, ModuleManager modules) {
         Path configPath = client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME);
+        return loadWithBackup(configPath, modules);
+    }
+
+    static ConfigLoadStatus loadWithBackup(Path configPath, ModuleManager modules) {
         Path backupPath = configPath.resolveSibling(configPath.getFileName() + ".bak");
         boolean configExists = Files.isRegularFile(configPath);
         boolean backupExists = Files.isRegularFile(backupPath);
         if (configExists && loadFromPath(configPath, modules)) return ConfigLoadStatus.LOADED;
         if (configExists && hasUnsupportedFutureVersion(configPath)) return ConfigLoadStatus.INVALID;
-        if (!backupExists) return configExists ? ConfigLoadStatus.INVALID : ConfigLoadStatus.NOT_FOUND;
+        if (!backupExists) {
+            if (configExists) for (Module module : modules.all()) module.resetToDefaults();
+            return configExists ? ConfigLoadStatus.INVALID : ConfigLoadStatus.NOT_FOUND;
+        }
 
         for (Module module : modules.all()) module.resetToDefaults();
-        if (!loadFromPath(backupPath, modules)) return ConfigLoadStatus.INVALID;
+        if (!loadFromPath(backupPath, modules)) {
+            for (Module module : modules.all()) module.resetToDefaults();
+            return ConfigLoadStatus.INVALID;
+        }
         return restoreBackup(backupPath, configPath)
                 ? ConfigLoadStatus.RECOVERED_FROM_BACKUP : ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY;
     }
@@ -92,19 +102,13 @@ public final class ConfigManager {
         String safeName = sanitizeProfileName(profileName);
         if (safeName.isEmpty()) return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
-        boolean recoveredFromBackup = false;
-        boolean profileFileRestored = false;
-        if (!loadFromPath(path, modules)) {
-            if (hasUnsupportedFutureVersion(path)) return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
-            Path backupPath = path.resolveSibling(path.getFileName() + ".bak");
-            for (Module module : modules.all()) module.resetToDefaults();
-            if (!Files.isRegularFile(backupPath) || !loadFromPath(backupPath, modules)) {
-                for (Module module : modules.all()) module.resetToDefaults();
-                return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
-            }
-            recoveredFromBackup = true;
-            profileFileRestored = restoreBackup(backupPath, path);
+        ConfigLoadStatus fileStatus = loadWithBackup(path, modules);
+        if (fileStatus == ConfigLoadStatus.NOT_FOUND || fileStatus == ConfigLoadStatus.INVALID) {
+            return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
         }
+        boolean recoveredFromBackup = fileStatus == ConfigLoadStatus.RECOVERED_FROM_BACKUP
+                || fileStatus == ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY;
+        boolean profileFileRestored = fileStatus == ConfigLoadStatus.RECOVERED_FROM_BACKUP;
         ProfileLoadResult result = save(client, modules) ? ProfileLoadResult.LOADED : ProfileLoadResult.LOADED_NOT_SAVED;
         return new ProfileLoadOutcome(result, recoveredFromBackup, profileFileRestored);
     }
