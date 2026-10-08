@@ -35,6 +35,7 @@ public final class StorageScanner {
     private int indexedChunkX = Integer.MIN_VALUE;
     private int indexedChunkZ = Integer.MIN_VALUE;
     private int indexedRadius = Integer.MIN_VALUE;
+    private long indexedRefreshInterval = -1L;
     private long revision;
     private final Map<Long, IndexedChunk> chunks = new HashMap<>();
     private Set<String> customBlockIds = Set.of();
@@ -81,6 +82,11 @@ public final class StorageScanner {
     }
 
     public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range, String customBlocks) {
+        return scan(client, range, customBlocks, FALLBACK_REFRESH_TICKS);
+    }
+
+    public List<StorageOverlay.StorageTarget> scan(net.minecraft.client.Minecraft client, double range,
+                                                   String customBlocks, long refreshIntervalTicks) {
         if (client.level == null || client.player == null) {
             clear();
             return List.of();
@@ -90,6 +96,8 @@ public final class StorageScanner {
         switchLevel(level);
         Set<String> requestedCustomBlockIds = parseCustomBlockIds(customBlocks);
         boolean customFilterChanged = !customBlockIds.equals(requestedCustomBlockIds);
+        long safeRefreshInterval = Math.max(1L, refreshIntervalTicks);
+        boolean refreshIntervalChanged = indexedRefreshInterval != safeRefreshInterval;
         if (customFilterChanged) customBlockIds = requestedCustomBlockIds;
         double clampedRange = clampTargetRange(range);
         int radius = effectiveChunkRadius(client.options.renderDistance().get());
@@ -99,13 +107,14 @@ public final class StorageScanner {
 
         boolean chunkChanged = indexedChunkX != chunkX || indexedChunkZ != chunkZ;
         boolean radiusChanged = indexedRadius != radius;
-        boolean refreshDue = gameTime - indexedTick >= FALLBACK_REFRESH_TICKS || gameTime < indexedTick;
-        if (chunkChanged || radiusChanged || refreshDue || customFilterChanged) {
-            refreshLoadedChunks(level, radius, chunkX, chunkZ, refreshDue || customFilterChanged);
+        boolean refreshDue = gameTime - indexedTick >= safeRefreshInterval || gameTime < indexedTick;
+        if (chunkChanged || radiusChanged || refreshDue || customFilterChanged || refreshIntervalChanged) {
+            refreshLoadedChunks(level, radius, chunkX, chunkZ, refreshDue || customFilterChanged || refreshIntervalChanged);
             indexedTick = gameTime;
             indexedChunkX = chunkX;
             indexedChunkZ = chunkZ;
             indexedRadius = radius;
+            indexedRefreshInterval = safeRefreshInterval;
             cachedTargets = flattenIndex();
         }
 
