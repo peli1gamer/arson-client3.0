@@ -191,9 +191,13 @@ public final class ArsonCommand {
             })))
             .then(ClientCommandManager.literal("load").then(profileNameArgument("name").executes(ctx -> {
                 String name = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "name"));
-                boolean ok = !name.isEmpty() && ConfigManager.loadProfile(Minecraft.getInstance(), ArsonClient.getInstance().modules(), name);
-                feedback(ctx, ok ? "Profile loaded: " + name : "Profile not found or invalid");
-                return ok ? 1 : 0;
+                ConfigManager.ProfileLoadResult result = name.isEmpty() ? ConfigManager.ProfileLoadResult.NOT_LOADED
+                        : ConfigManager.loadProfileWithStatus(Minecraft.getInstance(), ArsonClient.getInstance().modules(), name);
+                feedback(ctx, result == ConfigManager.ProfileLoadResult.LOADED ? "Profile loaded: " + name
+                        : result == ConfigManager.ProfileLoadResult.LOADED_NOT_SAVED
+                        ? "Profile loaded, but active config could not be saved: " + name
+                        : "Profile not found or invalid");
+                return result == ConfigManager.ProfileLoadResult.NOT_LOADED ? 0 : 1;
             })))
             .then(ClientCommandManager.literal("delete").then(profileNameArgument("name").executes(ctx -> {
                 String name = ConfigManager.sanitizeProfileName(StringArgumentType.getString(ctx, "name"));
