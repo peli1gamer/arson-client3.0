@@ -60,6 +60,7 @@ public final class HudRenderer {
         HudModule hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
         if (hud == null || !hud.enabled()) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
+        if (layout != null) layout.migrateLegacyPositions(hud);
         ArrayListModule arrayList = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
         PlayerVitalsModule playerVitals = (PlayerVitalsModule) ArsonClient.getInstance().modules().get("player-vitals");
