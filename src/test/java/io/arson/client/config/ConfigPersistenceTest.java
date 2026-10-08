@@ -114,4 +114,52 @@ class ConfigPersistenceTest {
         assertFalse(ConfigManager.loadFromPath(profile, manager));
         assertTrue(manager.get("sprint").enabled());
     }
+    @Test
+    void damagedConfigRestoresTheLastValidBackup() throws Exception {
+        Path directory = Files.createTempDirectory("arson-config-backup");
+        Path config = directory.resolve("arson-v3.json");
+
+        ModuleManager source = new ModuleManager();
+        source.registerDefaults();
+        source.get("sprint").setEnabled(true);
+        source.get("sprint").setKeyCode(65);
+        assertTrue(ConfigManager.saveToPath(config, source));
+        source.get("sprint").setEnabled(false);
+        assertTrue(ConfigManager.saveToPath(config, source));
+        String validBackup = Files.readString(config.resolveSibling(config.getFileName() + ".bak"));
+        Files.writeString(config, "damaged json");
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        assertEquals(ConfigManager.ConfigLoadStatus.RECOVERED_FROM_BACKUP,
+                ConfigManager.loadWithBackup(config, loaded));
+        assertTrue(loaded.get("sprint").enabled());
+        assertEquals(65, loaded.get("sprint").keyCode());
+        assertEquals(validBackup, Files.readString(config));
+        assertEquals(validBackup, Files.readString(config.resolveSibling(config.getFileName() + ".bak")));
+    }
+
+    @Test
+    void newerConfigIsNotReplacedByAnOlderBackup() throws Exception {
+        Path directory = Files.createTempDirectory("arson-config-newer");
+        Path config = directory.resolve("arson-v3.json");
+
+        ModuleManager source = new ModuleManager();
+        source.registerDefaults();
+        source.get("sprint").setEnabled(true);
+        assertTrue(ConfigManager.saveToPath(config, source));
+        source.get("sprint").setEnabled(false);
+        assertTrue(ConfigManager.saveToPath(config, source));
+        Files.writeString(config, "{\\"version\\":999,\\"modules\\":{}}");
+        String newerConfig = Files.readString(config);
+        String validBackup = Files.readString(config.resolveSibling(config.getFileName() + ".bak"));
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        assertEquals(ConfigManager.ConfigLoadStatus.INVALID, ConfigManager.loadWithBackup(config, loaded));
+        assertFalse(loaded.get("sprint").enabled());
+        assertEquals(newerConfig, Files.readString(config));
+        assertEquals(validBackup, Files.readString(config.resolveSibling(config.getFileName() + ".bak")));
+    }
+
 }
