@@ -427,10 +427,17 @@ public final class ArsonScreen extends Screen {
         if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}
         String name=normalizedProfileName();
         if(name.isBlank()){NotificationCenter.push("Profile","Use letters, numbers, underscore, or hyphen");return;}
-        ConfigManager.ProfileLoadResult result = ConfigManager.loadProfileWithStatus(minecraft,ArsonClient.getInstance().modules(),name);
-        if (result == ConfigManager.ProfileLoadResult.LOADED) NotificationCenter.push("Profile","Loaded "+name);
-        else if (result == ConfigManager.ProfileLoadResult.LOADED_NOT_SAVED) NotificationCenter.push("Profile","Loaded "+name+"; active config could not be saved");
-        else NotificationCenter.push("Profile","Profile not found or invalid");
+        ConfigManager.ProfileLoadOutcome outcome = ConfigManager.loadProfileDetailed(minecraft,ArsonClient.getInstance().modules(),name);
+        ConfigManager.ProfileLoadResult result = outcome.result();
+        if (result == ConfigManager.ProfileLoadResult.NOT_LOADED) NotificationCenter.push("Profile","Profile not found or invalid");
+        else {
+            String message = result == ConfigManager.ProfileLoadResult.LOADED_NOT_SAVED
+                    ? "Loaded "+name+"; active config could not be saved" : "Loaded "+name;
+            if (outcome.recoveredFromBackup()) {
+                message += outcome.profileFileRestored() ? " (recovered from backup)" : " (loaded backup; profile file could not be repaired)";
+            }
+            NotificationCenter.push("Profile",message);
+        }
         if (result != ConfigManager.ProfileLoadResult.NOT_LOADED) rebuild();
     }
 
