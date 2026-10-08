@@ -78,16 +78,35 @@ public final class ConfigManager {
         return saveToPath(directory.resolve(safeName + ".json"), modules);
     }
     public enum ProfileLoadResult { NOT_LOADED, LOADED, LOADED_NOT_SAVED }
+    public record ProfileLoadOutcome(ProfileLoadResult result, boolean recoveredFromBackup, boolean profileFileRestored) {}
 
     public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
         return loadProfileWithStatus(client, modules, profileName) != ProfileLoadResult.NOT_LOADED;
     }
 
     public static ProfileLoadResult loadProfileWithStatus(Minecraft client, ModuleManager modules, String profileName) {
-        String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return ProfileLoadResult.NOT_LOADED;
+        return loadProfileDetailed(client, modules, profileName).result();
+    }
+
+    public static ProfileLoadOutcome loadProfileDetailed(Minecraft client, ModuleManager modules, String profileName) {
+        String safeName = sanitizeProfileName(profileName);
+        if (safeName.isEmpty()) return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
-        if (!loadFromPath(path, modules)) return ProfileLoadResult.NOT_LOADED;
-        return save(client, modules) ? ProfileLoadResult.LOADED : ProfileLoadResult.LOADED_NOT_SAVED;
+        boolean recoveredFromBackup = false;
+        boolean profileFileRestored = false;
+        if (!loadFromPath(path, modules)) {
+            if (hasUnsupportedFutureVersion(path)) return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
+            Path backupPath = path.resolveSibling(path.getFileName() + ".bak");
+            for (Module module : modules.all()) module.resetToDefaults();
+            if (!Files.isRegularFile(backupPath) || !loadFromPath(backupPath, modules)) {
+                for (Module module : modules.all()) module.resetToDefaults();
+                return new ProfileLoadOutcome(ProfileLoadResult.NOT_LOADED, false, false);
+            }
+            recoveredFromBackup = true;
+            profileFileRestored = restoreBackup(backupPath, path);
+        }
+        ProfileLoadResult result = save(client, modules) ? ProfileLoadResult.LOADED : ProfileLoadResult.LOADED_NOT_SAVED;
+        return new ProfileLoadOutcome(result, recoveredFromBackup, profileFileRestored);
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
