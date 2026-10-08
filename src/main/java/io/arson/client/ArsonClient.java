@@ -124,7 +124,7 @@ public final class ArsonClient implements ClientModInitializer {
         } else if (configStatus == ConfigManager.ConfigLoadStatus.BACKUP_LOADED_IN_MEMORY) {
             NotificationCenter.push("Arson config", "Loaded backup settings, but could not repair the config file. Use /arson save.", 8000L, NotificationCenter.Priority.HIGH);
         } else if (configStatus == ConfigManager.ConfigLoadStatus.INVALID) {
-            NotificationCenter.push("Arson config", "Could not load the existing config; the file was left unchanged.", 8000L, NotificationCenter.Priority.HIGH);
+            NotificationCenter.push("Arson config", "Could not load config or backup; files were left unchanged.", 8000L, NotificationCenter.Priority.HIGH);
         }
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
