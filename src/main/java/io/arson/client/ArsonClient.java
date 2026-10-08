@@ -118,7 +118,12 @@ public final class ArsonClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfigFromRuntime();
         });
-        ConfigManager.load(client, moduleManager);
+        java.nio.file.Path configPath = client.gameDirectory.toPath().resolve("config").resolve("arson-v3.json");
+        boolean existingConfig = java.nio.file.Files.isRegularFile(configPath);
+        boolean configLoaded = ConfigManager.load(client, moduleManager);
+        if (existingConfig && !configLoaded) {
+            NotificationCenter.push("Arson config", "Could not load the existing config; the file was left unchanged.");
+        }
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
 
