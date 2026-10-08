@@ -21,7 +21,7 @@ public final class ContainerESPModule extends Module {
     private final DoubleSetting clusterRadius = setting(new DoubleSetting("cluster-radius", "Cluster Radius", 8.0, 2.0, 32.0, 1.0));
     private final ColorSetting clusterColor = setting(new ColorSetting("cluster-color", "Cluster Color", 0xFFFFAA33));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Target Display Range", 768.0, 8.0, 768.0, 4.0));
-    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 5.0, 1.0, 20.0, 1.0));
+    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval (seconds)", 5.0, 1.0, 20.0, 1.0));
     private final BooleanSetting showLabels = setting(new BooleanSetting("show-labels", "Show Labels", false));
     private final BooleanSetting labelDistance = setting(new BooleanSetting("label-distance", "Label Distance", true));
     private final BooleanSetting labelBackground = setting(new BooleanSetting("label-background", "Label Background", true));
