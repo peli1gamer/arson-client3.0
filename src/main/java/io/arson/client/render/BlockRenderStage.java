@@ -33,7 +33,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
         }
 
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
+        if (gameTime - lastScanTick >= module.scanInterval() * 20L || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, module);
             lastScanTick = gameTime;
         }
