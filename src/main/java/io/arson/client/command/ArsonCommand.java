@@ -166,7 +166,12 @@ public final class ArsonCommand {
                         String name = StringArgumentType.getString(ctx, "name");
                         Module module = ArsonClient.getInstance().modules().get("hud");
                         if (!(module instanceof HudModule hud)) { error(ctx, "HUD module unavailable"); return 0; }
-                        try { hud.applyPreset(name); ArsonClient.getInstance().saveConfig(); feedback(ctx, "HUD preset applied: " + name); return 1; }
+                        try {
+                            hud.applyPreset(name);
+                            boolean saved = ArsonClient.getInstance().saveConfig();
+                            feedback(ctx, saved ? "HUD preset applied: " + name : "HUD preset applied, but config could not be saved: " + name);
+                            return saved ? 1 : 0;
+                        }
                         catch (IllegalArgumentException exception) { error(ctx, exception.getMessage()); return 0; }
                     })));
     }
@@ -232,9 +237,9 @@ public final class ArsonCommand {
     }
 
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource,String> categoryArgument(){return ClientCommandManager.argument("category",StringArgumentType.word()).suggests((ctx,b)->{for(Module.Category c:Module.Category.values())b.suggest(c.name().toLowerCase());return b.buildFuture();});}
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> enableCommand(){return ClientCommandManager.literal("enable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(true);ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": enabled");return 1;}));}
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> disableCommand(){return ClientCommandManager.literal("disable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(false);ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": disabled");return 1;}));}
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(){return ClientCommandManager.literal("toggle").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.toggle();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": "+(m.enabled()?"enabled":"disabled"));return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> enableCommand(){return ClientCommandManager.literal("enable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(true);boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": enabled"+(saved?"":" (config could not be saved)"));return saved?1:0;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> disableCommand(){return ClientCommandManager.literal("disable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(false);boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": disabled"+(saved?"":" (config could not be saved)"));return saved?1:0;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(){return ClientCommandManager.literal("toggle").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.toggle();boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": "+(m.enabled()?"enabled":"disabled")+(saved?"":" (config could not be saved)"));return saved?1:0;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> infoCommand(){return ClientCommandManager.literal("info").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;feedback(ctx,m.help());return 1;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingsCommand(){return ClientCommandManager.literal("settings").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;StringBuilder out=new StringBuilder(m.name()+": ");for(int i=0;i<m.settings().size();i++){if(i>0)out.append(", ");var s=m.settings().get(i);out.append(s.id()).append("=").append(s.get());if(!s.description().isBlank())out.append(" [").append(s.description()).append("]");}if(m.settings().isEmpty())out.append("no settings");feedback(ctx,out.toString());return 1;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> favoriteOperation() {
@@ -279,7 +284,7 @@ public final class ArsonCommand {
                 })));
     }
 
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> resetCommand(){return ClientCommandManager.literal("reset").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.resetSettings();ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+" settings reset to defaults.");return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> resetCommand(){return ClientCommandManager.literal("reset").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.resetSettings();boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+" settings reset to defaults"+(saved?".":"; config could not be saved."));return saved?1:0;}));}
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource,String> moduleArgument(){return ClientCommandManager.argument("module",StringArgumentType.word()).suggests((ctx,b)->{for(Module m:ArsonClient.getInstance().modules().all())b.suggest(m.id());return b.buildFuture();});}
     private static Module module(CommandContext<FabricClientCommandSource> ctx){String id=StringArgumentType.getString(ctx,"module");Module m=ArsonClient.getInstance().modules().get(id);if(m==null)error(ctx,"Unknown module: "+id);return m;}
     private static Module.Category category(String raw){for(Module.Category c:Module.Category.values())if(c.name().equalsIgnoreCase(raw)||c.displayName().equalsIgnoreCase(raw))return c;return null;}
