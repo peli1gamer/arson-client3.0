@@ -116,7 +116,7 @@ public final class ArsonClient implements ClientModInitializer {
         if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
     }
 
-    public void saveConfig() { ConfigManager.save(Minecraft.getInstance(), moduleManager); }
+    public boolean saveConfig() { return ConfigManager.save(Minecraft.getInstance(), moduleManager); }
 
     private void runRuntimeSmoke(Minecraft client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
