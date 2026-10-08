@@ -427,8 +427,11 @@ public final class ArsonScreen extends Screen {
         if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}
         String name=normalizedProfileName();
         if(name.isBlank()){NotificationCenter.push("Profile","Use letters, numbers, underscore, or hyphen");return;}
-        if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),name)){NotificationCenter.push("Profile","Loaded "+name);rebuild();}
+        ConfigManager.ProfileLoadResult result = ConfigManager.loadProfileWithStatus(minecraft,ArsonClient.getInstance().modules(),name);
+        if (result == ConfigManager.ProfileLoadResult.LOADED) NotificationCenter.push("Profile","Loaded "+name);
+        else if (result == ConfigManager.ProfileLoadResult.LOADED_NOT_SAVED) NotificationCenter.push("Profile","Loaded "+name+"; active config could not be saved");
         else NotificationCenter.push("Profile","Profile not found or invalid");
+        if (result != ConfigManager.ProfileLoadResult.NOT_LOADED) rebuild();
     }
 
     @Override public boolean keyPressed(KeyEvent event){
