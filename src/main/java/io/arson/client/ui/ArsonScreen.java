@@ -84,7 +84,7 @@ public final class ArsonScreen extends Screen {
         p.setEnabledOnly(enabledOnly);
         p.setCompactMode(compactMode);
         while (!p.theme().name().equals(theme.name())) p.cycleTheme();
-        ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
+        saveConfig();
     }
 
     private int accentColor() { return 0xFFE27632; }
@@ -408,7 +408,12 @@ public final class ArsonScreen extends Screen {
     private static String keyName(int key){if(key<=0)return"None";String n=GLFW.glfwGetKeyName(key,0);return n==null?"KEY "+key:n.toUpperCase(Locale.ROOT);}
     private static String prettyEnum(Object v){if(v==null)return"None";String raw=v.toString().toLowerCase(Locale.ROOT),out="";for(String p:raw.split("_"))if(!p.isEmpty())out+=(out.isEmpty()?"":" ")+Character.toUpperCase(p.charAt(0))+p.substring(1);return out;}
     private void applyEdit(){if(editBox!=null){if(editingString!=null)editingString.set(editBox.getValue());else if(editingColor!=null){try{String raw=editBox.getValue().trim().replace("#","");if(raw.length()==6)raw="FF"+raw;if(raw.length()!=8)throw new NumberFormatException();editingColor.set((int)Long.parseLong(raw,16));}catch(NumberFormatException ignored){NotificationCenter.push("Invalid color","Use RRGGBB or AARRGGBB");return;}}saveConfig();}editingString=null;editingColor=null;editBox=null;rebuild();}
-    private void saveConfig(){if(minecraft!=null)ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}
+    private boolean saveConfig() {
+        if (minecraft == null) return false;
+        boolean saved = ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
+        if (!saved) NotificationCenter.push("Arson config", "Could not save settings to disk");
+        return saved;
+    }
     private void saveProfile(){
         pendingDeleteProfile=null;
         if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}
