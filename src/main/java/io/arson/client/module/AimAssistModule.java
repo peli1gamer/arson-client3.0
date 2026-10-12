@@ -39,7 +39,7 @@ public final class AimAssistModule extends Module {
     private final BooleanSetting sticky = setting(new BooleanSetting("sticky", "Sticky Target", true));
     private final BooleanSetting nearestHitboxPoint = setting(new BooleanSetting("nearest-hitbox-point", "Nearest Hitbox Point", true));
     private final StringSetting activation = setting(new StringSetting("activation", "Activation", "Always"));
-    private final StringSetting aimPoint = setting(new StringSetting("aim-point", "Aim Point", "Closest"));
+    private final StringSetting targetPart = setting(new StringSetting("target-part", "Target Part", "Torso"));
 
     private final BooleanSetting highlightTarget = setting(new BooleanSetting("highlight-target", "Highlight Target", true));
     private final ColorSetting highlightColor = setting(new ColorSetting("highlight-color", "Highlight Color", 0xFFFF4040));
@@ -128,11 +128,18 @@ public final class AimAssistModule extends Module {
 
     private Vec3 aimPoint(Minecraft client, LivingEntity entity) {
         AABB box = entity.getBoundingBox();
-        String mode = aimPoint.get().trim().toLowerCase();
-        if (mode.equals("head")) return new Vec3(box.getCenter().x, box.maxY - 0.12, box.getCenter().z);
-        if (mode.equals("body")) return new Vec3(box.getCenter().x, box.minY + box.getYsize() * 0.55, box.getCenter().z);
-        if (nearestHitboxPoint.enabled()) return closestPointOnBox(client.player.getEyePosition(), box);
-        return box.getCenter();
+        String mode = targetPart.get().trim().toLowerCase(java.util.Locale.ROOT);
+        double centerX = box.getCenter().x;
+        double centerZ = box.getCenter().z;
+        double height = box.getYsize();
+        return switch (mode) {
+            case "head" -> new Vec3(centerX, box.maxY - Math.min(0.12, height * 0.08), centerZ);
+            case "torso", "body" -> new Vec3(centerX, box.minY + height * 0.62, centerZ);
+            case "legs", "leg" -> new Vec3(centerX, box.minY + height * 0.22, centerZ);
+            default -> nearestHitboxPoint.enabled()
+                    ? closestPointOnBox(client.player.getEyePosition(), box)
+                    : box.getCenter();
+        };
     }
 
     private Vec3 closestPointOnBox(Vec3 origin, AABB box) {
