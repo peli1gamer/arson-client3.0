@@ -23,6 +23,8 @@ public final class AimAssistModule extends Module {
     private final DoubleSetting fov = setting(new DoubleSetting("fov", "FOV", 180.0, 1.0, 360.0, 1.0));
     private final DoubleSetting crosshairWidth = setting(new DoubleSetting("crosshair-width", "Crosshair Width", 15.0, 1.0, 100.0, 1.0));
     private final DoubleSetting crosshairHeight = setting(new DoubleSetting("crosshair-height", "Crosshair Height", 15.0, 1.0, 100.0, 1.0));
+    private final BooleanSetting aimLock = setting(new BooleanSetting("aim-lock", "Aim Lock", true));
+    private final DoubleSetting lockRadius = setting(new DoubleSetting("lock-radius", "Lock Radius", 60.0, 8.0, 240.0, 1.0));
     private final DoubleSetting speed = setting(new DoubleSetting("speed", "Aim Speed", 5.0, 0.1, 30.0, 0.1));
     private final DoubleSetting maxRotation = setting(new DoubleSetting("max-rotation", "Max Rotation", 2.5, 0.1, 20.0, 0.1));
     private final DoubleSetting randomNoise = setting(new DoubleSetting("random-noise", "Random Rotation", 0.5, 0.0, 3.0, 0.05));
@@ -107,6 +109,10 @@ public final class AimAssistModule extends Module {
         double[] angles = anglesTo(client, point);
         double yawPixels = pixelsFromYaw(client, Math.abs(Mth.wrapDegrees(angles[0] - client.player.getYRot())));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getXRot()));
+        if (aimLock.enabled()) {
+            double radius = lockRadius.get();
+            return yawPixels * yawPixels + pitchPixels * pitchPixels <= radius * radius;
+        }
         double halfW = crosshairWidth.get() * 0.5;
         double halfH = crosshairHeight.get() * 0.5;
         return yawPixels <= halfW && pitchPixels <= halfH;
@@ -173,6 +179,8 @@ public final class AimAssistModule extends Module {
     }
 
     public LivingEntity target() { return target; }
+    public boolean aimLockEnabled() { return aimLock.enabled(); }
+    public double lockRadius() { return lockRadius.get(); }
     public boolean highlightTarget() { return highlightTarget.enabled(); }
     public int highlightColor() { return highlightColor.get(); }
     public boolean highlightFill() { return highlightFill.enabled(); }
