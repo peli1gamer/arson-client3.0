@@ -25,6 +25,7 @@ public final class AimAssistModule extends Module {
     private final DoubleSetting crosshairHeight = setting(new DoubleSetting("crosshair-height", "Crosshair Height", 15.0, 1.0, 100.0, 1.0));
     private final BooleanSetting aimLock = setting(new BooleanSetting("aim-lock", "Aim Lock HUD", true));
     private final BooleanSetting circleTargeting = setting(new BooleanSetting("circle-targeting", "Target Within Circle", true));
+    private final BooleanSetting autoSteer = setting(new BooleanSetting("auto-steer", "Auto Steer", true));
     private final DoubleSetting lockRadius = setting(new DoubleSetting("lock-radius", "Lock Radius", 60.0, 8.0, 240.0, 1.0));
     private final DoubleSetting speed = setting(new DoubleSetting("speed", "Aim Speed", 5.0, 0.1, 30.0, 0.1));
     private final DoubleSetting maxRotation = setting(new DoubleSetting("max-rotation", "Max Rotation", 2.5, 0.1, 20.0, 0.1));
@@ -63,7 +64,8 @@ public final class AimAssistModule extends Module {
         LivingEntity selected = chooseTarget(client);
         if (selected == null) { target = null; return; }
         target = selected;
-        rotateTowards(client, aimPoint(client, target));
+        // Acquiring a valid target inside the configured gate immediately starts camera steering.
+        if (autoSteer.enabled()) rotateTowards(client, aimPoint(client, target));
     }
 
     private boolean isActivated(Minecraft client) {
