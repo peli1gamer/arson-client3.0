@@ -15,6 +15,7 @@ class RuntimeSmokeContractTest {
     void runtimeEntryPointExposesRequiredInitializationSurfaces() {
         assertEquals("arson", ArsonClient.MOD_ID);
         assertNotNull(ModuleManager.class);
+        assertNotNull(io.arson.client.module.KnockbackReducerModule.class);
         assertNotNull(FabricFeatureContextAdapter.class);
     }
 
@@ -26,6 +27,7 @@ class RuntimeSmokeContractTest {
             String json = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
             assertTrue(json.contains("AbstractContainerScreenMixin"));
             assertTrue(json.contains("ClientPacketListenerMixin"));
+            assertTrue(json.contains("KnockbackReducerMixin"));
             assertFalse(json.contains("HandledScreenAccessor"));
         }
     }

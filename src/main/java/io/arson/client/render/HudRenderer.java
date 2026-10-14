@@ -2,6 +2,7 @@ package io.arson.client.render;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.CameraInfoModule;
+import io.arson.client.module.AimAssistModule;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ClientPerformanceInfoModule;
@@ -53,6 +54,7 @@ public final class HudRenderer {
         Minecraft client = Minecraft.getInstance();
         renderNotifications(graphics, client);
         if (client.player == null || client.level == null) return;
+        renderAimLock(graphics, client);
         HudModule hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
         if (hud == null || !hud.enabled()) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
@@ -166,6 +168,25 @@ public final class HudRenderer {
         }
         graphics.pose().popMatrix();
     }
+    private static void renderAimLock(GuiGraphics graphics, Minecraft client) {
+        if (ArsonClient.getInstance() == null) return;
+        var candidate = ArsonClient.getInstance().modules().get("aim-assist");
+        if (!(candidate instanceof AimAssistModule aim) || !aim.enabled() || !aim.aimLockEnabled()) return;
+
+        int width = client.getWindow().getGuiScaledWidth();
+        int height = client.getWindow().getGuiScaledHeight();
+        double radius = aim.lockRadius();
+        int color = aim.target() != null ? 0xFF70F0B0 : 0xAA70C8F0;
+        // Draw a thin, resolution-independent circle around the screen-space crosshair.
+        int steps = Math.max(96, (int) Math.ceil(radius * 5.0));
+        for (int i = 0; i < steps; i++) {
+            double angle = Math.PI * 2.0 * i / steps;
+            int x = (int) Math.round(width * 0.5 + Math.cos(angle) * radius);
+            int y = (int) Math.round(height * 0.5 + Math.sin(angle) * radius);
+            graphics.fill(x, y, x + 1, y + 1, color);
+        }
+    }
+
     private static int[] estimateArrayListSize(Minecraft client, ArrayListModule module) {
         if(module==null || !module.enabled()) return new int[]{1,1};
         int maxWidth=1;

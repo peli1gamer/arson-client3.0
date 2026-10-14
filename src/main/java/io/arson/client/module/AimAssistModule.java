@@ -12,6 +12,8 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Comparator;
@@ -23,6 +25,10 @@ public final class AimAssistModule extends Module {
     private final DoubleSetting fov = setting(new DoubleSetting("fov", "FOV", 180.0, 1.0, 360.0, 1.0));
     private final DoubleSetting crosshairWidth = setting(new DoubleSetting("crosshair-width", "Crosshair Width", 15.0, 1.0, 100.0, 1.0));
     private final DoubleSetting crosshairHeight = setting(new DoubleSetting("crosshair-height", "Crosshair Height", 15.0, 1.0, 100.0, 1.0));
+    private final BooleanSetting aimLock = setting(new BooleanSetting("aim-lock", "Aim Lock HUD", true));
+    private final BooleanSetting circleTargeting = setting(new BooleanSetting("circle-targeting", "Target Within Circle", true));
+    private final BooleanSetting autoSteer = setting(new BooleanSetting("auto-steer", "Auto Steer", true));
+    private final DoubleSetting lockRadius = setting(new DoubleSetting("lock-radius", "Lock Radius", 60.0, 8.0, 240.0, 1.0));
     private final DoubleSetting speed = setting(new DoubleSetting("speed", "Aim Speed", 5.0, 0.1, 30.0, 0.1));
     private final DoubleSetting maxRotation = setting(new DoubleSetting("max-rotation", "Max Rotation", 2.5, 0.1, 20.0, 0.1));
     private final DoubleSetting randomNoise = setting(new DoubleSetting("random-noise", "Random Rotation", 0.5, 0.0, 3.0, 0.05));
@@ -31,13 +37,14 @@ public final class AimAssistModule extends Module {
     private final BooleanSetting players = setting(new BooleanSetting("players", "Players", true));
     private final BooleanSetting monsters = setting(new BooleanSetting("monsters", "Monsters", true));
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
+    private final BooleanSetting otherLiving = setting(new BooleanSetting("other-living", "Other Living Entities", true));
     private final BooleanSetting visibleOnly = setting(new BooleanSetting("visible-only", "Visible Only", true));
     private final BooleanSetting instant = setting(new BooleanSetting("instant", "Instant", false));
     private final BooleanSetting randomize = setting(new BooleanSetting("randomize", "Randomize Rotation", true));
     private final BooleanSetting sticky = setting(new BooleanSetting("sticky", "Sticky Target", true));
     private final BooleanSetting nearestHitboxPoint = setting(new BooleanSetting("nearest-hitbox-point", "Nearest Hitbox Point", true));
     private final StringSetting activation = setting(new StringSetting("activation", "Activation", "Always"));
-    private final StringSetting aimPoint = setting(new StringSetting("aim-point", "Aim Point", "Closest"));
+    private final StringSetting targetPart = setting(new StringSetting("target-part", "Target Part", "Torso"));
 
     private final BooleanSetting highlightTarget = setting(new BooleanSetting("highlight-target", "Highlight Target", true));
     private final ColorSetting highlightColor = setting(new ColorSetting("highlight-color", "Highlight Color", 0xFFFF4040));
@@ -60,7 +67,8 @@ public final class AimAssistModule extends Module {
         LivingEntity selected = chooseTarget(client);
         if (selected == null) { target = null; return; }
         target = selected;
-        rotateTowards(client, aimPoint(client, target));
+        // Acquiring a valid target inside the configured gate immediately starts camera steering.
+        if (autoSteer.enabled()) rotateTowards(client, aimPoint(client, target));
     }
 
     private boolean isActivated(Minecraft client) {
@@ -85,7 +93,7 @@ public final class AimAssistModule extends Module {
     private boolean isValid(Minecraft client, LivingEntity entity) {
         if (entity == null || entity == client.player || !entity.isAlive() || entity.isRemoved()) return false;
         if (client.player.distanceToSqr(entity) > range.get() * range.get()) return false;
-        if (visibleOnly.enabled() && !client.player.hasLineOfSight(entity)) return false;
+        if (visibleOnly.enabled() && !hasLineOfSightToAimPoint(client, entity)) return false;
         if (entity instanceof Player player) {
             FriendsModule friends = friendsModule();
             if (friends != null && friends.isFriend(player)) return false;
@@ -93,7 +101,8 @@ public final class AimAssistModule extends Module {
         }
         if (entity instanceof Monster) return monsters.enabled();
         if (entity instanceof Animal) return animals.enabled();
-        return false;
+        // Includes villagers, golems, and other LivingEntity types not covered above.
+        return otherLiving.enabled();
     }
 
     private FriendsModule friendsModule() {
@@ -107,6 +116,10 @@ public final class AimAssistModule extends Module {
         double[] angles = anglesTo(client, point);
         double yawPixels = pixelsFromYaw(client, Math.abs(Mth.wrapDegrees(angles[0] - client.player.getYRot())));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getXRot()));
+        if (circleTargeting.enabled()) {
+            double radius = lockRadius.get();
+            return yawPixels * yawPixels + pitchPixels * pitchPixels <= radius * radius;
+        }
         double halfW = crosshairWidth.get() * 0.5;
         double halfH = crosshairHeight.get() * 0.5;
         return yawPixels <= halfW && pitchPixels <= halfH;
@@ -122,11 +135,24 @@ public final class AimAssistModule extends Module {
 
     private Vec3 aimPoint(Minecraft client, LivingEntity entity) {
         AABB box = entity.getBoundingBox();
-        String mode = aimPoint.get().trim().toLowerCase();
-        if (mode.equals("head")) return new Vec3(box.getCenter().x, box.maxY - 0.12, box.getCenter().z);
-        if (mode.equals("body")) return new Vec3(box.getCenter().x, box.minY + box.getYsize() * 0.55, box.getCenter().z);
-        if (nearestHitboxPoint.enabled()) return closestPointOnBox(client.player.getEyePosition(), box);
-        return box.getCenter();
+        String mode = targetPart.get().trim().toLowerCase(java.util.Locale.ROOT);
+        double centerX = box.getCenter().x;
+        double centerZ = box.getCenter().z;
+        double height = box.getYsize();
+        // Use each entity's own eye height as an anatomical reference instead of
+        // assuming every living entity has a player-shaped hitbox.
+        double eyeY = Mth.clamp(entity.getEyeY(), box.minY, box.maxY);
+        double headY = eyeY + (box.maxY - eyeY) * 0.5;
+        double torsoY = box.minY + (eyeY - box.minY) * 0.65;
+        double legsY = box.minY + height * 0.22;
+        return switch (mode) {
+            case "head" -> new Vec3(centerX, Mth.clamp(headY, box.minY, box.maxY), centerZ);
+            case "torso", "body" -> new Vec3(centerX, Mth.clamp(torsoY, box.minY, box.maxY), centerZ);
+            case "legs", "leg" -> new Vec3(centerX, Mth.clamp(legsY, box.minY, box.maxY), centerZ);
+            default -> nearestHitboxPoint.enabled()
+                    ? closestPointOnBox(client.player.getEyePosition(), box)
+                    : box.getCenter();
+        };
     }
 
     private Vec3 closestPointOnBox(Vec3 origin, AABB box) {
@@ -159,20 +185,35 @@ public final class AimAssistModule extends Module {
     }
 
     private double pixelsFromYaw(Minecraft client, double degrees) {
-        return degrees / Math.max(0.01, client.options.fov().get()) * Math.max(1, client.getWindow().getGuiScaledWidth());
+        // Minecraft's FOV option is the vertical FOV. Convert it to horizontal
+        // FOV for yaw projection so the lock circle remains correct at any aspect ratio.
+        double vertical = Math.toRadians(Mth.clamp(client.options.fov().get(), 1.0, 179.0));
+        double aspect = (double) Math.max(1, client.getWindow().getGuiScaledWidth())
+                / Math.max(1, client.getWindow().getGuiScaledHeight());
+        double horizontal = 2.0 * Math.atan(Math.tan(vertical * 0.5) * aspect);
+        double angle = Math.toRadians(Math.min(89.9, degrees));
+        double normalized = Math.tan(angle) / Math.max(1.0e-6, Math.tan(horizontal * 0.5));
+        return normalized * Math.max(1, client.getWindow().getGuiScaledWidth()) * 0.5;
     }
 
     private double pixelsFromPitch(Minecraft client, double degrees) {
-        return degrees / Math.max(0.01, verticalFov(client)) * Math.max(1, client.getWindow().getGuiScaledHeight());
+        double vertical = Math.toRadians(Mth.clamp(client.options.fov().get(), 1.0, 179.0));
+        double angle = Math.toRadians(Math.min(89.9, degrees));
+        double normalized = Math.tan(angle) / Math.max(1.0e-6, Math.tan(vertical * 0.5));
+        return normalized * Math.max(1, client.getWindow().getGuiScaledHeight()) * 0.5;
     }
 
-    private double verticalFov(Minecraft client) {
-        double horizontal = Math.toRadians(client.options.fov().get());
-        double aspect = (double)client.getWindow().getGuiScaledWidth() / Math.max(1, client.getWindow().getGuiScaledHeight());
-        return Math.toDegrees(2.0 * Math.atan(Math.tan(horizontal * 0.5) / Math.max(0.01, aspect)));
+    private boolean hasLineOfSightToAimPoint(Minecraft client, LivingEntity entity) {
+        Vec3 eye = client.player.getEyePosition();
+        Vec3 point = aimPoint(client, entity);
+        return client.level.clip(new ClipContext(
+                eye, point, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, client.player
+        )).getType() == HitResult.Type.MISS;
     }
 
     public LivingEntity target() { return target; }
+    public boolean aimLockEnabled() { return aimLock.enabled(); }
+    public double lockRadius() { return lockRadius.get(); }
     public boolean highlightTarget() { return highlightTarget.enabled(); }
     public int highlightColor() { return highlightColor.get(); }
     public boolean highlightFill() { return highlightFill.enabled(); }
