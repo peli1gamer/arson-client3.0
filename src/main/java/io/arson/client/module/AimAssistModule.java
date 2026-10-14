@@ -12,6 +12,8 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.ClipContext;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Comparator;
@@ -35,6 +37,7 @@ public final class AimAssistModule extends Module {
     private final BooleanSetting players = setting(new BooleanSetting("players", "Players", true));
     private final BooleanSetting monsters = setting(new BooleanSetting("monsters", "Monsters", true));
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
+    private final BooleanSetting otherLiving = setting(new BooleanSetting("other-living", "Other Living Entities", true));
     private final BooleanSetting visibleOnly = setting(new BooleanSetting("visible-only", "Visible Only", true));
     private final BooleanSetting instant = setting(new BooleanSetting("instant", "Instant", false));
     private final BooleanSetting randomize = setting(new BooleanSetting("randomize", "Randomize Rotation", true));
@@ -90,7 +93,7 @@ public final class AimAssistModule extends Module {
     private boolean isValid(Minecraft client, LivingEntity entity) {
         if (entity == null || entity == client.player || !entity.isAlive() || entity.isRemoved()) return false;
         if (client.player.distanceToSqr(entity) > range.get() * range.get()) return false;
-        if (visibleOnly.enabled() && !client.player.hasLineOfSight(entity)) return false;
+        if (visibleOnly.enabled() && !hasLineOfSightToAimPoint(client, entity)) return false;
         if (entity instanceof Player player) {
             FriendsModule friends = friendsModule();
             if (friends != null && friends.isFriend(player)) return false;
@@ -98,7 +101,8 @@ public final class AimAssistModule extends Module {
         }
         if (entity instanceof Monster) return monsters.enabled();
         if (entity instanceof Animal) return animals.enabled();
-        return false;
+        // Includes villagers, golems, and other LivingEntity types not covered above.
+        return otherLiving.enabled();
     }
 
     private FriendsModule friendsModule() {
@@ -135,10 +139,16 @@ public final class AimAssistModule extends Module {
         double centerX = box.getCenter().x;
         double centerZ = box.getCenter().z;
         double height = box.getYsize();
+        // Use each entity's own eye height as an anatomical reference instead of
+        // assuming every living entity has a player-shaped hitbox.
+        double eyeY = Mth.clamp(entity.getEyeY(), box.minY, box.maxY);
+        double headY = eyeY + (box.maxY - eyeY) * 0.5;
+        double torsoY = box.minY + (eyeY - box.minY) * 0.65;
+        double legsY = box.minY + height * 0.22;
         return switch (mode) {
-            case "head" -> new Vec3(centerX, box.maxY - Math.min(0.12, height * 0.08), centerZ);
-            case "torso", "body" -> new Vec3(centerX, box.minY + height * 0.62, centerZ);
-            case "legs", "leg" -> new Vec3(centerX, box.minY + height * 0.22, centerZ);
+            case "head" -> new Vec3(centerX, Mth.clamp(headY, box.minY, box.maxY), centerZ);
+            case "torso", "body" -> new Vec3(centerX, Mth.clamp(torsoY, box.minY, box.maxY), centerZ);
+            case "legs", "leg" -> new Vec3(centerX, Mth.clamp(legsY, box.minY, box.maxY), centerZ);
             default -> nearestHitboxPoint.enabled()
                     ? closestPointOnBox(client.player.getEyePosition(), box)
                     : box.getCenter();
@@ -175,23 +185,30 @@ public final class AimAssistModule extends Module {
     }
 
     private double pixelsFromYaw(Minecraft client, double degrees) {
-        double fov = Math.toRadians(Mth.clamp(client.options.fov().get(), 1.0, 179.0));
+        // Minecraft's FOV option is the vertical FOV. Convert it to horizontal
+        // FOV for yaw projection so the lock circle remains correct at any aspect ratio.
+        double vertical = Math.toRadians(Mth.clamp(client.options.fov().get(), 1.0, 179.0));
+        double aspect = (double) Math.max(1, client.getWindow().getGuiScaledWidth())
+                / Math.max(1, client.getWindow().getGuiScaledHeight());
+        double horizontal = 2.0 * Math.atan(Math.tan(vertical * 0.5) * aspect);
         double angle = Math.toRadians(Math.min(89.9, degrees));
-        double normalized = Math.tan(angle) / Math.max(1.0e-6, Math.tan(fov * 0.5));
+        double normalized = Math.tan(angle) / Math.max(1.0e-6, Math.tan(horizontal * 0.5));
         return normalized * Math.max(1, client.getWindow().getGuiScaledWidth()) * 0.5;
     }
 
     private double pixelsFromPitch(Minecraft client, double degrees) {
-        double fov = Math.toRadians(Mth.clamp(verticalFov(client), 1.0, 179.0));
+        double vertical = Math.toRadians(Mth.clamp(client.options.fov().get(), 1.0, 179.0));
         double angle = Math.toRadians(Math.min(89.9, degrees));
-        double normalized = Math.tan(angle) / Math.max(1.0e-6, Math.tan(fov * 0.5));
+        double normalized = Math.tan(angle) / Math.max(1.0e-6, Math.tan(vertical * 0.5));
         return normalized * Math.max(1, client.getWindow().getGuiScaledHeight()) * 0.5;
     }
 
-    private double verticalFov(Minecraft client) {
-        double horizontal = Math.toRadians(client.options.fov().get());
-        double aspect = (double)client.getWindow().getGuiScaledWidth() / Math.max(1, client.getWindow().getGuiScaledHeight());
-        return Math.toDegrees(2.0 * Math.atan(Math.tan(horizontal * 0.5) / Math.max(0.01, aspect)));
+    private boolean hasLineOfSightToAimPoint(Minecraft client, LivingEntity entity) {
+        Vec3 eye = client.player.getEyePosition();
+        Vec3 point = aimPoint(client, entity);
+        return client.level.clip(new ClipContext(
+                eye, point, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, client.player
+        )).getType() == HitResult.Type.MISS;
     }
 
     public LivingEntity target() { return target; }
