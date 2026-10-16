@@ -39,6 +39,7 @@ public final class ArsonScreen extends Screen {
     private final List<Button> moduleButtons = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
+    private String settingGroupId = "all";
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
     private Theme theme = Theme.MIDNIGHT;
     private ClickGuiLayoutModel.Focus focus = ClickGuiLayoutModel.Focus.MODULE;
@@ -187,7 +188,7 @@ public final class ArsonScreen extends Screen {
     }
 
     private void addModuleCards(List<Module> visible) {
-        int maxCards = Math.max(1, Math.min(geometry.visibleRows(visible.size()), Math.max(1, geometry.moduleList().height() / (geometry.cardHeight()+geometry.cardGap()))) * geometry.columns());
+        int maxCards = Math.min(4, Math.max(1, Math.min(geometry.visibleRows(visible.size()), Math.max(1, geometry.moduleList().height() / (geometry.cardHeight()+geometry.cardGap()))) * geometry.columns()));
         int start = Math.min(scroll, Math.max(0, visible.size()-1));
         int shown=0;
         for(int i=start;i<visible.size() && shown<maxCards;i++,shown++){
@@ -222,12 +223,16 @@ public final class ArsonScreen extends Screen {
         }
         y+=gapY+4;
         if(!selected.description().isBlank()){
-            if(y+34>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal(selected.description()),b->{}).bounds(x,y,w,34).build());
-            y+=40;
+            if(y+30>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal(selected.description()),b->{}).bounds(x,y,w,30).build());
+            y+=34;
         }
+        List<SettingCategory> categories=settingCategories();
+        String activeName=settingGroupId.equals("all")?"All settings":categoryName(categories,settingGroupId);
+        if(y+22>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal("Category: "+activeName+"  ›"),b->{cycleSettingCategory(categories);detailScroll=0;rebuild();}).bounds(x,y,w,22).build());
+        y+=26;
         String groupId=null;
         for(Setting<?> setting:selected.settings()){
-            if(!setting.visible()) continue;
+            if(!setting.visible()||!settingMatchesCategory(setting)) continue;
             SettingGroup group=setting.group();
             if(group!=null&&!group.id().equals(groupId)){groupId=group.id();y+=4;}
             int controlW=Math.max(45,w-32);
@@ -250,10 +255,42 @@ public final class ArsonScreen extends Screen {
     }
     private int maxDetailScroll(){
         if(selected==null)return 0;
-        int lines=3+(selected.description().isBlank()?0:2);
-        for(Setting<?> setting:selected.settings()) if(setting.visible()) lines++;
-        return Math.max(0,lines*26-Math.max(24,geometry.detail().height()-12));
+        int contentHeight=3*26+4+(selected.description().isBlank()?0:34)+26;
+        String lastGroup=null;
+        for(Setting<?> setting:selected.settings()) if(setting.visible()&&settingMatchesCategory(setting)){
+            SettingGroup group=setting.group();
+            if(group!=null&&!group.id().equals(lastGroup)){contentHeight+=4;lastGroup=group.id();}
+            contentHeight+=26;
+        }
+        return Math.max(0,contentHeight-Math.max(24,geometry.detail().height()-12));
     }
+
+    private List<SettingCategory> settingCategories(){
+        List<SettingCategory> result=new ArrayList<>();
+        boolean hasGeneral=false;
+        if(selected==null)return result;
+        for(Setting<?> setting:selected.settings()) if(setting.visible()){
+            SettingGroup group=setting.group();
+            if(group==null){hasGeneral=true;continue;}
+            if(result.stream().noneMatch(c->c.id().equals(group.id()))) result.add(new SettingCategory(group.id(),group.name()));
+        }
+        if(hasGeneral)result.add(0,new SettingCategory("general","General"));
+        return result;
+    }
+    private String categoryName(List<SettingCategory> categories,String id){
+        for(SettingCategory category:categories)if(category.id().equals(id))return category.name();
+        return "All settings";
+    }
+    private boolean settingMatchesCategory(Setting<?> setting){
+        if("all".equals(settingGroupId))return true;
+        SettingGroup group=setting.group();
+        return "general".equals(settingGroupId)?group==null:group!=null&&group.id().equals(settingGroupId);
+    }
+    private void cycleSettingCategory(List<SettingCategory> categories){
+        List<String> ids=new ArrayList<>();ids.add("all");for(SettingCategory category:categories)ids.add(category.id());
+        int index=ids.indexOf(settingGroupId);settingGroupId=ids.get((index+1+ids.size())%ids.size());
+    }
+    private record SettingCategory(String id,String name){}
 
     private void addFooter(Rects r,String profileValue) {
         if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){
@@ -321,7 +358,12 @@ public final class ArsonScreen extends Screen {
 
     @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused()){scroll=0;rebuild();}return handled;}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
-        if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){if(geometry.detail().contains(mouseX,mouseY)){detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+(vertical>0?-1:1)));}else{scroll=Math.max(0,scroll+(vertical>0?-1:1));}rebuild();return true;}
+        if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){
+            int direction=vertical>0?-1:1;
+            if(geometry.detail().contains(mouseX,mouseY)) detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+direction*3*26));
+            else {List<Module> visible=visibleModules();int step=geometry.columns()*2;int max=Math.max(0,((visible.size()+geometry.columns()-1)/geometry.columns())*geometry.columns()-4);scroll=Math.max(0,Math.min(max,scroll+direction*step));}
+            rebuild();return true;
+        }
         return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
     }
 
