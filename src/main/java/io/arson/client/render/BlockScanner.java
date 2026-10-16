@@ -12,11 +12,6 @@ import java.util.List;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
-    private Object cachedLevel;
-    private long cachedTick = Long.MIN_VALUE;
-    private int cachedChunkX = Integer.MIN_VALUE;
-    private int cachedChunkZ = Integer.MIN_VALUE;
-    private int cachedConfigHash;
     private List<BlockTarget> cachedTargets = List.of();
 
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
@@ -34,11 +29,6 @@ public final class BlockScanner {
         // so the internal cache cannot override the configured interval or retain stale styles.
         List<BlockTarget> result = scanWorld(client, module);
         cachedTargets = List.copyOf(result);
-        cachedLevel = client.level;
-        cachedTick = gameTime;
-        cachedChunkX = chunkX;
-        cachedChunkZ = chunkZ;
-        cachedConfigHash = configHash;
         return cachedTargets;
     }
 
