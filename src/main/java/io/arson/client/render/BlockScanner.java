@@ -17,14 +17,6 @@ public final class BlockScanner {
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
         if (client.level == null || client.player == null || !module.enabled()) return List.of();
 
-        long gameTime = client.level.getGameTime();
-        int chunkX = client.player.blockPosition().getX() >> 4;
-        int chunkZ = client.player.blockPosition().getZ() >> 4;
-        int configHash = configHash(module);
-
-        boolean worldChanged = cachedLevel != client.level;
-        boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
-        boolean configChanged = cachedConfigHash != configHash;
         // The render stage controls scan cadence. Refresh each time scan() is called,
         // so the internal cache cannot override the configured interval or retain stale styles.
         List<BlockTarget> result = scanWorld(client, module);
@@ -78,22 +70,6 @@ public final class BlockScanner {
             }
         }
         return result;
-    }
-
-    private static int configHash(BlockESPModule module) {
-        int hash = 17;
-        hash = 31 * hash + Double.hashCode(module.range());
-        hash = 31 * hash + Boolean.hashCode(module.showDiamond());
-        hash = 31 * hash + Boolean.hashCode(module.showEmerald());
-        hash = 31 * hash + Boolean.hashCode(module.showGold());
-        hash = 31 * hash + Boolean.hashCode(module.showIron());
-        hash = 31 * hash + Boolean.hashCode(module.showCopper());
-        hash = 31 * hash + Boolean.hashCode(module.showCoal());
-        hash = 31 * hash + Boolean.hashCode(module.showRedstone());
-        hash = 31 * hash + Boolean.hashCode(module.showLapis());
-        hash = 31 * hash + Boolean.hashCode(module.showQuartz());
-        hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
-        return hash;
     }
 
     private static RenderStyleMatch match(Block block, BlockESPModule module) {
