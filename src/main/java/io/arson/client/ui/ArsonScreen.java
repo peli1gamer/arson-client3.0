@@ -227,6 +227,7 @@ public final class ArsonScreen extends Screen {
             y+=34;
         }
         List<SettingCategory> categories=settingCategories();
+        if(!settingGroupId.equals("all")&&categories.stream().noneMatch(category->category.id().equals(settingGroupId))) settingGroupId="all";
         String activeName=settingGroupId.equals("all")?"All settings":categoryName(categories,settingGroupId);
         if(y+22>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal("Category: "+activeName+"  ›"),b->{cycleSettingCategory(categories);detailScroll=0;rebuild();}).bounds(x,y,w,22).build());
         y+=26;
