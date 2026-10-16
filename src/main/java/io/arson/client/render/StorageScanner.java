@@ -21,8 +21,6 @@ import java.util.Set;
 
 /** Cached storage discovery. Positions are reused while range filtering stays dynamic. */
 public final class StorageScanner {
-    private static final long CACHE_REFRESH_TICKS = 20L;
-
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
@@ -41,19 +39,15 @@ public final class StorageScanner {
         int chunkZ = client.player.blockPosition().getZ() >> 4;
         long gameTime = client.level.getGameTime();
 
-        boolean worldChanged = cachedLevel != client.level;
-        boolean chunkChanged = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
-        boolean radiusChanged = cachedRadius != radius;
-        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
-
-        if (worldChanged || chunkChanged || radiusChanged || refreshDue) {
-            cachedTargets = scanLoadedStorage(client, radius);
-            cachedLevel = client.level;
-            cachedTick = gameTime;
-            cachedChunkX = chunkX;
-            cachedChunkZ = chunkZ;
-            cachedRadius = radius;
-        }
+        // StorageRenderStage owns scan cadence. Refresh whenever it calls scan(),
+        // so its configured interval is not overridden by a second hidden cache timer.
+        // This also catches changed block entities within the same loaded chunk.
+        cachedTargets = scanLoadedStorage(client, radius);
+        cachedLevel = client.level;
+        cachedTick = gameTime;
+        cachedChunkX = chunkX;
+        cachedChunkZ = chunkZ;
+        cachedRadius = radius;
 
         double playerX = client.player.getX();
         double playerY = client.player.getY();
