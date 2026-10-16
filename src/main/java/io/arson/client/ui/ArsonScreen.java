@@ -268,24 +268,39 @@ public final class ArsonScreen extends Screen {
 
     private List<SettingCategory> settingCategories(){
         List<SettingCategory> result=new ArrayList<>();
-        boolean hasGeneral=false;
         if(selected==null)return result;
         for(Setting<?> setting:selected.settings()) if(setting.visible()){
-            SettingGroup group=setting.group();
-            if(group==null){hasGeneral=true;continue;}
-            if(result.stream().noneMatch(c->c.id().equals(group.id()))) result.add(new SettingCategory(group.id(),group.name()));
+            SettingCategory category=categoryFor(setting);
+            if(result.stream().noneMatch(existing->existing.id().equals(category.id()))) result.add(category);
         }
-        if(hasGeneral)result.add(0,new SettingCategory("general","General"));
         return result;
+    }
+    private SettingCategory categoryFor(Setting<?> setting){
+        SettingGroup group=setting.group();
+        if(group!=null)return new SettingCategory("group:"+group.id(),group.name());
+        String key=(setting.id()+" "+setting.name()).toLowerCase(Locale.ROOT);
+        if(containsAny(key,"color","colour","render","visual","outline","box","esp","label","background","opacity","glow","tracer","font","scale","size","align","position","anchor"))
+            return new SettingCategory("visuals","Visuals");
+        if(containsAny(key,"target","range","radius","fov","aim","entity","player","mob","team","friend","enemy","hitbox","part"))
+            return new SettingCategory("targeting","Targeting");
+        if(containsAny(key,"cache","interval","scan","delay","tick","update","limit","performance","optimiz"))
+            return new SettingCategory("performance","Performance");
+        if(containsAny(key,"auto","mode","sound","alert","notify","packet","movement","knockback","behavior","behaviour"))
+            return new SettingCategory("behavior","Behavior");
+        if(containsAny(key,"layout","spacing","padding","width","height","gap","offset","sort"))
+            return new SettingCategory("layout","Layout");
+        return new SettingCategory("general","General");
+    }
+    private boolean containsAny(String value,String... tokens){
+        for(String token:tokens)if(value.contains(token))return true;
+        return false;
     }
     private String categoryName(List<SettingCategory> categories,String id){
         for(SettingCategory category:categories)if(category.id().equals(id))return category.name();
         return "All settings";
     }
     private boolean settingMatchesCategory(Setting<?> setting){
-        if("all".equals(settingGroupId))return true;
-        SettingGroup group=setting.group();
-        return "general".equals(settingGroupId)?group==null:group!=null&&group.id().equals(settingGroupId);
+        return "all".equals(settingGroupId)||categoryFor(setting).id().equals(settingGroupId);
     }
     private void cycleSettingCategory(List<SettingCategory> categories){
         List<String> ids=new ArrayList<>();ids.add("all");for(SettingCategory category:categories)ids.add(category.id());
