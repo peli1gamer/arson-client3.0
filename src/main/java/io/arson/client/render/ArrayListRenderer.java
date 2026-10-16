@@ -91,10 +91,10 @@ public final class ArrayListRenderer {
         }
         graphics.pose().popMatrix();
 
-        cleanupAnimationState(all);
+        cleanupAnimationState();
     }
 
-    private static void cleanupAnimationState(List<Module> rendered) {
+    private static void cleanupAnimationState() {
         if (ANIMATION.size() < 128) return;
         Iterator<String> iterator = ANIMATION.keySet().iterator();
         while (iterator.hasNext()) {
