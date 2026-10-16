@@ -157,7 +157,6 @@ public final class HudRenderer {
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
             if (resolutionInfo != null && resolutionInfo.enabled()) rows.add(resolutionInfo.formatted());
-            if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             if (weatherInfo != null && weatherInfo.enabled()) rows.add(weatherInfo.formatted());
             if (entityCountInfo != null && entityCountInfo.enabled()) rows.add(entityCountInfo.formatted());
             if (guiInfo != null && guiInfo.enabled()) rows.add(guiInfo.formatted());
