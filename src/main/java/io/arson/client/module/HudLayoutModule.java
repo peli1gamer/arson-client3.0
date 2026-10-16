@@ -114,7 +114,6 @@ public final class HudLayoutModule extends Module {
         for(String element:order){
             if("array-list".equals(element)){
                 if(arrayList == null || !arrayList.enabled()) continue;
-                preferred.put(element,new NoOverlapLayout.Rect(0,0,arrayListWidth,arrayListHeight));
                 // Array-list coordinates are already in the raw viewport space.
                 preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,arrayListPreferredX),Math.max(0,arrayListPreferredY),arrayListWidth,arrayListHeight));
                 sizes.put(element,new NoOverlapLayout.Size(arrayListWidth,arrayListHeight));
