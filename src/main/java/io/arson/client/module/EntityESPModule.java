@@ -52,6 +52,12 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
 
     public EntityESPModule() {
         super("entity-esp", "Entity ESP", true);
+        fill.description("Master switch for fills across all entity types.");
+        outline.description("Master switch for outlines across all entity types.");
+        fillAlpha.description("Scales each entity type's fill opacity; 0.30 keeps the configured per-type values unchanged.");
+        outlineAlpha.description("Scales each entity type's outline opacity.");
+        lineWidth.description("Scales each entity type's outline width.");
+        color.description("Overrides the per-type colors when changed from its default.");
     }
 
     public boolean showPlayers() { return players.enabled(); }
@@ -83,13 +89,22 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public RenderStyle animalStyle() { return renderStyle(animalColor.get(), animalFill.enabled(), animalOutline.enabled(), animalFillAlpha.get(), animalOutlineAlpha.get(), animalLineWidth.get()); }
     public RenderStyle itemStyle() { return renderStyle(itemColor.get(), itemFill.enabled(), itemOutline.enabled(), itemFillAlpha.get(), itemOutlineAlpha.get(), itemLineWidth.get()); }
 
-    public RenderStyle healthStyle() { return renderStyle(healthColor.get()); }
-    public RenderStyle healthBackgroundStyle() { return renderStyle(healthBackgroundColor.get()); }
+    public RenderStyle healthStyle() { return super.renderStyle(effectiveColor(healthColor.get())); }
+    public RenderStyle healthBackgroundStyle() { return super.renderStyle(effectiveColor(healthBackgroundColor.get())); }
 
     private RenderStyle renderStyle(int argb, boolean fillEnabled, boolean outlineEnabled,
                                     double fillAlphaValue, double outlineAlphaValue, double lineWidthValue) {
-        RenderStyle base = super.renderStyle(argb);
-        return new RenderStyle(base.color(), fillEnabled, outlineEnabled,
-                (float) fillAlphaValue, (float) outlineAlphaValue, (float) lineWidthValue);
+        RenderStyle base = super.renderStyle(effectiveColor(argb));
+        double globalFillScale = super.fillAlpha() / 0.30;
+        float combinedFillAlpha = (float) Math.max(0.0, Math.min(1.0, fillAlphaValue * globalFillScale));
+        float combinedOutlineAlpha = (float) Math.max(0.0, Math.min(1.0, outlineAlphaValue * super.outlineAlpha()));
+        float combinedLineWidth = (float) Math.max(0.5, Math.min(8.0, lineWidthValue * super.lineWidth()));
+        return new RenderStyle(base.color(), fillEnabled && super.filled(), outlineEnabled && super.outline(),
+                combinedFillAlpha, combinedOutlineAlpha, combinedLineWidth);
+    }
+
+    private int effectiveColor(int perTypeColor) {
+        int globalColor = super.colorArgb();
+        return globalColor == 0xDCEB5B5B ? perTypeColor : globalColor;
     }
 }
