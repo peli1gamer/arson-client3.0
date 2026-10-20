@@ -39,6 +39,9 @@ public final class CombatInfoRenderer {
         if (module.showTarget() && target != null) {
             rows.add(target.getDisplayName().getString());
             if (module.showTargetBlocking()) rows.add(CombatInfoModule.formatBlocking(target.isBlocking()));
+            if (module.showTargetState()) rows.add(CombatInfoModule.formatTargetState(
+                    target.isSprinting(), target.isCrouching(), target.isSwimming(),
+                    target.isOnFire(), target.isInWater()));
         }
         if (target != null && module.showHealth()) {
             healthRow = rows.size();

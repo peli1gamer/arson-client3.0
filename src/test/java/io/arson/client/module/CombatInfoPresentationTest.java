@@ -165,6 +165,25 @@ class CombatInfoPresentationTest {
     }
 
     @Test
+    void targetStateTelemetryFormatsObservedMotionAndEnvironmentFlags() {
+        CombatInfoModule module = new CombatInfoModule();
+        assertTrue(module.showTargetState());
+        assertEquals("Target state Normal",
+                CombatInfoModule.formatTargetState(false, false, false, false, false));
+        assertEquals("Target state Sprinting • Crouching • Swimming • Burning",
+                CombatInfoModule.formatTargetState(true, true, true, true, true));
+        assertEquals("Target state In water",
+                CombatInfoModule.formatTargetState(false, false, false, false, true));
+
+        var setting = (io.arson.client.settings.BooleanSetting) module.settings().stream()
+                .filter(value -> value.id().equals("show-target-state")).findFirst().orElseThrow();
+        setting.set(false);
+        assertFalse(module.showTargetState());
+        setting.reset();
+        assertTrue(module.showTargetState());
+    }
+
+    @Test
     void targetBlockingTelemetryIsConfigurableAndPurelyPresentational() {
         CombatInfoModule module = new CombatInfoModule();
         assertTrue(module.showTargetBlocking());
