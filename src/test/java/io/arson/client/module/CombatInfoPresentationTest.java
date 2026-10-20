@@ -163,4 +163,19 @@ class CombatInfoPresentationTest {
         assertEquals(0.75, module.cooldownReadyThreshold(), 0.0001);
         assertEquals("Cooldown 80% • Ready", CombatInfoModule.formatCooldown(0.80f, module.cooldownReadyThreshold()));
     }
+
+    @Test
+    void targetBlockingTelemetryIsConfigurableAndPurelyPresentational() {
+        CombatInfoModule module = new CombatInfoModule();
+        assertTrue(module.showTargetBlocking());
+        assertEquals("Target blocking", CombatInfoModule.formatBlocking(true));
+        assertEquals("Target not blocking", CombatInfoModule.formatBlocking(false));
+
+        var setting = (io.arson.client.settings.BooleanSetting) module.settings().stream()
+                .filter(value -> value.id().equals("show-target-blocking")).findFirst().orElseThrow();
+        setting.set(false);
+        assertFalse(module.showTargetBlocking());
+        setting.reset();
+        assertTrue(module.showTargetBlocking());
+    }
 }
