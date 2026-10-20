@@ -147,4 +147,20 @@ class CombatInfoPresentationTest {
         assertEquals("Armor 20", CombatInfoModule.formatArmor(20));
         assertEquals("Armor 0", CombatInfoModule.formatArmor(-1));
     }
+
+    @Test
+    void cooldownReadoutReportsConfigurableReadinessWithoutNonFiniteOutput() {
+        CombatInfoModule module = new CombatInfoModule();
+        assertEquals(0.90, module.cooldownReadyThreshold(), 0.0001);
+        assertEquals("Cooldown 90% • Ready", CombatInfoModule.formatCooldown(0.90f, 0.90));
+        assertEquals("Cooldown 89% • Charging", CombatInfoModule.formatCooldown(0.89f, 0.90));
+        assertEquals("Cooldown 100% • Ready", CombatInfoModule.formatCooldown(2.0f, 0.90));
+        assertEquals("Cooldown 0% • Charging", CombatInfoModule.formatCooldown(Float.NaN, Double.NaN));
+
+        var threshold = (io.arson.client.settings.DoubleSetting) module.settings().stream()
+                .filter(setting -> setting.id().equals("cooldown-ready-threshold")).findFirst().orElseThrow();
+        threshold.set(0.75);
+        assertEquals(0.75, module.cooldownReadyThreshold(), 0.0001);
+        assertEquals("Cooldown 80% • Ready", CombatInfoModule.formatCooldown(0.80f, module.cooldownReadyThreshold()));
+    }
 }
