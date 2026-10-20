@@ -30,6 +30,8 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
     private List<StorageClusterDetector.Cluster> cachedClusters = List.of();
     private long lastScanTick = Long.MIN_VALUE;
     private long lastScannerRevision = Long.MIN_VALUE;
+    private Object lastScannedLevel;
+    private int lastRenderDistance = Integer.MIN_VALUE;
     private int lastVisibleCount;
 
     public StorageRenderStage(Minecraft client, StorageOverlay overlay, StorageScanner scanner, ContainerESPModule module) {
@@ -49,14 +51,18 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         overlay.range(module.range());
         long gameTime = client.level.getGameTime();
         long scanIntervalTicks = Math.max(1, module.scanInterval()) * 20L;
-        if (gameTime - lastScanTick >= scanIntervalTicks || gameTime < lastScanTick
-                || scanner.revision() != lastScannerRevision) {
+        int renderDistance = client.options.renderDistance().get();
+        if (shouldRescan(gameTime, lastScanTick, scanIntervalTicks,
+                scanner.revision(), lastScannerRevision, client.level, lastScannedLevel,
+                renderDistance, lastRenderDistance)) {
             cachedTargets = scanner.scan(client, overlay.range(), module.customStorageBlocks(), scanIntervalTicks);
             cachedClusters = module.clusterEnabled()
                     ? StorageClusterDetector.detect(cachedTargets.stream().filter(target -> isVisibleType(target.type())).toList(), module.clusterRadius())
                     : List.of();
             lastScanTick = gameTime;
             lastScannerRevision = scanner.revision();
+            lastScannedLevel = client.level;
+            lastRenderDistance = renderDistance;
         }
 
         var camera = context.worldState().cameraRenderState;
@@ -226,6 +232,17 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                     box.maxX(), box.maxY(), box.maxZ(), style));
         }
         return List.copyOf(styled);
+    }
+
+    /** Refreshes cached discovery immediately when the world or rendered-chunk boundary changes. */
+    public static boolean shouldRescan(long gameTime, long lastScanTick, long scanIntervalTicks,
+                                       long scannerRevision, long lastScannerRevision,
+                                       Object currentLevel, Object lastScannedLevel,
+                                       int renderDistance, int lastRenderDistance) {
+        if (currentLevel != lastScannedLevel || renderDistance != lastRenderDistance
+                || scannerRevision != lastScannerRevision || lastScanTick == Long.MIN_VALUE) return true;
+        long interval = Math.max(1L, scanIntervalTicks);
+        return gameTime < lastScanTick || gameTime - lastScanTick >= interval;
     }
 
     public int lastVisibleCount() { return lastVisibleCount; }
