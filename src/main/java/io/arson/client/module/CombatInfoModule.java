@@ -101,7 +101,7 @@ public final class CombatInfoModule extends Module {
         double safeThreshold = Double.isFinite(readyThreshold)
                 ? Math.max(0.0, Math.min(1.0, readyThreshold)) : 0.90;
         return String.format(java.util.Locale.ROOT, "Cooldown %.0f%% • %s",
-                safeProgress * 100.0, safeProgress >= safeThreshold ? "Ready" : "Charging");
+                safeProgress * 100.0, safeProgress >= (double) (float) safeThreshold ? "Ready" : "Charging");
     }
     public boolean showDistance() { return showDistance.enabled(); }
     public boolean showLookOffset() { return showLookOffset.enabled(); }
