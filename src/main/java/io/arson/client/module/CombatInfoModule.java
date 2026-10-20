@@ -141,6 +141,11 @@ public final class CombatInfoModule extends Module {
     public int backgroundColor() { return backgroundColor.get(); }
     public double range() { return range.get(); }
     public int x() { return (int) Math.round(x.get()); }
+    /** Updates the editable HUD position while keeping the persistent setting inside its supported range. */
+    public void setEditorPosition(double x, double y) {
+        if (Double.isFinite(x)) this.x.set(Math.max(0.0, Math.min(5000.0, x)));
+        if (Double.isFinite(y)) this.y.set(Math.max(0.0, Math.min(5000.0, y)));
+    }
     public int y() { return (int) Math.round(y.get()); }
     public double infoScale() { return infoScale.get(); }
     public int padding() { return (int) Math.round(padding.get()); }

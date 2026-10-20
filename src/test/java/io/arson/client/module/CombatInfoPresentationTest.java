@@ -165,6 +165,22 @@ class CombatInfoPresentationTest {
     }
 
     @Test
+    void hudEditorPositionSetterClampsFiniteCoordinatesAndIgnoresNonFiniteValues() {
+        CombatInfoModule module = new CombatInfoModule();
+        module.setEditorPosition(125.0, 240.0);
+        assertEquals(125, module.x());
+        assertEquals(240, module.y());
+
+        module.setEditorPosition(-40.0, 8000.0);
+        assertEquals(0, module.x());
+        assertEquals(5000, module.y());
+
+        module.setEditorPosition(Double.NaN, Double.POSITIVE_INFINITY);
+        assertEquals(0, module.x());
+        assertEquals(5000, module.y());
+    }
+
+    @Test
     void targetStateTelemetryFormatsObservedMotionAndEnvironmentFlags() {
         CombatInfoModule module = new CombatInfoModule();
         assertTrue(module.showTargetState());
