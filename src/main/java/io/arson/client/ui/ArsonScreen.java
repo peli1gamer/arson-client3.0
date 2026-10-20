@@ -193,9 +193,13 @@ public final class ArsonScreen extends Screen {
             int rowY=r.rail().y()+i*geometry.categoryRowHeight();
             int rowH=geometry.categoryRowHeight();
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
+            var manager = ArsonClient.getInstance().modules();
+            String countHint = manager.categoryCount(c) + " modules • "
+                    + manager.enabledCount(c) + " enabled";
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
                 categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; detailsPage=false; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
-            }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
+            }).tooltip(tooltipFor(c.displayName() + " — " + countHint))
+                    .bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
             addRenderableWidget(b);
         }
     }
