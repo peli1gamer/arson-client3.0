@@ -216,13 +216,22 @@ public final class ArsonScreen extends Screen {
         return ClickGuiLayoutModel.effectiveColumns(geometry.mode(), geometry.content().width(), requested);
     }
 
+    private int maximumModuleScroll(List<Module> visible) {
+        int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+        return ClickGuiLayoutModel.maxGridScroll(visible.size(), visibleModuleColumns(),
+                geometry.content().height(), cardHeight, 8);
+    }
+
     private void addModuleCards(List<Module> visible) {
         if (detailsPage) return;
         ClickGuiLayoutModel.Rect area = geometry.content();
         int columns = visibleModuleColumns();
         int gap = 8;
         int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
-        int start = Math.min(scroll, Math.max(0, visible.size() - 1));
+        int maxScroll = ClickGuiLayoutModel.maxGridScroll(visible.size(), columns, area.height(), cardHeight, gap);
+        scroll = Math.max(0, Math.min(maxScroll, scroll));
+        if (maxScroll > 0) area = new ClickGuiLayoutModel.Rect(area.x(), area.y(), Math.max(1, area.width() - 8), area.height());
+        int start = scroll;
         List<ClickGuiLayoutModel.Rect> cards = ClickGuiLayoutModel.gridCards(
                 area, visible.size() - start, columns, cardHeight, gap);
         for (int logical = 0; logical < cards.size(); logical++) {
@@ -513,7 +522,7 @@ public final class ArsonScreen extends Screen {
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
         if (geometry.content().contains(mouseX,mouseY)) {
             if (detailsPage) detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+(vertical>0?-1:1)));
-            else scroll=Math.max(0,scroll+(vertical>0?-visibleModuleColumns():visibleModuleColumns()));
+            else scroll=Math.max(0,Math.min(maximumModuleScroll(visibleModules()),scroll+(vertical>0?-visibleModuleColumns():visibleModuleColumns())));
             rebuild();return true;
         }
         return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
@@ -549,6 +558,29 @@ public final class ArsonScreen extends Screen {
             }
         }
         super.render(g,mouseX,mouseY,delta);
+        if (detailsPage) {
+            int overflow = maxDetailScroll();
+            drawScrollbar(g, geometry.content(), geometry.content().height() + overflow, detailScroll);
+        } else if (!visible.isEmpty()) {
+            int columns = visibleModuleColumns();
+            int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+            int gap = 8;
+            int rows = (visible.size() + columns - 1) / columns;
+            int contentHeight = Math.max(0, rows * (cardHeight + gap) - gap);
+            int itemOffset = Math.max(0, scroll) / columns;
+            int pixelOffset = itemOffset * (cardHeight + gap);
+            drawScrollbar(g, geometry.content(), contentHeight, pixelOffset);
+        }
+    }
+
+    private static void drawScrollbar(GuiGraphics g, ClickGuiLayoutModel.Rect viewport,
+                                      int contentHeight, int scrollOffset) {
+        ClickGuiLayoutModel.Rect thumb = ClickGuiLayoutModel.scrollbarThumb(
+                viewport, contentHeight, scrollOffset, 18, 3);
+        if (thumb == null) return;
+        int trackX = viewport.right() - thumb.width();
+        g.fill(trackX, viewport.y(), viewport.right(), viewport.bottom(), 0x55313A48);
+        g.fill(thumb.x(), thumb.y(), thumb.right(), thumb.bottom(), 0xFF77869A);
     }
 
     private static void rounded(GuiGraphics g,int x,int y,int w,int h,int color){

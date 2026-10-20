@@ -171,6 +171,34 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void moduleGridScrollRangeIsRowAlignedAndBoundedByViewportCapacity() {
+        assertEquals(0, ClickGuiLayoutModel.maxGridScroll(0, 2, 120, 52, 8));
+        assertEquals(0, ClickGuiLayoutModel.maxGridScroll(8, 2, 120, 52, 8));
+        assertEquals(8, ClickGuiLayoutModel.maxGridScroll(12, 2, 120, 52, 8));
+        assertEquals(10, ClickGuiLayoutModel.maxGridScroll(11, 2, 52, 52, 8));
+        assertEquals(0, ClickGuiLayoutModel.maxGridScroll(20, 2, 0, 52, 8));
+        assertEquals(4, ClickGuiLayoutModel.maxGridScroll(12, 0, 120, 52, 8));
+    }
+
+    @Test
+    void scrollbarThumbTracksClampedScrollAndStaysInsideViewport() {
+        var viewport = new ClickGuiLayoutModel.Rect(20, 30, 200, 100);
+        var start = ClickGuiLayoutModel.scrollbarThumb(viewport, 400, -20, 18, 4);
+        var middle = ClickGuiLayoutModel.scrollbarThumb(viewport, 400, 150, 18, 4);
+        var end = ClickGuiLayoutModel.scrollbarThumb(viewport, 400, 500, 18, 4);
+        assertNotNull(start);
+        assertEquals(viewport.y(), start.y());
+        assertTrue(middle.y() > start.y());
+        assertEquals(viewport.bottom(), end.bottom());
+        assertEquals(viewport.right(), end.right());
+        assertEquals(4, end.width());
+        assertEquals(25, start.height());
+        assertNull(ClickGuiLayoutModel.scrollbarThumb(viewport, 100, 0, 18, 4));
+        assertNull(ClickGuiLayoutModel.scrollbarThumb(
+                new ClickGuiLayoutModel.Rect(0, 0, 0, 100), 200, 0, 18, 4));
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));

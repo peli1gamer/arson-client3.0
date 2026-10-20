@@ -119,6 +119,37 @@ public final class ClickGuiLayoutModel {
         return List.copyOf(cards);
     }
 
+    /** Maximum row-aligned item offset for a vertically scrolling module grid. */
+    public static int maxGridScroll(int itemCount, int columns, int viewportHeight, int cardHeight, int gap) {
+        if (itemCount <= 0 || viewportHeight <= 0) return 0;
+        int cols = Math.max(1, columns);
+        int spacing = Math.max(0, gap);
+        int cardStep = Math.max(1, cardHeight) + spacing;
+        int visibleRows = Math.max(1, (viewportHeight + spacing) / cardStep);
+        int totalRows = (itemCount + cols - 1) / cols;
+        return Math.max(0, (totalRows - visibleRows) * cols);
+    }
+
+    /**
+     * Returns the thumb for a proportional vertical scrollbar, or null when the viewport has no overflow.
+     * The scroll offset is measured in pixels and is safely clamped to the scrollable extent.
+     */
+    public static Rect scrollbarThumb(Rect viewport, int contentHeight, int scrollOffset,
+                                      int minThumbHeight, int width) {
+        if (viewport == null || viewport.width() <= 0 || viewport.height() <= 0
+                || contentHeight <= viewport.height()) return null;
+        int thumbWidth = Math.min(viewport.width(), Math.max(1, width));
+        int trackHeight = viewport.height();
+        int thumbHeight = (int) Math.max(Math.max(1, minThumbHeight),
+                (long) trackHeight * trackHeight / contentHeight);
+        thumbHeight = Math.min(trackHeight, thumbHeight);
+        int maxOffset = contentHeight - trackHeight;
+        int clampedOffset = Math.max(0, Math.min(maxOffset, scrollOffset));
+        int travel = trackHeight - thumbHeight;
+        int thumbY = viewport.y() + (int) Math.round((double) travel * clampedOffset / maxOffset);
+        return new Rect(viewport.right() - thumbWidth, thumbY, thumbWidth, thumbHeight);
+    }
+
     /** Resolves saved grid density against the current viewport; narrow layouts always remain single-column. */
     public static int effectiveColumns(Mode mode, int contentWidth, int requestedColumns) {
         if (mode == Mode.NARROW) return 1;
