@@ -13,6 +13,7 @@ public final class CombatInfoModule extends Module {
     private final SettingGroup layoutGroup = new SettingGroup("layout", "Layout", "Position, scale and spacing controls.");
     private final SettingGroup styleGroup = new SettingGroup("style", "Style", "Colors and backgrounds for the local display.");
     private final BooleanSetting showTarget = setting(new BooleanSetting("show-target", "Show Target", true)).group(contentGroup);
+    private final BooleanSetting showTargetBlocking = setting(new BooleanSetting("show-target-blocking", "Show Blocking State", true)).group(contentGroup);
     private final BooleanSetting showPlayers = setting(new BooleanSetting("show-players", "Players", true)).group(contentGroup);
     private final BooleanSetting showMobs = setting(new BooleanSetting("show-mobs", "Mobs", true)).group(contentGroup);
     private final BooleanSetting showAnimals = setting(new BooleanSetting("show-animals", "Animals", true)).group(contentGroup);
@@ -49,6 +50,7 @@ public final class CombatInfoModule extends Module {
     public CombatInfoModule() {
         super("combat-info", "Combat Info", Category.COMBAT, "Displays nearby entity, defensive stats, and local weapon status without changing combat input or attacking.");
         showTarget.description("Show the nearest eligible living entity in range.");
+        showTargetBlocking.description("Report whether the selected target is actively blocking, without changing either entity's actions.");
         showPlayers.description("Include player entities in the information display.");
         showMobs.description("Include hostile mobs in the information display.");
         showAnimals.description("Include passive animals in the information display.");
@@ -84,6 +86,11 @@ public final class CombatInfoModule extends Module {
     }
 
     public boolean showTarget() { return showTarget.enabled(); }
+    public boolean showTargetBlocking() { return showTargetBlocking.enabled(); }
+
+    public static String formatBlocking(boolean blocking) {
+        return blocking ? "Target blocking" : "Target not blocking";
+    }
     public boolean showPlayers() { return showPlayers.enabled(); }
     public boolean showMobs() { return showMobs.enabled(); }
     public boolean showAnimals() { return showAnimals.enabled(); }
