@@ -35,4 +35,15 @@ class StorageRenderStageTest {
         assertTrue(styled.outline());
         assertEquals(0.0f, styled.fillAlpha());
     }
+
+    @Test
+    void storageCacheRefreshesImmediatelyForWorldAndRenderDistanceChanges() {
+        Object level = new Object();
+        assertFalse(StorageRenderStage.shouldRescan(40, 20, 100, 3, 3, level, level, 12, 12));
+        assertTrue(StorageRenderStage.shouldRescan(40, 20, 100, 3, 3, level, level, 16, 12));
+        assertTrue(StorageRenderStage.shouldRescan(40, 20, 100, 3, 3, new Object(), level, 12, 12));
+        assertTrue(StorageRenderStage.shouldRescan(40, 20, 100, 4, 3, level, level, 12, 12));
+        assertTrue(StorageRenderStage.shouldRescan(120, 20, 100, 3, 3, level, level, 12, 12));
+        assertTrue(StorageRenderStage.shouldRescan(10, 20, 100, 3, 3, level, level, 12, 12));
+    }
 }
