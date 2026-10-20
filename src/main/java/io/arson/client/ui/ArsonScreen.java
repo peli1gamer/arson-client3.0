@@ -574,6 +574,20 @@ public final class ArsonScreen extends Screen {
                 return true;
             }
         }
+        if ((key == GLFW.GLFW_KEY_PAGE_UP || key == GLFW.GLFW_KEY_PAGE_DOWN)
+                && (search == null || !search.isFocused())) {
+            int direction = key == GLFW.GLFW_KEY_PAGE_UP ? -1 : 1;
+            if (detailsPage) {
+                int page = Math.max(1, geometry.content().height() - 26);
+                detailScroll = Math.max(0, Math.min(maxDetailScroll(), detailScroll + direction * page));
+            } else {
+                int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+                scroll = ClickGuiLayoutModel.pageGridScroll(scroll, direction, visibleModules().size(),
+                        visibleModuleColumns(), geometry.content().height(), cardHeight, 8);
+            }
+            rebuild();
+            return true;
+        }
         if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;moduleFocus=0;detailScroll=0;detailsPage=false;rebuild();return true;}
         if(focus==ClickGuiLayoutModel.Focus.MODULE&&!detailsPage&&(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT||key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){
             int delta=(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT)?(key==GLFW.GLFW_KEY_LEFT?-1:1):(key==GLFW.GLFW_KEY_UP?-1:1);

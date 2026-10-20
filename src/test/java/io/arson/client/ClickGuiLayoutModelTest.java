@@ -211,6 +211,16 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void pageNavigationMovesByViewportAndClampsAtGridEnds() {
+        assertEquals(2, ClickGuiLayoutModel.pageGridScroll(0, 1, 12, 2, 120, 52, 8));
+        assertEquals(4, ClickGuiLayoutModel.pageGridScroll(2, 1, 12, 2, 120, 52, 8));
+        assertEquals(2, ClickGuiLayoutModel.pageGridScroll(4, -1, 12, 2, 120, 52, 8));
+        assertEquals(0, ClickGuiLayoutModel.pageGridScroll(0, -1, 12, 2, 120, 52, 8));
+        assertEquals(8, ClickGuiLayoutModel.pageGridScroll(7, 1, 12, 2, 120, 52, 8));
+        assertEquals(0, ClickGuiLayoutModel.pageGridScroll(7, 0, 0, 2, 120, 52, 8));
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));

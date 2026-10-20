@@ -163,6 +163,19 @@ public final class ClickGuiLayoutModel {
         return (int) Math.round((clampedTop - viewport.y()) * maxOffset / travel);
     }
 
+    /** Pages through a module grid while keeping the offset row-aligned and within its scroll range. */
+    public static int pageGridScroll(int currentOffset, int direction, int itemCount, int columns,
+                                     int viewportHeight, int cardHeight, int gap) {
+        int cols = Math.max(1, columns);
+        int spacing = Math.max(0, gap);
+        int visibleRows = Math.max(1, (Math.max(0, viewportHeight) + spacing)
+                / (Math.max(1, cardHeight) + spacing));
+        int pageItems = Math.max(1, visibleRows - 1) * cols;
+        int maximum = maxGridScroll(itemCount, cols, viewportHeight, cardHeight, spacing);
+        long next = (long) currentOffset + (long) Integer.signum(direction) * pageItems;
+        return (int) Math.max(0, Math.min(maximum, next));
+    }
+
     /** Resolves saved grid density against the current viewport; narrow layouts always remain single-column. */
     public static int effectiveColumns(Mode mode, int contentWidth, int requestedColumns) {
         if (mode == Mode.NARROW) return 1;
