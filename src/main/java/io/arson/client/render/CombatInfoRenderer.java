@@ -36,7 +36,10 @@ public final class CombatInfoRenderer {
 
         java.util.ArrayList<String> rows = new java.util.ArrayList<>();
         int healthRow = -1;
-        if (module.showTarget() && target != null) rows.add(target.getDisplayName().getString());
+        if (module.showTarget() && target != null) {
+            rows.add(target.getDisplayName().getString());
+            if (module.showTargetBlocking()) rows.add(CombatInfoModule.formatBlocking(target.isBlocking()));
+        }
         if (target != null && module.showHealth()) {
             healthRow = rows.size();
             rows.add("HP " + format(target.getHealth()) + "/" + format(target.getMaxHealth()));
