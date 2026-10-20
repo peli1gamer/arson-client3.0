@@ -9,6 +9,11 @@ import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleControl;
 import io.arson.client.settings.Setting;
+import io.arson.client.settings.BooleanSetting;
+import io.arson.client.settings.ColorSetting;
+import io.arson.client.settings.DoubleSetting;
+import io.arson.client.settings.EnumSetting;
+import io.arson.client.settings.StringSetting;
 import io.arson.client.settings.SettingValueParser;
 import io.arson.client.module.ServerInfoModule;
 import io.arson.client.module.WaypointInfoModule;
@@ -19,6 +24,8 @@ import java.util.Locale;
 /** Stable public facade for addons that need Arson module discovery/control. */
 public final class ArsonApi {
     public record HudPosition(int x, int y) {}
+    /** Immutable, read-only view of a setting for command and addon discovery. */
+    public record SettingSnapshot(String id, String name, String type, String value, boolean visible) {}
     public record WaypointSnapshot(String label, double x, double y, double z, double distance, String formatted) {}
     private ArsonApi() {}
     public static String moduleSummary(Module.Category category) {
@@ -96,6 +103,29 @@ public final class ArsonApi {
         }
         return false;
     }
+    /** Returns immutable setting metadata and current values for one module, or an empty list if absent. */
+    public static List<SettingSnapshot> settingSnapshots(String moduleId) {
+        return module(moduleId).map(ArsonApi::settingSnapshots).orElse(List.of());
+    }
+
+    /** Read-only snapshot helper that can also be used directly with an already-resolved module. */
+    public static List<SettingSnapshot> settingSnapshots(Module module) {
+        if (module == null) return List.of();
+        return module.settings().stream().map(setting -> {
+            Object current = setting.get();
+            String value = current instanceof Enum<?> enumValue ? enumValue.name()
+                    : setting instanceof ColorSetting color
+                    ? String.format(Locale.ROOT, "#%08X", color.get())
+                    : String.valueOf(current);
+            String type = setting instanceof BooleanSetting ? "boolean"
+                    : setting instanceof DoubleSetting ? "number"
+                    : setting instanceof EnumSetting<?> ? "enum"
+                    : setting instanceof StringSetting ? "text"
+                    : setting instanceof ColorSetting ? "color" : "value";
+            return new SettingSnapshot(setting.id(), setting.name(), type, value, setting.visible());
+        }).toList();
+    }
+
     public static List<Module> modules() { return ArsonClient.getInstance() == null ? List.of() : List.copyOf(ArsonClient.getInstance().modules().all()); }
     public static List<Module> modules(Module.Category category) { if (ArsonClient.getInstance() == null || category == null) return List.of(); return List.copyOf(ArsonClient.getInstance().modules().organized(category)); }
     public static List<Module> favorites() { return modules().stream().filter(Module::favorite).toList(); }

@@ -247,7 +247,26 @@ public final class ArsonCommand {
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> disableCommand(){return ClientCommandManager.literal("disable").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.setEnabled(false);boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": disabled"+(saved?"":" (config could not be saved)"));return saved?1:0;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(){return ClientCommandManager.literal("toggle").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;m.toggle();boolean saved=ArsonClient.getInstance().saveConfig();feedback(ctx,m.name()+": "+(m.enabled()?"enabled":"disabled")+(saved?"":" (config could not be saved)"));return saved?1:0;}));}
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> infoCommand(){return ClientCommandManager.literal("info").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;feedback(ctx,m.help());return 1;}));}
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingsCommand(){return ClientCommandManager.literal("settings").then(moduleArgument().executes(ctx->{Module m=module(ctx);if(m==null)return 0;StringBuilder out=new StringBuilder(m.name()+": ");for(int i=0;i<m.settings().size();i++){if(i>0)out.append(", ");var s=m.settings().get(i);out.append(s.id()).append("=").append(s.get());if(!s.description().isBlank())out.append(" [").append(s.description()).append("]");}if(m.settings().isEmpty())out.append("no settings");feedback(ctx,out.toString());return 1;}));}
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> settingsCommand() {
+        return ClientCommandManager.literal("settings").then(moduleArgument().executes(ctx -> {
+            Module module = module(ctx);
+            if (module == null) return 0;
+            var snapshots = io.arson.client.api.ArsonApi.settingSnapshots(module);
+            StringBuilder out = new StringBuilder(module.name()).append(": ");
+            for (int i = 0; i < snapshots.size(); i++) {
+                if (i > 0) out.append(", ");
+                var setting = snapshots.get(i);
+                out.append(setting.id()).append(" (").append(setting.type()).append(")=").append(setting.value());
+                if (!setting.visible()) out.append(" [hidden]");
+                module.settings().stream().filter(value -> value.id().equals(setting.id()))
+                        .findFirst().filter(value -> !value.description().isBlank())
+                        .ifPresent(value -> out.append(" [").append(value.description()).append("]"));
+            }
+            if (snapshots.isEmpty()) out.append("no settings");
+            feedback(ctx, out.toString());
+            return 1;
+        }));
+    }
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> favoriteOperation() {
         return ClientCommandManager.literal("favorite")
             .then(moduleArgument().executes(ctx -> {
