@@ -200,6 +200,17 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void scrollbarDragPositionMapsToClampedContentOffset() {
+        var viewport = new ClickGuiLayoutModel.Rect(20, 30, 200, 100);
+        assertEquals(0, ClickGuiLayoutModel.scrollOffsetForThumbPosition(viewport, 400, -100, 18, 4));
+        assertEquals(300, ClickGuiLayoutModel.scrollOffsetForThumbPosition(viewport, 400, 500, 18, 4));
+        var thumb = ClickGuiLayoutModel.scrollbarThumb(viewport, 400, 150, 18, 4);
+        int mapped = ClickGuiLayoutModel.scrollOffsetForThumbPosition(viewport, 400, thumb.y(), 18, 4);
+        assertTrue(Math.abs(mapped - 150) <= 3);
+        assertEquals(0, ClickGuiLayoutModel.scrollOffsetForThumbPosition(viewport, 100, 20, 18, 4));
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));

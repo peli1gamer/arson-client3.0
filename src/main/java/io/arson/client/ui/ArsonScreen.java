@@ -21,6 +21,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import java.util.Locale;
 /** Responsive, keyboard-navigable ClickGUI. Geometry is delegated to the pure layout model. */
 public final class ArsonScreen extends Screen {
     private enum Theme { MIDNIGHT, GRAPHITE, CONTRAST }
+    private enum ScrollPane { MODULES, DETAILS }
     private final Screen parent;
     private Module.Category category = Module.Category.RENDER;
     private Module selected;
@@ -43,6 +45,8 @@ public final class ArsonScreen extends Screen {
     private final List<SectionLabel> detailGroupLabels = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
+    private ScrollPane draggingScrollPane;
+    private double scrollbarGrabOffset;
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode, detailsPage;
     private Theme theme = Theme.MIDNIGHT;
     private ClickGuiLayoutModel.Focus focus = ClickGuiLayoutModel.Focus.MODULE;
@@ -214,6 +218,75 @@ public final class ArsonScreen extends Screen {
         ClickGuiPreferencesModule p = preferences();
         int requested = p == null ? 0 : p.gridColumns();
         return ClickGuiLayoutModel.effectiveColumns(geometry.mode(), geometry.content().width(), requested);
+    }
+
+    private int moduleScrollContentHeight(List<Module> visible) {
+        int columns = visibleModuleColumns();
+        int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+        int rows = (visible.size() + columns - 1) / columns;
+        return Math.max(0, rows * (cardHeight + 8) - 8);
+    }
+
+    private int activeScrollContentHeight(List<Module> visible) {
+        return detailsPage ? geometry.content().height() + maxDetailScroll()
+                : moduleScrollContentHeight(visible);
+    }
+
+    private int activeScrollOffset(List<Module> visible) {
+        if (detailsPage) return detailScroll;
+        int columns = visibleModuleColumns();
+        int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+        return (Math.max(0, scroll) / columns) * (cardHeight + 8);
+    }
+
+    private void applyScrollbarThumbTop(double thumbTop) {
+        ClickGuiLayoutModel.Rect viewport = geometry.content();
+        int contentHeight = activeScrollContentHeight(visibleModules());
+        int offset = ClickGuiLayoutModel.scrollOffsetForThumbPosition(
+                viewport, contentHeight, thumbTop, 18, 3);
+        if (draggingScrollPane == ScrollPane.DETAILS) {
+            detailScroll = Math.max(0, Math.min(maxDetailScroll(), offset));
+        } else {
+            int columns = visibleModuleColumns();
+            int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
+            int row = (int) Math.round((double) offset / (cardHeight + 8));
+            scroll = Math.max(0, Math.min(maximumModuleScroll(visibleModules()), row * columns));
+        }
+        rebuild();
+    }
+
+    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0 && geometry.content().contains(event.x(), event.y())
+                && event.x() >= geometry.content().right() - 8) {
+            List<Module> visible = visibleModules();
+            int contentHeight = activeScrollContentHeight(visible);
+            ClickGuiLayoutModel.Rect thumb = ClickGuiLayoutModel.scrollbarThumb(
+                    geometry.content(), contentHeight, activeScrollOffset(visible), 18, 3);
+            if (thumb != null) {
+                draggingScrollPane = detailsPage ? ScrollPane.DETAILS : ScrollPane.MODULES;
+                boolean onThumb = thumb.contains(event.x(), event.y());
+                scrollbarGrabOffset = onThumb ? event.y() - thumb.y() : thumb.height() / 2.0;
+                if (!onThumb) applyScrollbarThumbTop(event.y() - scrollbarGrabOffset);
+                return true;
+            }
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (draggingScrollPane != null && event.button() == 0) {
+            applyScrollbarThumbTop(event.y() - scrollbarGrabOffset);
+            return true;
+        }
+        return super.mouseDragged(event, dragX, dragY);
+    }
+
+    @Override public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingScrollPane != null && event.button() == 0) {
+            draggingScrollPane = null;
+            return true;
+        }
+        return super.mouseReleased(event);
     }
 
     private int maximumModuleScroll(List<Module> visible) {
@@ -558,18 +631,8 @@ public final class ArsonScreen extends Screen {
             }
         }
         super.render(g,mouseX,mouseY,delta);
-        if (detailsPage) {
-            int overflow = maxDetailScroll();
-            drawScrollbar(g, geometry.content(), geometry.content().height() + overflow, detailScroll);
-        } else if (!visible.isEmpty()) {
-            int columns = visibleModuleColumns();
-            int cardHeight = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 52 : 60;
-            int gap = 8;
-            int rows = (visible.size() + columns - 1) / columns;
-            int contentHeight = Math.max(0, rows * (cardHeight + gap) - gap);
-            int itemOffset = Math.max(0, scroll) / columns;
-            int pixelOffset = itemOffset * (cardHeight + gap);
-            drawScrollbar(g, geometry.content(), contentHeight, pixelOffset);
+        if (detailsPage || !visible.isEmpty()) {
+            drawScrollbar(g, geometry.content(), activeScrollContentHeight(visible), activeScrollOffset(visible));
         }
     }
 

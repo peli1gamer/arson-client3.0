@@ -150,6 +150,19 @@ public final class ClickGuiLayoutModel {
         return new Rect(viewport.right() - thumbWidth, thumbY, thumbWidth, thumbHeight);
     }
 
+    /** Maps a requested thumb top back to a clamped content-pixel offset. */
+    public static int scrollOffsetForThumbPosition(Rect viewport, int contentHeight, double desiredThumbTop,
+                                                   int minThumbHeight, int width) {
+        Rect thumb = scrollbarThumb(viewport, contentHeight, 0, minThumbHeight, width);
+        if (thumb == null) return 0;
+        int travel = viewport.height() - thumb.height();
+        if (travel <= 0) return 0;
+        int maxOffset = contentHeight - viewport.height();
+        double clampedTop = Math.max(viewport.y(),
+                Math.min(viewport.bottom() - thumb.height(), desiredThumbTop));
+        return (int) Math.round((clampedTop - viewport.y()) * maxOffset / travel);
+    }
+
     /** Resolves saved grid density against the current viewport; narrow layouts always remain single-column. */
     public static int effectiveColumns(Mode mode, int contentWidth, int requestedColumns) {
         if (mode == Mode.NARROW) return 1;
