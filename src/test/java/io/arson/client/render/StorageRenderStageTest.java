@@ -46,4 +46,22 @@ class StorageRenderStageTest {
         assertTrue(StorageRenderStage.shouldRescan(120, 20, 100, 3, 3, level, level, 12, 12));
         assertTrue(StorageRenderStage.shouldRescan(10, 20, 100, 3, 3, level, level, 12, 12));
     }
+
+    @Test
+    void clusterCacheRefreshesForPresentationSettingsWithoutWorldRescan() {
+        var standard = new StorageRenderStage.ClusterSettings(true, true, true, false,
+                true, false, 8.0);
+        assertFalse(StorageRenderStage.shouldRefreshClusters(standard, standard, 4, 4));
+        assertTrue(StorageRenderStage.shouldRefreshClusters(standard, standard, 5, 4));
+
+        var changedRadius = new StorageRenderStage.ClusterSettings(true, true, true, false,
+                true, false, 12.0);
+        assertTrue(StorageRenderStage.shouldRefreshClusters(changedRadius, standard, 4, 4));
+        var disabled = new StorageRenderStage.ClusterSettings(false, true, true, false,
+                true, false, 8.0);
+        assertTrue(StorageRenderStage.shouldRefreshClusters(disabled, standard, 4, 4));
+        assertTrue(standard.includes(com.arson.client.render.StorageType.CHEST));
+        assertFalse(standard.includes(com.arson.client.render.StorageType.SHULKER));
+        assertFalse(disabled.includes(com.arson.client.render.StorageType.CHEST));
+    }
 }
