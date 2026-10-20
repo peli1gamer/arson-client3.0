@@ -225,7 +225,21 @@ public final class ArsonScreen extends Screen {
             Module module = visible.get(start + logical);
             ClickGuiLayoutModel.Rect card = cards.get(logical);
             int toggleWidth = geometry.mode() == ClickGuiLayoutModel.Mode.NARROW ? 32 : 38;
-            var actions = ClickGuiLayoutModel.moduleCardActions(card, toggleWidth, 5);
+            ClickGuiLayoutModel.Rect detailsBounds;
+            ClickGuiLayoutModel.Rect favoriteBounds = null;
+            ClickGuiLayoutModel.Rect toggleBounds;
+            if (card.width() >= 100) {
+                ClickGuiLayoutModel.ModuleCardRegions regions =
+                        ClickGuiLayoutModel.moduleCardRegions(card, toggleWidth, 20, 5);
+                detailsBounds = regions.details();
+                favoriteBounds = regions.favorite();
+                toggleBounds = regions.toggle();
+            } else {
+                ClickGuiLayoutModel.CardActionBounds actions =
+                        ClickGuiLayoutModel.moduleCardActions(card, toggleWidth, 5);
+                detailsBounds = actions.details();
+                toggleBounds = actions.toggle();
+            }
             int titleHeight = Math.min(26, card.height());
             Button details = Button.builder(Component.literal(module.name()), ignored -> {
                 selected = module;
@@ -235,8 +249,8 @@ public final class ArsonScreen extends Screen {
                 focus = ClickGuiLayoutModel.Focus.MODULE;
                 rebuild();
             }).tooltip(tooltipFor(module.description()))
-                    .bounds(actions.details().x(), actions.details().y(),
-                    actions.details().width(), titleHeight).build();
+                    .bounds(detailsBounds.x(), detailsBounds.y(),
+                    detailsBounds.width(), titleHeight).build();
             moduleButtons.add(details);
             addRenderableWidget(details);
 
@@ -249,17 +263,27 @@ public final class ArsonScreen extends Screen {
                 focus = ClickGuiLayoutModel.Focus.ACTION;
                 rebuild();
             }).tooltip(tooltipFor("Click to set a keybind for " + module.name() + ". Press Escape to cancel."))
-                    .bounds(actions.details().x(), keyY, actions.details().width(), keyHeight).build();
+                     .bounds(detailsBounds.x(), keyY, detailsBounds.width(), keyHeight).build();
             addRenderableWidget(keybind);
 
-            int toggleHeight = Math.min(22, actions.toggle().height());
-            int toggleY = actions.toggle().y() + 2;
+            if (favoriteBounds != null) {
+                Button favorite = Button.builder(Component.literal(module.favorite() ? "★" : "☆"), ignored -> {
+                    module.setFavorite(!module.favorite());
+                    saveConfig();
+                    rebuild();
+                }).tooltip(tooltipFor(module.favorite() ? "Remove from favorites" : "Add to favorites"))
+                        .bounds(favoriteBounds.x(), favoriteBounds.y(), favoriteBounds.width(), favoriteBounds.height()).build();
+                addRenderableWidget(favorite);
+            }
+
+            int toggleHeight = Math.min(22, toggleBounds.height());
+            int toggleY = toggleBounds.y() + 2;
             Button toggle = Button.builder(Component.literal(module.enabled() ? "ON" : "OFF"), ignored -> {
                 module.toggle();
                 saveConfig();
                 rebuild();
             }).tooltip(tooltipFor((module.enabled() ? "Disable " : "Enable ") + module.name()))
-                    .bounds(actions.toggle().x(), toggleY, actions.toggle().width(), toggleHeight).build();
+                    .bounds(toggleBounds.x(), toggleY, toggleBounds.width(), toggleHeight).build();
             addRenderableWidget(toggle);
         }
     }
