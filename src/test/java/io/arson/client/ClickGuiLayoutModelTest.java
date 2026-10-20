@@ -173,11 +173,12 @@ class ClickGuiLayoutModelTest {
     @Test
     void moduleGridScrollRangeIsRowAlignedAndBoundedByViewportCapacity() {
         assertEquals(0, ClickGuiLayoutModel.maxGridScroll(0, 2, 120, 52, 8));
-        assertEquals(0, ClickGuiLayoutModel.maxGridScroll(8, 2, 120, 52, 8));
+        assertEquals(0, ClickGuiLayoutModel.maxGridScroll(4, 2, 120, 52, 8));
+        assertEquals(4, ClickGuiLayoutModel.maxGridScroll(8, 2, 120, 52, 8));
         assertEquals(8, ClickGuiLayoutModel.maxGridScroll(12, 2, 120, 52, 8));
         assertEquals(10, ClickGuiLayoutModel.maxGridScroll(11, 2, 52, 52, 8));
         assertEquals(0, ClickGuiLayoutModel.maxGridScroll(20, 2, 0, 52, 8));
-        assertEquals(4, ClickGuiLayoutModel.maxGridScroll(12, 0, 120, 52, 8));
+        assertEquals(10, ClickGuiLayoutModel.maxGridScroll(12, 0, 120, 52, 8));
     }
 
     @Test
