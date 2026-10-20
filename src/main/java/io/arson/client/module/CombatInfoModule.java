@@ -22,6 +22,7 @@ public final class CombatInfoModule extends Module {
     private final BooleanSetting showTargetDurability = setting(new BooleanSetting("show-target-durability", "Show Target Durability", true)).group(contentGroup);
     private final BooleanSetting showTargetEquipment = setting(new BooleanSetting("show-target-equipment", "Show Target Equipment", true)).group(contentGroup);
     private final BooleanSetting showAttackCooldown = setting(new BooleanSetting("show-attack-cooldown", "Show Attack Cooldown", true)).group(contentGroup);
+    private final DoubleSetting cooldownReadyThreshold = setting(new DoubleSetting("cooldown-ready-threshold", "Cooldown Ready Threshold", 0.90, 0.0, 1.0, 0.05)).group(contentGroup);
     private final BooleanSetting showDistance = setting(new BooleanSetting("show-distance", "Show Distance", true)).group(contentGroup);
     private final BooleanSetting showLookOffset = setting(new BooleanSetting("show-look-offset", "Show Look Offset", true)).group(contentGroup);
     private final BooleanSetting showHealth = setting(new BooleanSetting("show-health", "Show Health", true)).group(contentGroup);
@@ -57,6 +58,7 @@ public final class CombatInfoModule extends Module {
         showTargetEquipment.description("Display the selected entity’s armor-slot durability and offhand item.");
         showDurability.description("Display held-item durability when the item has durability.");
         showAttackCooldown.description("Display your local attack cooldown progress.");
+        cooldownReadyThreshold.description("Cooldown fraction that the HUD labels as ready; this is informational and never triggers an attack.");
         showDistance.description("Display distance from you to the selected entity.");
         showLookOffset.description("Display the yaw and pitch offset to the selected entity without changing your rotation.");
         showHealth.description("Display the selected entity’s current health.");
@@ -91,6 +93,16 @@ public final class CombatInfoModule extends Module {
     public boolean showTargetDurability() { return showTargetDurability.enabled(); }
     public boolean showTargetEquipment() { return showTargetEquipment.enabled(); }
     public boolean showAttackCooldown() { return showAttackCooldown.enabled(); }
+    public double cooldownReadyThreshold() { return cooldownReadyThreshold.get(); }
+
+    /** Formats local cooldown telemetry without issuing or modifying any combat input. */
+    public static String formatCooldown(float progress, double readyThreshold) {
+        double safeProgress = Float.isFinite(progress) ? Math.max(0.0, Math.min(1.0, progress)) : 0.0;
+        double safeThreshold = Double.isFinite(readyThreshold)
+                ? Math.max(0.0, Math.min(1.0, readyThreshold)) : 0.90;
+        return String.format(java.util.Locale.ROOT, "Cooldown %.0f%% • %s",
+                safeProgress * 100.0, safeProgress >= safeThreshold ? "Ready" : "Charging");
+    }
     public boolean showDistance() { return showDistance.enabled(); }
     public boolean showLookOffset() { return showLookOffset.enabled(); }
     public boolean showHealth() { return showHealth.enabled(); }
