@@ -30,7 +30,8 @@ public final class CombatInfoRenderer {
                 ? "Durability " + (held.getMaxDamage() - held.getDamageValue()) + "/" + held.getMaxDamage()
                 : null;
         String cooldown = module.showAttackCooldown()
-                ? "Cooldown " + Math.round(client.player.getAttackStrengthScale(0.0f) * 100.0f) + "%"
+                ? CombatInfoModule.formatCooldown(
+                        client.player.getAttackStrengthScale(0.0f), module.cooldownReadyThreshold())
                 : null;
 
         java.util.ArrayList<String> rows = new java.util.ArrayList<>();
