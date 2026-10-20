@@ -32,6 +32,9 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
     private long lastScannerRevision = Long.MIN_VALUE;
     private Object lastScannedLevel;
     private int lastRenderDistance = Integer.MIN_VALUE;
+    private long targetGeneration;
+    private long clusteredTargetGeneration = Long.MIN_VALUE;
+    private ClusterSettings clusteredSettings;
     private int lastVisibleCount;
 
     public StorageRenderStage(Minecraft client, StorageOverlay overlay, StorageScanner scanner, ContainerESPModule module) {
@@ -56,14 +59,14 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                 scanner.revision(), lastScannerRevision, client.level, lastScannedLevel,
                 renderDistance, lastRenderDistance)) {
             cachedTargets = scanner.scan(client, overlay.range(), module.customStorageBlocks(), scanIntervalTicks);
-            cachedClusters = module.clusterEnabled()
-                    ? StorageClusterDetector.detect(cachedTargets.stream().filter(target -> isVisibleType(target.type())).toList(), module.clusterRadius())
-                    : List.of();
+            targetGeneration++;
             lastScanTick = gameTime;
             lastScannerRevision = scanner.revision();
             lastScannedLevel = client.level;
             lastRenderDistance = renderDistance;
         }
+
+        refreshClusters();
 
         var camera = context.worldState().cameraRenderState;
         List<RenderBox> boxes = new ArrayList<>(overlay.build(camera.pos.x, camera.pos.y, camera.pos.z,
@@ -97,6 +100,38 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         if (module.showLabels()) {
             if (!cachedTargets.isEmpty()) renderLabels(context, camera, cachedTargets);
             if (!cachedClusters.isEmpty()) renderClusterLabels(context, camera, cachedClusters);
+        }
+    }
+
+    private void refreshClusters() {
+        ClusterSettings settings = new ClusterSettings(module.clusterEnabled(), module.showChests(),
+                module.showBarrels(), module.showShulkers(), module.showEnderChests(),
+                module.showOtherStorage(), module.clusterRadius());
+        if (!shouldRefreshClusters(settings, clusteredSettings, targetGeneration, clusteredTargetGeneration)) return;
+        cachedClusters = settings.enabled()
+                ? StorageClusterDetector.detect(cachedTargets.stream()
+                        .filter(target -> settings.includes(target.type())).toList(), settings.radius())
+                : List.of();
+        clusteredSettings = settings;
+        clusteredTargetGeneration = targetGeneration;
+    }
+
+    public static boolean shouldRefreshClusters(ClusterSettings current, ClusterSettings previous,
+                                                long targetGeneration, long clusteredTargetGeneration) {
+        return targetGeneration != clusteredTargetGeneration || !java.util.Objects.equals(current, previous);
+    }
+
+    public record ClusterSettings(boolean enabled, boolean chests, boolean barrels, boolean shulkers,
+                                  boolean enderChests, boolean otherStorage, double radius) {
+        public boolean includes(StorageType type) {
+            if (!enabled) return false;
+            return switch (type) {
+                case CHEST -> chests;
+                case BARREL -> barrels;
+                case SHULKER -> shulkers;
+                case ENDER_CHEST -> enderChests;
+                case OTHER -> otherStorage;
+            };
         }
     }
 
