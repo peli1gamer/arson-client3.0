@@ -171,7 +171,7 @@ public final class ArsonScreen extends Screen {
             if (!q.isEmpty() && !hay.contains(q)) continue;
             result.add(m);
         }
-        if (alphabetical) result.sort(Comparator.comparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+        if (alphabetical) result.sort(Comparator.comparing(m -> safeText(m.name()), String.CASE_INSENSITIVE_ORDER));
         return result;
     }
 
