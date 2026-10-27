@@ -85,6 +85,18 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void geometryHandlesZeroColumnsWhenConstructedDirectly() {
+        var rect = new ClickGuiLayoutModel.Rect(0, 0, 100, 100);
+        var geometry = new ClickGuiLayoutModel.Geometry(
+                ClickGuiLayoutModel.Mode.NARROW, 0, 0, 100, 100,
+                rect, rect, rect, rect, rect, rect, rect,
+                0, 50, 20, 4, 6, 18);
+        assertEquals(1, geometry.visibleRows(0));
+        assertEquals(3, geometry.visibleRows(3));
+        assertEquals(0, geometry.moduleCard(0, 3).width());
+    }
+
+    @Test
     void emptyCollectionsHaveSafeFocus() {
         assertEquals(-1, ClickGuiLayoutModel.moveFocus(ClickGuiLayoutModel.Focus.MODULE, 0, 1, 6, 0));
         assertNull(ClickGuiLayoutModel.safeGet(java.util.List.of("a"), 2));
