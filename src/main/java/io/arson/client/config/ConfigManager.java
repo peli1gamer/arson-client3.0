@@ -12,6 +12,8 @@ import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.StringSetting;
 import net.minecraft.client.Minecraft;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,12 +24,39 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ConfigManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigManager.class);
     private static final String FILE_NAME = "arson-v3.json";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
     private static final int CONFIG_VERSION = 4;
     private ConfigManager() {}
-    public static void load(Minecraft client, ModuleManager modules) { loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static void save(Minecraft client, ModuleManager modules) { saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    public static void load(Minecraft client, ModuleManager modules) {
+        if (client == null || client.gameDirectory == null) {
+            LOGGER.warn("Cannot load config: Minecraft client or game directory is unavailable");
+            return;
+        }
+        load(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
+    }
+    public static void save(Minecraft client, ModuleManager modules) {
+        if (client == null || client.gameDirectory == null) {
+            LOGGER.warn("Cannot save config: Minecraft client or game directory is unavailable");
+            return;
+        }
+        save(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
+    }
+    public static boolean load(Path path, ModuleManager modules) {
+        if (path == null || modules == null) {
+            LOGGER.warn("Cannot load config: path or module manager is null");
+            return false;
+        }
+        return loadFromPath(path, modules);
+    }
+    public static boolean save(Path path, ModuleManager modules) {
+        if (path == null || modules == null) {
+            LOGGER.warn("Cannot save config: path or module manager is null");
+            return false;
+        }
+        return saveToPath(path, modules);
+    }
     public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
@@ -56,12 +85,13 @@ public final class ConfigManager {
         try { return Files.deleteIfExists(path); } catch (IOException ignored) { return false; }
     }
     static boolean loadFromPath(Path path, ModuleManager modules) {
-        if (!Files.isRegularFile(path)) return false;
+        if (!Files.isRegularFile(path)) { LOGGER.debug("Config file does not exist: {}", path); return false; }
         try {
             JsonElement parsed = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
-            if (!parsed.isJsonObject()) return false;
+            if (!parsed.isJsonObject()) { LOGGER.warn("Config is not a JSON object: {}", path); return false; }
             JsonObject root = parsed.getAsJsonObject();
-            if (readVersion(root) > CONFIG_VERSION) return false;
+            int version = readVersion(root);
+            if (version > CONFIG_VERSION) { LOGGER.warn("Config {} uses unsupported version {} (supported up to {})", path, version, CONFIG_VERSION); return false; }
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
             migrateLegacyLayout(root, moduleRoot, modules);
             for (Module module : modules.all()) {
@@ -98,7 +128,7 @@ public final class ConfigManager {
                 }
             }
             return true;
-        } catch (Exception ignored) { return false; }
+        } catch (Exception exception) { LOGGER.warn("Failed to load config {}: {}", path, exception.toString()); return false; }
     }
 
     /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
@@ -154,10 +184,10 @@ public final class ConfigManager {
         }
         try {
             Files.createDirectories(directory); Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);
-            if (Files.isRegularFile(path)) try { Files.copy(path, backupPath, StandardCopyOption.REPLACE_EXISTING); } catch (IOException ignored) {}
+            if (Files.isRegularFile(path)) try { Files.copy(path, backupPath, StandardCopyOption.REPLACE_EXISTING); } catch (IOException exception) { LOGGER.warn("Could not create config backup {}: {}", backupPath, exception.toString()); }
             try { Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE); } catch (IOException ignored) { Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING); }
             return true;
-        } catch (IOException ignored) { try { Files.deleteIfExists(tempPath); } catch (IOException ignoredCleanup) {} return false; }
+        } catch (IOException exception) { LOGGER.warn("Failed to save config {}: {}", path, exception.toString()); try { Files.deleteIfExists(tempPath); } catch (IOException cleanupException) { LOGGER.debug("Could not remove temporary config {}: {}", tempPath, cleanupException.toString()); } return false; }
     }
     static String sanitizeProfileName(String name) { if (name == null) return ""; StringBuilder result = new StringBuilder(); for (int i = 0; i < name.length() && result.length() < 32; i++) { char c = name.charAt(i); if (Character.isLetterOrDigit(c) || c == '-' || c == '_') result.append(c); } return result.toString(); }
 }
