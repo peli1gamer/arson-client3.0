@@ -68,7 +68,7 @@ public final class ConfigManager {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
-        return save(client, modules);
+        return saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
