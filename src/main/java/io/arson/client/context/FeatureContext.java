@@ -20,9 +20,18 @@ public final class FeatureContext {
 
     public synchronized void worldAvailable(ClientState state) {
         if (lifecycle == Lifecycle.STOPPED) return;
-        clientState = Objects.requireNonNull(state, "state");
-        lifecycle = state.inWorld() ? Lifecycle.WORLD : Lifecycle.INITIALIZED;
-        if (!state.inWorld()) renderState = RenderState.empty();
+        ClientState next = Objects.requireNonNull(state, "state");
+        boolean wasInWorld = lifecycle == Lifecycle.WORLD || clientState.inWorld();
+        clientState = next;
+        if (next.inWorld()) lifecycle = Lifecycle.WORLD;
+        else {
+            if (wasInWorld) {
+                lifecycle = Lifecycle.DISCONNECTED;
+                renderState = RenderState.empty();
+            } else if (lifecycle == Lifecycle.NEW) {
+                lifecycle = Lifecycle.INITIALIZED;
+            }
+        }
     }
 
     public synchronized void tick(ClientState state) {
