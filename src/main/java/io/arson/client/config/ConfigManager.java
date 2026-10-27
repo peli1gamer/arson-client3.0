@@ -67,18 +67,33 @@ public final class ConfigManager {
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
-                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
-                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
-                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
+                // Treat each module field independently: one malformed value must not abort the
+                // remaining configuration or leave later modules unapplied.
+                try {
+                    JsonElement enabled = data.get("enabled");
+                    if (enabled != null && enabled.isJsonPrimitive() && enabled.getAsJsonPrimitive().isBoolean())
+                        module.setEnabled(enabled.getAsBoolean());
+                } catch (RuntimeException ignored) {}
+                try {
+                    JsonElement favorite = data.get("favorite");
+                    if (favorite != null && favorite.isJsonPrimitive() && favorite.getAsJsonPrimitive().isBoolean())
+                        module.setFavorite(favorite.getAsBoolean());
+                } catch (RuntimeException ignored) {}
+                try {
+                    JsonElement keyCode = data.get("keyCode");
+                    if (keyCode != null && keyCode.isJsonPrimitive() && keyCode.getAsJsonPrimitive().isNumber())
+                        module.setKeyCode(keyCode.getAsInt());
+                } catch (RuntimeException ignored) {}
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
                     JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
                     try {
-                        if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
-                        else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
-                        else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
-                        else if (setting instanceof StringSetting text) text.set(value.getAsString());
-                        else if (setting instanceof EnumSetting<?> select) setEnum(select, value.getAsString());
+                        var primitive = value.getAsJsonPrimitive();
+                        if (setting instanceof BooleanSetting bool && primitive.isBoolean()) bool.set(primitive.getAsBoolean());
+                        else if (setting instanceof DoubleSetting number && primitive.isNumber()) number.set(primitive.getAsDouble());
+                        else if (setting instanceof ColorSetting color && primitive.isNumber()) color.set(primitive.getAsInt());
+                        else if (setting instanceof StringSetting text && primitive.isString()) text.set(primitive.getAsString());
+                        else if (setting instanceof EnumSetting<?> select && primitive.isString()) setEnum(select, primitive.getAsString());
                     } catch (RuntimeException ignored) {}
                 }
             }
@@ -102,14 +117,25 @@ public final class ConfigManager {
             JsonElement raw = elements.get(element);
             if (raw == null || !raw.isJsonObject()) continue;
             JsonObject value = raw.getAsJsonObject();
-            JsonObject settings = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout").getAsJsonObject("settings") : new JsonObject();
-            if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
-            if (value.has("x") && value.get("x").isJsonPrimitive()) settings.addProperty(element + "-x", value.get("x").getAsDouble());
-            if (value.has("y") && value.get("y").isJsonPrimitive()) settings.addProperty(element + "-y", value.get("y").getAsDouble());
-            if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
             JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
                     ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
+            JsonElement existingSettings = moduleData.get("settings");
+            JsonObject settings = existingSettings != null && existingSettings.isJsonObject()
+                    ? existingSettings.getAsJsonObject() : new JsonObject();
+            if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
+
+            JsonElement x = value.get("x");
+            if (x != null && x.isJsonPrimitive() && x.getAsJsonPrimitive().isNumber()) {
+                try { settings.addProperty(element + "-x", x.getAsDouble()); } catch (RuntimeException ignored) {}
+            }
+            JsonElement y = value.get("y");
+            if (y != null && y.isJsonPrimitive() && y.getAsJsonPrimitive().isNumber()) {
+                try { settings.addProperty(element + "-y", y.getAsDouble()); } catch (RuntimeException ignored) {}
+            }
+            JsonElement anchor = value.get("anchor");
+            if (anchor != null && anchor.isJsonPrimitive() && anchor.getAsJsonPrimitive().isString()) {
+                settings.addProperty(element + "-anchor", anchor.getAsString());
+            }
             moduleData.add("settings", settings);
             moduleRoot.add("hud-layout", moduleData);
         }
