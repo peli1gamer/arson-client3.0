@@ -21,6 +21,28 @@ class ModuleLifecycleTest {
         assertEquals(1, module.disableCount);
     }
 
+    @Test
+    void reentrantToggleDuringEnableDoesNotInvertTransition() {
+        class ReentrantModule extends Module {
+            ReentrantModule() { super("reentrant", "Reentrant", Category.MISC); }
+            @Override protected void onEnable() { setEnabled(false); }
+        }
+        ReentrantModule module = new ReentrantModule();
+        module.setEnabled(true);
+        assertTrue(module.enabled());
+    }
+
+    @Test
+    void failedEnableRollsBackEnabledState() {
+        class FailingModule extends Module {
+            FailingModule() { super("failing", "Failing", Category.MISC); }
+            @Override protected void onEnable() { throw new IllegalStateException("expected"); }
+        }
+        FailingModule module = new FailingModule();
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> module.setEnabled(true));
+        assertFalse(module.enabled());
+    }
+
     private static final class CountingModule extends Module {
         int enableCount;
         int disableCount;

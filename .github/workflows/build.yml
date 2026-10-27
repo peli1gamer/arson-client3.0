@@ -22,7 +22,7 @@ jobs:
         run: gradle test --no-daemon --stacktrace
       - name: Fabric client runtime smoke test
         env:
-          JAVA_TOOL_OPTIONS: -Darson.runtimeSmokeTicks=80
+          JAVA_TOOL_OPTIONS: -Darson.runtimeSmokeTicks=80 -Darson.ciRuntimeSmoke=true
         run: timeout --signal=TERM --kill-after=15s 120s gradle runClient --no-daemon --stacktrace
       - name: Complete build and remap
         run: gradle build --no-daemon --stacktrace

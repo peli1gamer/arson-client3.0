@@ -12,7 +12,11 @@ import java.util.Map;
 
 public final class ModuleManager {
     private final Map<String, Module> modules=new LinkedHashMap<>();
-    public void register(Module module){if(modules.putIfAbsent(module.id(),module)!=null)throw new IllegalArgumentException("Duplicate module: "+module.id());}
+    public synchronized void register(Module module) {
+        java.util.Objects.requireNonNull(module, "module");
+        if (modules.putIfAbsent(module.id(), module) != null)
+            throw new IllegalArgumentException("Duplicate module: " + module.id());
+    }
     public void registerDefaults(){
         register(new ClientInfoModule());register(new SprintModule());register(new PerformanceModule());
         register(new ContainerESPModule());register(new EntityESPModule());register(new ItemESPModule());register(new EntityInfoModule());register(new EntityTracerModule());register(new BlockESPModule());
@@ -20,13 +24,13 @@ public final class ModuleManager {
         register(new CombatStatusModule());register(new PlayerStatusModule());register(new MovementStatusModule());register(new RenderProfileModule());register(new WorldStatusModule());register(new StorageStatusModule());register(new UtilityStatusModule());register(new ClickGuiPreferencesModule());
         register(GameStateModule.create());register(ScreenInfoModule.create());
     }
-    public Module get(String id){return modules.get(id);} public Collection<Module> all(){return new ArrayList<>(modules.values());}
-    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:modules.values())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
-    public Collection<Module> search(String query){ArrayList<Module> result=new ArrayList<>();String q=query==null?"":query.trim().toLowerCase(java.util.Locale.ROOT);for(Module module:modules.values()){String haystack=(module.name()+" "+module.id()+" "+module.description()).toLowerCase(java.util.Locale.ROOT);if(q.isEmpty()||haystack.contains(q))result.add(module);}result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
-    public int categoryCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category)count++;return count;}
-    public int enabledCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category&&module.enabled())count++;return count;}
-    public int favoriteCount(){int count=0;for(Module module:modules.values())if(module.favorite())count++;return count;}
-    public int enabledCount(){int count=0;for(Module module:modules.values())if(module.enabled())count++;return count;} public void tick(Minecraft client){for(Module module:modules.values())module.tick(client);}
+    public synchronized Module get(String id){return modules.get(id);} public synchronized Collection<Module> all(){return new ArrayList<>(modules.values());}
+    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:all())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
+    public Collection<Module> search(String query){ArrayList<Module> result=new ArrayList<>();String q=query==null?"":query.trim().toLowerCase(java.util.Locale.ROOT);for(Module module:all()){String haystack=(module.name()+" "+module.id()+" "+module.description()).toLowerCase(java.util.Locale.ROOT);if(q.isEmpty()||haystack.contains(q))result.add(module);}result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
+    public int categoryCount(Module.Category category){int count=0;for(Module module:all())if(module.category()==category)count++;return count;}
+    public int enabledCount(Module.Category category){int count=0;for(Module module:all())if(module.category()==category&&module.enabled())count++;return count;}
+    public int favoriteCount(){int count=0;for(Module module:all())if(module.favorite())count++;return count;}
+    public int enabledCount(){int count=0;for(Module module:all())if(module.enabled())count++;return count;} public void tick(Minecraft client){for(Module module:all())module.tick(client);}
     public enum DisplayMode{COMPACT,DETAILED} public enum RenderMode{STANDARD,HIGH_CONTRAST,MINIMAL}
     private static final class ClientInfoModule extends Module{private ClientInfoModule(){super("client-info","Client Info",Category.MISC,"Shows client/version metadata used by the local HUD.");setting(new BooleanSetting("show-version","Show Version",true));}}
     private static final class SprintModule extends Module{private final BooleanSetting forwardOnly=setting(new BooleanSetting("forward-only","Forward Only",true));private SprintModule(){super("sprint","Sprint",Category.MOVEMENT,"Local sprint state helper; it only affects the local player's sprint flag while enabled.");}@Override protected void onTick(Minecraft client){if(client.player==null)return;if(forwardOnly.enabled()&&!client.options.keyUp.isDown())return;client.player.setSprinting(true);}}

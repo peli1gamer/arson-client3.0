@@ -52,13 +52,22 @@ public final class ArsonScreen extends Screen {
         rebuild();
     }
 
+    private void ensureGeometry() {
+        if (geometry == null) {
+            geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
+            rebuild();
+        }
+    }
+
     private double preferencesScale() {
         ClickGuiPreferencesModule p = preferences();
         return p == null ? 1.0 : p.panelScale();
     }
 
     private ClickGuiPreferencesModule preferences() {
-        Module m = ArsonClient.getInstance().modules().get("clickgui-preferences");
+        ArsonClient client = ArsonClient.getInstance();
+        if (client == null || client.modules() == null) return null;
+        Module m = client.modules().get("clickgui-preferences");
         return m instanceof ClickGuiPreferencesModule p ? p : null;
     }
 
@@ -98,6 +107,10 @@ public final class ArsonScreen extends Screen {
     private void rebuild() {
         String searchValue = search == null ? "" : search.getValue();
         String profileValue = profile == null ? "" : profile.getValue();
+        String editValue = editBox == null ? null : editBox.getValue();
+        boolean restoreSearchFocus = search != null && search.isFocused();
+        boolean restoreProfileFocus = profile != null && profile.isFocused();
+        boolean restoreEditFocus = editBox != null && editBox.isFocused();
         clearWidgets();
         moduleButtons.clear();
         profile = null;
@@ -142,8 +155,16 @@ public final class ArsonScreen extends Screen {
 
         addCategoryButtons(r);
         addModuleCards(visible);
-        if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
+        if (editingString != null || editingColor != null) {
+            addEditBox(r);
+            if (editValue != null && editBox != null) editBox.setValue(editValue);
+        } else {
+            addDetailWidgets(r);
+        }
         addFooter(r, profileValue);
+        if (restoreSearchFocus && search != null) search.setFocused(true);
+        if (restoreProfileFocus && profile != null) profile.setFocused(true);
+        if (restoreEditFocus && editBox != null) editBox.setFocused(true);
     }
 
     private List<Module> visibleModules() {
@@ -152,14 +173,16 @@ public final class ArsonScreen extends Screen {
         for (Module m : ArsonClient.getInstance().modules().organized(category)) {
             if (favoritesOnly && !m.favorite()) continue;
             if (enabledOnly && !m.enabled()) continue;
-            String hay = (m.name()+" "+m.id()+" "+m.description()).toLowerCase(Locale.ROOT);
+            String hay = (safeText(m.name())+" "+safeText(m.id())+" "+safeText(m.description())).toLowerCase(Locale.ROOT);
             if (!q.isEmpty() && !hay.contains(q)) continue;
             result.add(m);
         }
-        if (alphabetical) result.sort(Comparator.comparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+        if (alphabetical) result.sort(Comparator.comparing(m -> safeText(m.name()), String.CASE_INSENSITIVE_ORDER));
         return result;
     }
 
+
+    private static String safeText(String value) { return value == null ? "" : value; }
 
     private int toolbarButtonWidth(int index){
         if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){ int gap=2; int fitted=Math.max(15,(geometry.toolbar().width()-gap*5)/6); int desired=switch(index){case 0->32;case 1,2->22;case 3->42;case 4->30;default->30;}; return Math.min(desired,fitted); }
@@ -289,6 +312,13 @@ public final class ArsonScreen extends Screen {
     }
 
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
+    private static boolean isBindableKey(int key) {
+        if (key <= 0 || key > GLFW.GLFW_KEY_LAST) return false;
+        return key != GLFW.GLFW_KEY_LEFT_SHIFT && key != GLFW.GLFW_KEY_RIGHT_SHIFT
+                && key != GLFW.GLFW_KEY_LEFT_CONTROL && key != GLFW.GLFW_KEY_RIGHT_CONTROL
+                && key != GLFW.GLFW_KEY_LEFT_ALT && key != GLFW.GLFW_KEY_RIGHT_ALT
+                && key != GLFW.GLFW_KEY_LEFT_SUPER && key != GLFW.GLFW_KEY_RIGHT_SUPER;
+    }
     private static String keyName(int key){if(key<=0)return"None";String n=GLFW.glfwGetKeyName(key,0);return n==null?"KEY "+key:n.toUpperCase(Locale.ROOT);}
     private static String prettyEnum(Object v){if(v==null)return"None";String raw=v.toString().toLowerCase(Locale.ROOT),out="";for(String p:raw.split("_"))if(!p.isEmpty())out+=(out.isEmpty()?"":" ")+Character.toUpperCase(p.charAt(0))+p.substring(1);return out;}
     private void applyEdit(){if(editBox!=null){if(editingString!=null)editingString.set(editBox.getValue());else if(editingColor!=null){try{String raw=editBox.getValue().trim().replace("#","");if(raw.length()==6)raw="FF"+raw;if(raw.length()!=8)throw new NumberFormatException();editingColor.set((int)Long.parseLong(raw,16));}catch(NumberFormatException ignored){NotificationCenter.push("Invalid color","Use RRGGBB or AARRGGBB");return;}}saveConfig();}editingString=null;editingColor=null;editBox=null;rebuild();}
@@ -297,8 +327,18 @@ public final class ArsonScreen extends Screen {
     private void loadProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
 
     @Override public boolean keyPressed(KeyEvent event){
+        ensureGeometry();
         int key=event.key();
-        if(bindingModule!=null){if(key==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}bindingModule.setKeyCode(key);NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(key));bindingModule=null;saveConfig();rebuild();return true;}
+        if(bindingModule!=null){
+            if(key==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}
+            if(!isBindableKey(key)){
+                NotificationCenter.push("Keybind","Choose a non-modifier keyboard key");
+                return true;
+            }
+            bindingModule.setKeyCode(key);
+            NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(key));
+            bindingModule=null;saveConfig();rebuild();return true;
+        }
         if(key==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}
         if(event.hasControlDown()&&key==GLFW.GLFW_KEY_K){if(search!=null){search.setFocused(true);focus=ClickGuiLayoutModel.Focus.SEARCH;}return true;}
         if(key==GLFW.GLFW_KEY_TAB){focus=nextFocus(event.hasShiftDown()?-1:1);applyFocus();return true;}
@@ -319,13 +359,15 @@ public final class ArsonScreen extends Screen {
     }
     private void applyFocus(){if(search!=null)search.setFocused(focus==ClickGuiLayoutModel.Focus.SEARCH);}
 
-    @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused()){scroll=0;rebuild();}return handled;}
+    @Override public boolean charTyped(CharacterEvent event){ensureGeometry();boolean handled=super.charTyped(event);if(search!=null&&search.isFocused()){scroll=0;rebuild();}return handled;}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
+        ensureGeometry();
         if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){if(geometry.detail().contains(mouseX,mouseY)){detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+(vertical>0?-1:1)));}else{scroll=Math.max(0,scroll+(vertical>0?-1:1));}rebuild();return true;}
         return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
     }
 
     @Override public void render(GuiGraphics g,int mouseX,int mouseY,float delta){
+        ensureGeometry();
         Rects r=new Rects(geometry);
         g.fill(0,0,width,height,0x42000000);
         rounded(g,geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),panelColor());

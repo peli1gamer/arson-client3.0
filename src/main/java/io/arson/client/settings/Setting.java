@@ -13,12 +13,12 @@ public abstract class Setting<T> {
     private BooleanSupplier visibility = () -> true;
     private SettingGroup group;
 
-    protected Setting(String id, String name, T defaultValue) { this.id = Objects.requireNonNull(id); this.name = Objects.requireNonNull(name); this.defaultValue = defaultValue; this.value = defaultValue; }
+    protected Setting(String id, String name, T defaultValue) { this.id = Objects.requireNonNull(id); this.name = Objects.requireNonNull(name); this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue"); this.value = defaultValue; }
     public final String id() { return id; }
     public final String name() { return name; }
     public T get() { return value; }
     public T defaultValue() { return defaultValue; }
-    public void set(T value) { this.value = value; }
+    public void set(T value) { this.value = Objects.requireNonNull(value, "value"); }
     public void reset() { this.value = defaultValue; }
     public String description() { return description; }
     public Setting<T> description(String value) { description = value == null ? "" : value; return this; }
@@ -30,5 +30,5 @@ public abstract class Setting<T> {
     public Setting<T> dependsOnNot(BooleanSetting dependency) { return dependsOnValue(dependency, Boolean.FALSE); }
     public boolean visible() { return visibility.getAsBoolean() && (group == null || group.visible()); }
     public SettingGroup group() { return group; }
-    @SuppressWarnings("unchecked") public <S extends Setting<T>> S group(SettingGroup value) { group = Objects.requireNonNull(value); value.add(this); return (S) this; }
+    @SuppressWarnings("unchecked") public <S extends Setting<T>> S group(SettingGroup value) { SettingGroup next = Objects.requireNonNull(value); if (group != next) { if (group != null) group.remove(this); group = next; next.add(this); } return (S) this; }
 }

@@ -18,6 +18,25 @@ class SettingGroupTest {
         assertFalse(enabled.visible());
     }
 
+    @Test void reassignmentRemovesSettingFromPreviousGroup() {
+        BooleanSetting setting = new BooleanSetting("enabled", "Enabled", true);
+        SettingGroup first = new SettingGroup("first", "First", "");
+        SettingGroup second = new SettingGroup("second", "Second", "");
+        setting.group(first);
+        setting.group(second);
+        assertTrue(first.settings().isEmpty());
+        assertEquals(java.util.List.of(setting), second.settings());
+        assertSame(second, setting.group());
+    }
+
+    @Test void chainedGroupVisibilityPredicatesCompose() {
+        BooleanSetting setting = new BooleanSetting("enabled", "Enabled", true);
+        SettingGroup group = new SettingGroup("display", "Display", "");
+        group.visibleWhen(() -> true).visibleWhen(() -> false);
+        setting.group(group);
+        assertFalse(setting.visible());
+    }
+
     @Test void existingConditionalVisibilityStillComposesWithGroups() {
         BooleanSetting enabled = new BooleanSetting("enabled", "Enabled", true);
         SettingGroup group = new SettingGroup("display", "Display", "Display options");

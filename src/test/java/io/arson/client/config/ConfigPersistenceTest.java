@@ -47,6 +47,25 @@ class ConfigPersistenceTest {
     }
 
     @Test
+    void corruptConfigFallsBackToBackup() throws Exception {
+        Path dir = Files.createTempDirectory("arson-config-backup-test");
+        Path config = dir.resolve("live.json");
+        Path backup = dir.resolve("live.json.bak");
+
+        ModuleManager source = new ModuleManager();
+        source.registerDefaults();
+        source.get("sprint").setEnabled(true);
+        assertTrue(ConfigManager.saveToPath(backup, source));
+        Files.writeString(config, "{ broken json");
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        assertFalse(loaded.get("sprint").enabled());
+        assertTrue(ConfigManager.loadFromPath(config, loaded));
+        assertTrue(loaded.get("sprint").enabled());
+    }
+
+    @Test
     void invalidProfileLoadLeavesExistingStateUntouched() throws Exception {
         Path profile = Files.createTempFile("arson-invalid", ".json");
         Files.writeString(profile, "not json");
