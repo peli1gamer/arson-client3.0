@@ -20,7 +20,7 @@ public final class ClickGuiLayoutModel {
             int h=Math.max(0,Math.min(cardHeight,moduleList.height()));
             return new Rect(moduleList.x()+col*(cardWidth+cardGap),moduleList.y()+row*(h+cardGap),cardWidth,h);
         }
-        public int visibleRows(int visibleCount){return Math.max(1,(visibleCount+columns-1)/columns);}
+        public int visibleRows(int visibleCount){int safeColumns=Math.max(1,columns);return Math.max(1,(Math.max(0,visibleCount)+safeColumns-1)/safeColumns);}
     }
     private ClickGuiLayoutModel(){}
 
