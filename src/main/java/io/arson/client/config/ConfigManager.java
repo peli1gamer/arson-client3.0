@@ -58,15 +58,17 @@ public final class ConfigManager {
         return saveToPath(path, modules);
     }
     public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
+        if (client == null || client.gameDirectory == null || modules == null) return false;
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         return saveToPath(directory.resolve(safeName + ".json"), modules);
     }
     public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
+        if (client == null || client.gameDirectory == null || modules == null) return false;
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
-        save(client, modules); return true;
+        return save(client, modules);
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
@@ -76,22 +78,22 @@ public final class ConfigManager {
             stream.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".json"))
                 .map(path -> path.getFileName().toString().substring(0, path.getFileName().toString().length() - 5))
                 .sorted(String.CASE_INSENSITIVE_ORDER).forEach(result::add);
-        } catch (IOException ignored) {}
+        } catch (IOException exception) { LOGGER.warn("Could not list config profiles in {}: {}", directory, exception.toString()); }
         return List.copyOf(result);
     }
     public static boolean deleteProfile(Minecraft client, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
-        try { return Files.deleteIfExists(path); } catch (IOException ignored) { return false; }
+        try { return Files.deleteIfExists(path); } catch (IOException exception) { LOGGER.warn("Could not delete config profile {}: {}", path, exception.toString()); return false; }
     }
     static boolean loadFromPath(Path path, ModuleManager modules) {
         if (!Files.isRegularFile(path)) { LOGGER.debug("Config file does not exist: {}", path); return false; }
         try {
             JsonElement parsed = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
-            if (!parsed.isJsonObject()) { LOGGER.warn("Config is not a JSON object: {}", path); return false; }
+            if (!parsed.isJsonObject()) { LOGGER.warn("Config is not a JSON object: {}", path); return loadBackup(path, modules); }
             JsonObject root = parsed.getAsJsonObject();
             int version = readVersion(root);
-            if (version > CONFIG_VERSION) { LOGGER.warn("Config {} uses unsupported version {} (supported up to {})", path, version, CONFIG_VERSION); return false; }
+            if (version > CONFIG_VERSION) { LOGGER.warn("Config {} uses unsupported version {} (supported up to {})", path, version, CONFIG_VERSION); return loadBackup(path, modules); }
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
             migrateLegacyLayout(root, moduleRoot, modules);
             for (Module module : modules.all()) {
@@ -128,7 +130,18 @@ public final class ConfigManager {
                 }
             }
             return true;
-        } catch (Exception exception) { LOGGER.warn("Failed to load config {}: {}", path, exception.toString()); return false; }
+        } catch (Exception exception) {
+            LOGGER.warn("Failed to load config {}: {}", path, exception.toString());
+            return loadBackup(path, modules);
+        }
+    }
+
+    private static boolean loadBackup(Path path, ModuleManager modules) {
+        if (path == null || path.getFileName() == null || path.getFileName().toString().endsWith(".bak")) return false;
+        Path backup = path.resolveSibling(path.getFileName() + ".bak");
+        if (!Files.isRegularFile(backup)) return false;
+        LOGGER.warn("Attempting config backup recovery from {}", backup);
+        return loadFromPath(backup, modules);
     }
 
     /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
