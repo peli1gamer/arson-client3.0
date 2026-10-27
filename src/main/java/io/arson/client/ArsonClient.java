@@ -94,6 +94,7 @@ public final class ArsonClient implements ClientModInitializer {
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
+            runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
