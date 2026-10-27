@@ -14,6 +14,7 @@ public abstract class Module {
     private final String description;
     private final List<Setting<?>> settings = new ArrayList<>();
     private boolean enabled;
+    private boolean transitioning;
     private boolean favorite;
     private int keyCode;
 
@@ -23,7 +24,28 @@ public abstract class Module {
     protected Module(String id, String name, Category category, String description, int defaultKeyCode) {
         this.id = id; this.name = name; this.category = category; this.description = description == null ? "" : description; this.keyCode = defaultKeyCode;
     }
-    public final void setEnabled(boolean enabled) { if (this.enabled == enabled) return; this.enabled = enabled; if (enabled) onEnable(); else onDisable(); }
+    public final synchronized void setEnabled(boolean enabled) {
+        if (this.enabled == enabled || transitioning) return;
+        transitioning = true;
+        try {
+            this.enabled = enabled;
+            if (enabled) {
+                try {
+                    onEnable();
+                } catch (RuntimeException | Error failure) {
+                    this.enabled = false;
+                    try { onDisable(); } catch (RuntimeException | Error cleanupFailure) { failure.addSuppressed(cleanupFailure); }
+                    throw failure;
+                }
+            } else {
+                // Keep the module disabled even if cleanup fails so it cannot continue ticking
+                // in a half-disabled state.
+                onDisable();
+            }
+        } finally {
+            transitioning = false;
+        }
+    }
     public final void toggle() { setEnabled(!enabled); }
     public final void resetSettings() { for (Setting<?> setting : settings) setting.reset(); }
     public final void resetToDefaults() { setEnabled(false); resetSettings(); favorite = false; keyCode = 0; }
