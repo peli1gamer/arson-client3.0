@@ -26,4 +26,5 @@ public final class SettingGroup {
     public boolean visible() { return visibility.getAsBoolean(); }
     public List<Setting<?>> settings() { return List.copyOf(settings); }
     void add(Setting<?> setting) { if (!settings.contains(setting)) settings.add(setting); }
+    void remove(Setting<?> setting) { settings.remove(setting); }
 }
