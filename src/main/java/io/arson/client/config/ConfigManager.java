@@ -71,6 +71,10 @@ public final class ConfigManager {
         return saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
     }
     public static List<String> listProfiles(Minecraft client) {
+        if (client == null || client.gameDirectory == null) {
+            LOGGER.warn("Cannot list config profiles: Minecraft client or game directory is unavailable");
+            return List.of();
+        }
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         if (!Files.isDirectory(directory)) return List.of();
         ArrayList<String> result = new ArrayList<>();
@@ -82,6 +86,7 @@ public final class ConfigManager {
         return List.copyOf(result);
     }
     public static boolean deleteProfile(Minecraft client, String profileName) {
+        if (client == null || client.gameDirectory == null) return false;
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         try { return Files.deleteIfExists(path); } catch (IOException exception) { LOGGER.warn("Could not delete config profile {}: {}", path, exception.toString()); return false; }
