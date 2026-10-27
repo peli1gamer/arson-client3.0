@@ -32,8 +32,12 @@ public final class FeatureContext {
         clientState = next;
         if (next.inWorld()) lifecycle = Lifecycle.WORLD;
         else {
-            if (wasInWorld) renderState = RenderState.empty();
-            lifecycle = lifecycle == Lifecycle.NEW ? Lifecycle.INITIALIZED : Lifecycle.DISCONNECTED;
+            if (wasInWorld) {
+                renderState = RenderState.empty();
+                lifecycle = Lifecycle.DISCONNECTED;
+            } else if (lifecycle == Lifecycle.NEW) {
+                lifecycle = Lifecycle.INITIALIZED;
+            }
         }
     }
 
