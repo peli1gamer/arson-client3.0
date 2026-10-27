@@ -14,26 +14,36 @@ public final class FeatureContext {
     private Lifecycle lifecycle = Lifecycle.NEW;
 
     public synchronized void initialize() {
-        lifecycle = Lifecycle.INITIALIZED;
+        if (lifecycle == Lifecycle.STOPPED) return;
+        if (lifecycle == Lifecycle.NEW || lifecycle == Lifecycle.DISCONNECTED) lifecycle = Lifecycle.INITIALIZED;
     }
 
     public synchronized void worldAvailable(ClientState state) {
+        if (lifecycle == Lifecycle.STOPPED) return;
         clientState = Objects.requireNonNull(state, "state");
         lifecycle = state.inWorld() ? Lifecycle.WORLD : Lifecycle.INITIALIZED;
+        if (!state.inWorld()) renderState = RenderState.empty();
     }
 
     public synchronized void tick(ClientState state) {
-        clientState = Objects.requireNonNull(state, "state");
-        if (lifecycle == Lifecycle.NEW) lifecycle = Lifecycle.INITIALIZED;
-        if (state.inWorld()) lifecycle = Lifecycle.WORLD;
-        else if (lifecycle == Lifecycle.WORLD) lifecycle = Lifecycle.DISCONNECTED;
+        if (lifecycle == Lifecycle.STOPPED) return;
+        ClientState next = Objects.requireNonNull(state, "state");
+        boolean wasInWorld = lifecycle == Lifecycle.WORLD || clientState.inWorld();
+        clientState = next;
+        if (next.inWorld()) lifecycle = Lifecycle.WORLD;
+        else {
+            if (wasInWorld) renderState = RenderState.empty();
+            lifecycle = lifecycle == Lifecycle.NEW ? Lifecycle.INITIALIZED : Lifecycle.DISCONNECTED;
+        }
     }
 
     public synchronized void render(long frame, float partialTick, RenderState.Phase phase) {
+        if (lifecycle == Lifecycle.STOPPED || !clientState.inWorld()) return;
         renderState = new RenderState(frame, clientState.tick(), partialTick, Objects.requireNonNull(phase, "phase"));
     }
 
     public synchronized void disconnect() {
+        if (lifecycle == Lifecycle.STOPPED) return;
         lifecycle = Lifecycle.DISCONNECTED;
         clientState = ClientState.empty();
         renderState = RenderState.empty();
@@ -41,6 +51,8 @@ public final class FeatureContext {
 
     public synchronized void stop() {
         lifecycle = Lifecycle.STOPPED;
+        clientState = ClientState.empty();
+        renderState = RenderState.empty();
     }
 
     public synchronized ClientState state() { return clientState; }
