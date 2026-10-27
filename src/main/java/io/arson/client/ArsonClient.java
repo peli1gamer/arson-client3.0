@@ -55,7 +55,6 @@ public final class ArsonClient implements ClientModInitializer {
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
     private final Map<String, Boolean> moduleKeyStates = new HashMap<>();
-    private int runtimeSmokeTick;
     public static ArsonClient getInstance() { return instance; }
 
     @Override public void onInitializeClient() {
@@ -76,14 +75,14 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge = new WorldRenderBridge(featureContext, contextAdapter);
 
         StorageOverlay storageOverlay = new StorageOverlay(new StorageRenderProfile());
-        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), (ContainerESPModule) moduleManager.get("container-esp")));
+        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), requireModule(moduleManager, "container-esp", ContainerESPModule.class)));
         EntityScanner entityScanner = new EntityScanner();
-        worldRenderBridge.register(new EntityRenderStage(client, entityScanner, (EntityESPModule) moduleManager.get("entity-esp")));
-        worldRenderBridge.register(new ItemRenderStage(client, entityScanner, (ItemESPModule) moduleManager.get("item-esp")));
-        worldRenderBridge.register(new EntityInfoStage(client, entityScanner, (EntityInfoModule) moduleManager.get("entity-info")));
-        worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
-        worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
-        worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
+        worldRenderBridge.register(new EntityRenderStage(client, entityScanner, requireModule(moduleManager, "entity-esp", EntityESPModule.class)));
+        worldRenderBridge.register(new ItemRenderStage(client, entityScanner, requireModule(moduleManager, "item-esp", ItemESPModule.class)));
+        worldRenderBridge.register(new EntityInfoStage(client, entityScanner, requireModule(moduleManager, "entity-info", EntityInfoModule.class)));
+        worldRenderBridge.register(new EntityTracerStage(client, entityScanner, requireModule(moduleManager, "entity-tracers", EntityTracerModule.class)));
+        worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), requireModule(moduleManager, "block-esp", BlockESPModule.class)));
+        worldRenderBridge.register(new AimAssistRenderStage(client, requireModule(moduleManager, "aim-assist", AimAssistModule.class)));
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
@@ -95,7 +94,6 @@ public final class ArsonClient implements ClientModInitializer {
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
-            runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
@@ -106,7 +104,22 @@ public final class ArsonClient implements ClientModInitializer {
 
     public void saveConfig() { ConfigManager.save(Minecraft.getInstance(), moduleManager); }
 
+    private static <T extends Module> T requireModule(ModuleManager manager, String id, Class<T> expectedType) {
+        Module module = manager.get(id);
+        if (!expectedType.isInstance(module)) {
+            String actual = module == null ? "missing" : module.getClass().getName();
+            throw new IllegalStateException("Invalid module registration for '" + id + "': expected "
+                    + expectedType.getName() + ", found " + actual);
+        }
+        return expectedType.cast(module);
+    }
+
+    /**
+     * Runtime smoke automation is disabled in normal launches. CI must opt in with
+     * -Darson.ciRuntimeSmoke=true as well as the tick limit.
+     */
     private void runRuntimeSmoke(Minecraft client) {
+        if (!Boolean.getBoolean("arson.ciRuntimeSmoke")) return;
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
         if (limit <= 0) return;
         runtimeSmokeTick++;
