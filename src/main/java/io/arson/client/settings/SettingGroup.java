@@ -22,7 +22,7 @@ public final class SettingGroup {
     public String id() { return id; }
     public String name() { return name; }
     public String description() { return description; }
-    public SettingGroup visibleWhen(BooleanSupplier predicate) { visibility = Objects.requireNonNull(predicate); return this; }
+    public SettingGroup visibleWhen(BooleanSupplier predicate) { BooleanSupplier previous = visibility; BooleanSupplier next = Objects.requireNonNull(predicate); visibility = () -> previous.getAsBoolean() && next.getAsBoolean(); return this; }
     public boolean visible() { return visibility.getAsBoolean(); }
     public List<Setting<?>> settings() { return List.copyOf(settings); }
     void add(Setting<?> setting) { if (!settings.contains(setting)) settings.add(setting); }
