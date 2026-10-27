@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public abstract class Module {
     private final String id;
@@ -22,7 +23,7 @@ public abstract class Module {
     protected Module(String id, String name, Category category, String description) { this(id, name, category, description, 0); }
     protected Module(String id, String name, Category category, int defaultKeyCode) { this(id, name, category, "", defaultKeyCode); }
     protected Module(String id, String name, Category category, String description, int defaultKeyCode) {
-        this.id = id; this.name = name; this.category = category; this.description = description == null ? "" : description; this.keyCode = defaultKeyCode;
+        this.id = Objects.requireNonNull(id, "id"); this.name = Objects.requireNonNull(name, "name"); this.category = Objects.requireNonNull(category, "category"); this.description = description == null ? "" : description; this.keyCode = Math.max(0, defaultKeyCode);
     }
     public final synchronized void setEnabled(boolean enabled) {
         if (this.enabled == enabled || transitioning) return;
