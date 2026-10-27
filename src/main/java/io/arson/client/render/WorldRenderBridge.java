@@ -22,6 +22,7 @@ public final class WorldRenderBridge {
     private final FeatureContextAdapter contextAdapter;
     private final Supplier<Float> partialTickSource;
     private boolean registered;
+    private boolean active;
     private long frame;
 
     public WorldRenderBridge() { this(new FeatureContext(), null); }
@@ -35,13 +36,29 @@ public final class WorldRenderBridge {
     }
     public void register(WorldRenderStage stage) { if (stage != null && !stages.contains(stage)) stages.add(stage); }
     public void attach() {
-        if (registered) return;
+        if (registered) {
+            active = true;
+            return;
+        }
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
+            if (!active) return;
             frame++;
             renderFrame(context);
         });
         registered = true;
+        active = true;
     }
+
+    /**
+     * Disables this bridge's callback without registering a duplicate callback on reattach.
+     * Fabric's event API does not expose listener removal for this event, so the registered
+     * listener remains inert after detaching.
+     */
+    public void detach() {
+        active = false;
+    }
+
+    public boolean active() { return active; }
 
     /** Runs each pipeline component independently so one faulty stage cannot skip later stages. */
     void renderFrame(WorldRenderContext context) {
