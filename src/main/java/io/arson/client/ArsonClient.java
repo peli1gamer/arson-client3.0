@@ -34,6 +34,7 @@ import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
@@ -84,6 +85,10 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), requireModule(moduleManager, "block-esp", BlockESPModule.class)));
         worldRenderBridge.register(new AimAssistRenderStage(client, requireModule(moduleManager, "aim-assist", AimAssistModule.class)));
         worldRenderBridge.attach();
+        ClientLifecycleEvents.CLIENT_STOPPING.register(stoppingClient -> {
+            if (worldRenderBridge != null) worldRenderBridge.detach();
+            if (featureContext != null) featureContext.stop();
+        });
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             contextAdapter.tick(featureContext);
