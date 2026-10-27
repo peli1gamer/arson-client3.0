@@ -6,12 +6,18 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /** Single integration point between Arson's render pipeline and Fabric's world renderer. */
 public final class WorldRenderBridge {
+    private static final Logger LOGGER = Logger.getLogger(WorldRenderBridge.class.getName());
     private final List<WorldRenderStage> stages = new ArrayList<>();
+    private final Set<String> loggedFailures = new HashSet<>();
     private final FeatureContext featureContext;
     private final FeatureContextAdapter contextAdapter;
     private final Supplier<Float> partialTickSource;
@@ -32,11 +38,36 @@ public final class WorldRenderBridge {
         if (registered) return;
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             frame++;
-            if (contextAdapter != null) contextAdapter.render(featureContext, frame, partialTick());
-            for (WorldRenderStage stage : stages) stage.render(context);
+            renderFrame(context);
         });
         registered = true;
     }
+
+    /** Runs each pipeline component independently so one faulty stage cannot skip later stages. */
+    void renderFrame(WorldRenderContext context) {
+        if (contextAdapter != null) {
+            try {
+                contextAdapter.render(featureContext, frame, partialTick());
+            } catch (RuntimeException exception) {
+                logFailureOnce("feature-context-adapter", exception);
+            }
+        }
+        // Work on a stable snapshot in case a stage is registered or cleared during a callback.
+        for (WorldRenderStage stage : List.copyOf(stages)) {
+            try {
+                stage.render(context);
+            } catch (RuntimeException exception) {
+                logFailureOnce(stage.getClass().getName(), exception);
+            }
+        }
+    }
+
+    private void logFailureOnce(String component, RuntimeException exception) {
+        if (loggedFailures.add(component)) {
+            LOGGER.log(Level.WARNING, "World render component failed; later stages will continue: " + component, exception);
+        }
+    }
+
     float partialTick() { return Math.max(0.0f, Math.min(1.0f, partialTickSource.get())); }
     public void clear() { stages.clear(); }
     public int stageCount() { return stages.size(); }
