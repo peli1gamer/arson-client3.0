@@ -307,7 +307,7 @@ public final class ArsonScreen extends Screen {
 
     private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
     private static boolean isBindableKey(int key) {
-        if (key <= GLFW.GLFW_KEY_UNKNOWN || key > GLFW.GLFW_KEY_LAST) return false;
+        if (key <= 0 || key > GLFW.GLFW_KEY_LAST) return false;
         return key != GLFW.GLFW_KEY_LEFT_SHIFT && key != GLFW.GLFW_KEY_RIGHT_SHIFT
                 && key != GLFW.GLFW_KEY_LEFT_CONTROL && key != GLFW.GLFW_KEY_RIGHT_CONTROL
                 && key != GLFW.GLFW_KEY_LEFT_ALT && key != GLFW.GLFW_KEY_RIGHT_ALT
