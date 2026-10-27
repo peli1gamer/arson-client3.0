@@ -9,6 +9,26 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FeatureContextIntegrationTest {
     @Test
+    void lifecycleRemainsInitializedUntilWorldIsEnteredAndStopIsTerminal() {
+        FeatureContext context = new FeatureContext();
+        context.initialize();
+        assertEquals(FeatureContext.Lifecycle.INITIALIZED, context.lifecycle());
+
+        context.tick(new ClientState(1, 1, false, true, "", 0, 0, 0, 0, 0, 0, 0));
+        assertEquals(FeatureContext.Lifecycle.INITIALIZED, context.lifecycle());
+
+        context.tick(new ClientState(2, 2, true, false, "minecraft:overworld", 0, 64, 0, 0, 0, 20, 20));
+        assertEquals(FeatureContext.Lifecycle.WORLD, context.lifecycle());
+
+        context.tick(new ClientState(3, 3, false, true, "", 0, 0, 0, 0, 0, 0, 0));
+        assertEquals(FeatureContext.Lifecycle.DISCONNECTED, context.lifecycle());
+
+        context.stop();
+        context.tick(new ClientState(4, 4, true, false, "minecraft:overworld", 0, 64, 0, 0, 0, 20, 20));
+        assertEquals(FeatureContext.Lifecycle.STOPPED, context.lifecycle());
+        assertFalse(context.state().inWorld());
+    }
+    @Test
     void propagatesLiveTickStateAndRenderState() {
         FeatureContext context = new FeatureContext();
         context.initialize();
