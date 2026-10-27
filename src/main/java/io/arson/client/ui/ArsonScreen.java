@@ -107,6 +107,9 @@ public final class ArsonScreen extends Screen {
     private void rebuild() {
         String searchValue = search == null ? "" : search.getValue();
         String profileValue = profile == null ? "" : profile.getValue();
+        boolean restoreSearchFocus = search != null && search.isFocused();
+        boolean restoreProfileFocus = profile != null && profile.isFocused();
+        boolean restoreEditFocus = editBox != null && editBox.isFocused();
         clearWidgets();
         moduleButtons.clear();
         profile = null;
@@ -153,6 +156,9 @@ public final class ArsonScreen extends Screen {
         addModuleCards(visible);
         if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
         addFooter(r, profileValue);
+        if (restoreSearchFocus && search != null) search.setFocused(true);
+        if (restoreProfileFocus && profile != null) profile.setFocused(true);
+        if (restoreEditFocus && editBox != null) editBox.setFocused(true);
     }
 
     private List<Module> visibleModules() {
