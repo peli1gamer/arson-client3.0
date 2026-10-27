@@ -56,6 +56,7 @@ public final class ArsonClient implements ClientModInitializer {
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
     private final Map<String, Boolean> moduleKeyStates = new HashMap<>();
+    private int runtimeSmokeTick = 0;
     public static ArsonClient getInstance() { return instance; }
 
     @Override public void onInitializeClient() {
