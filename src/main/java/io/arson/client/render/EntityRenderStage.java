@@ -36,6 +36,8 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
     @Override
     public void render(WorldRenderContext context) {
         if (!module.enabled() || client.level == null || client.player == null) {
+            cachedTargets = List.of();
+            lastScanTick = Long.MIN_VALUE;
             lastVisibleCount = 0;
             return;
         }
@@ -53,9 +55,11 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
         var camera = context.worldState().cameraRenderState.pos;
         List<RenderBox> boxes = new ArrayList<>(cachedTargets.size());
+        List<EntityTarget> visibleTargets = new ArrayList<>(cachedTargets.size());
         for (EntityTarget target : cachedTargets) {
             float fade = distanceFade(target);
             if (fade <= 0.0f) continue;
+            visibleTargets.add(target);
             RenderStyle style = fadeStyle(styleFor(target.type()), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
@@ -67,7 +71,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
         }
         if (module.showHealth()) {
-            renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
+            renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, visibleTargets);
         }
     }
 
@@ -118,8 +122,9 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
             float maxX = module.healthRight() ? edgeX + width : edgeX;
             float minY = (float) (target.minY() - cameraY);
             float maxY = (float) (target.maxY() - cameraY);
-            float minZ = (float) (target.minZ() - cameraZ);
-            float maxZ = minZ + width;
+            float centerZ = (float) (target.centerZ() - cameraZ);
+            float minZ = centerZ - 0.025f;
+            float maxZ = centerZ + 0.025f;
             float filledMaxY = minY + (maxY - minY) * healthRatio;
 
             RenderStyle fadedBackground = fadeStyle(backgroundStyle, fade);
