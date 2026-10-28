@@ -47,9 +47,9 @@ public final class StorageOverlay {
             if (!profile.enabled(target.type())) {
                 continue;
             }
-            double dx = target.x() - cameraX;
-            double dy = target.y() - cameraY;
-            double dz = target.z() - cameraZ;
+            double dx = target.x() + target.width() * 0.5 - cameraX;
+            double dy = target.y() + target.height() * 0.5 - cameraY;
+            double dz = target.z() + target.depth() * 0.5 - cameraZ;
             if (dx * dx + dy * dy + dz * dz > rangeSquared) {
                 continue;
             }

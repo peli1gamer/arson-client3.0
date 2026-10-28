@@ -15,7 +15,7 @@ public final class RenderStyleUtil {
     }
 
     public static float[] rgba(RenderStyle style, boolean outline, float alphaOverride) {
-        RenderColor base = style.color();
+        RenderColor base = outline ? style.outlineColor() : style.fillColor();
         float alpha = Math.max(0.0f, Math.min(1.0f, alphaOverride));
         return rgba(new RenderColor(base.red(), base.green(), base.blue(), Math.round(alpha * 255.0f)));
     }

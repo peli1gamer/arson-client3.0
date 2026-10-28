@@ -12,7 +12,7 @@ import java.util.List;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
-    private static final int CACHE_REFRESH_TICKS = 40;
+    private static final int CACHE_REFRESH_TICKS = 10;
 
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
@@ -109,6 +109,26 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = 31 * hash + styleHash(module.diamondStyle());
+        hash = 31 * hash + styleHash(module.emeraldStyle());
+        hash = 31 * hash + styleHash(module.goldStyle());
+        hash = 31 * hash + styleHash(module.ironStyle());
+        hash = 31 * hash + styleHash(module.copperStyle());
+        hash = 31 * hash + styleHash(module.coalStyle());
+        hash = 31 * hash + styleHash(module.redstoneStyle());
+        hash = 31 * hash + styleHash(module.lapisStyle());
+        hash = 31 * hash + styleHash(module.quartzStyle());
+        hash = 31 * hash + styleHash(module.ancientDebrisStyle());
+        return hash;
+    }
+
+    private static int styleHash(com.arson.client.render.RenderStyle style) {
+        int hash = style.color().argb();
+        hash = 31 * hash + Boolean.hashCode(style.fill());
+        hash = 31 * hash + Boolean.hashCode(style.outline());
+        hash = 31 * hash + Float.hashCode(style.fillAlpha());
+        hash = 31 * hash + Float.hashCode(style.outlineAlpha());
+        hash = 31 * hash + Float.hashCode(style.lineWidth());
         return hash;
     }
 
