@@ -171,7 +171,7 @@ public final class ArsonScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(detailCollapsed ? "+" : "−"), b -> {
             detailCollapsed = !detailCollapsed;
             rebuild();
-        }).bounds(r.detail().x(), Math.max(geometry.panelY()+38, r.detail().y()-24), 22, 20).build());
+        }).bounds(r.detail().x()+2, r.detail().y()+2, 22, 20).build());
         if (!detailCollapsed) {
             if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
         }
