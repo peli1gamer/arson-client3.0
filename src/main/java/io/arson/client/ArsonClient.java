@@ -31,6 +31,8 @@ import io.arson.client.render.ItemRenderStage;
 import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
+import io.arson.client.render.WorldEffectsRenderStage;
+import io.arson.client.module.WorldEffectsModule;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -84,6 +86,7 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
         worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
+        worldRenderBridge.register(new WorldEffectsRenderStage(client, (WorldEffectsModule) moduleManager.get("world-effects")));
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
