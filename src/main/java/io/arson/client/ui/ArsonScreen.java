@@ -40,6 +40,7 @@ public final class ArsonScreen extends Screen {
     private final List<Module> renderedModules = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
+    private boolean categoryCollapsed;
     private String settingGroupId = "all";
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
     private Theme theme = Theme.MIDNIGHT;
@@ -143,6 +144,11 @@ public final class ArsonScreen extends Screen {
             alphabetical = !alphabetical; savePreferences(); rebuild();
         }).bounds(r.toolbar().x()+toolbarButtonX(5),r.toolbar().y(),toolbarButtonWidth(5),22).build());
 
+        int railToggleX = r.rail().x();
+        addRenderableWidget(Button.builder(Component.literal(categoryCollapsed ? "»" : "«"), b -> {
+            categoryCollapsed = !categoryCollapsed;
+            rebuild();
+        }).bounds(railToggleX, Math.max(geometry.panelY()+38, r.rail().y()-24), r.rail().width(), 20).build());
         addCategoryButtons(r);
         addModuleCards(visible);
         if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
@@ -175,7 +181,7 @@ public final class ArsonScreen extends Screen {
             Module.Category c=categories[i];
             int rowY=r.rail().y()+i*geometry.categoryRowHeight();
             int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
-            String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
+            String label = categoryCollapsed || geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
                 categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; settingGroupId="all"; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
