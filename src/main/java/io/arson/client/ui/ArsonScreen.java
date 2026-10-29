@@ -175,7 +175,7 @@ public final class ArsonScreen extends Screen {
             int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
-                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; settingGroupId="all"; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
             addRenderableWidget(b);
         }
@@ -198,7 +198,7 @@ public final class ArsonScreen extends Screen {
             if(card.bottom()>geometry.detail().bottom() && geometry.columns()==1) continue;
             Module chosen=m;
             Button b=Button.builder(Component.literal((m.favorite()?"★ ":"  ")+(m.enabled()?"● ":"○ ")+m.name()), x -> {
-                selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                if(selected!=chosen) settingGroupId="all"; selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(card.x(),card.y(),card.width(),card.height()).build();
             moduleButtons.add(b); addRenderableWidget(b);
         }
@@ -355,11 +355,11 @@ public final class ArsonScreen extends Screen {
         if(key==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}
         if(event.hasControlDown()&&key==GLFW.GLFW_KEY_K){if(search!=null){search.setFocused(true);focus=ClickGuiLayoutModel.Focus.SEARCH;}return true;}
         if(key==GLFW.GLFW_KEY_TAB){focus=nextFocus(event.hasShiftDown()?-1:1);applyFocus();return true;}
-        if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;moduleFocus=0;detailScroll=0;rebuild();return true;}
+        if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;settingGroupId="all";moduleFocus=0;detailScroll=0;rebuild();return true;}
         if(focus==ClickGuiLayoutModel.Focus.MODULE&&(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT||key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){
             int delta=(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT)?(key==GLFW.GLFW_KEY_LEFT?-1:1):(key==GLFW.GLFW_KEY_UP?-1:1);
             if(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN) delta*=geometry.columns();
-            List<Module> visible=visibleModules();moduleFocus=ClickGuiLayoutModel.moveModule(moduleFocus,delta,visible.size(),geometry.columns());Module m=ClickGuiLayoutModel.safeGet(visible,moduleFocus);if(m!=null){selected=m;scroll=0;rebuild();}return true;
+            List<Module> visible=visibleModules();moduleFocus=ClickGuiLayoutModel.moveModule(moduleFocus,delta,visible.size(),geometry.columns());Module m=ClickGuiLayoutModel.safeGet(visible,moduleFocus);if(m!=null){if(selected!=m)settingGroupId="all";selected=m;scroll=0;detailScroll=0;rebuild();}return true;
         }
         if(key==GLFW.GLFW_KEY_ENTER&&focus==ClickGuiLayoutModel.Focus.MODULE){toggleSelected();return true;}
         return super.keyPressed(event);
@@ -374,6 +374,7 @@ public final class ArsonScreen extends Screen {
 
     @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused()){scroll=0;rebuild();}return handled;}
     @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
+        if(vertical==0)return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
         if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){
             int direction=vertical>0?-1:1;
             if(geometry.detail().contains(mouseX,mouseY)) detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+direction*3*26));
