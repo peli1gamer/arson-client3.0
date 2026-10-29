@@ -157,8 +157,6 @@ public final class CustomSkyShader {
                 count * DefaultVertexFormat.POSITION_TEX.getVertexSize())) {
             BufferBuilder builder = new BufferBuilder(allocator, VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX);
             for (int lat = 0; lat < LATITUDE_SEGMENTS; lat++) {
-                float v0 = (float) lat / LATITUDE_SEGMENTS;
-                float v1 = (float) (lat + 1) / LATITUDE_SEGMENTS;
                 double latitude0 = (Math.PI * 0.5) * lat / LATITUDE_SEGMENTS;
                 double latitude1 = (Math.PI * 0.5) * (lat + 1) / LATITUDE_SEGMENTS;
                 for (int lon = 0; lon < LONGITUDE_SEGMENTS; lon++) {
