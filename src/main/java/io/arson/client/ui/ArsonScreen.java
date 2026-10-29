@@ -394,10 +394,26 @@ public final class ArsonScreen extends Screen {
         g.drawString(font,""+ArsonClient.getInstance().modules().enabledCount()+" enabled",geometry.panelX()+geometry.panelWidth()-92,geometry.panelY()+12,0xFFB8C1CC);
         g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
         g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
+        rounded(g,r.moduleList().x(),r.moduleList().y(),r.moduleList().width(),r.moduleList().height(),0x501A202A);
+        rounded(g,r.detail().x(),r.detail().y(),r.detail().width(),r.detail().height(),0x501A202A);
+        g.fill(r.moduleList().right(),r.moduleList().y()+4,r.moduleList().right()+1,r.moduleList().bottom()-4,0x553A4657);
         if(selected!=null){
+            g.fill(r.detail().x()+7,r.detail().y()+5,r.detail().right()-7,r.detail().y()+6,accentColor());
             g.drawString(font,selected.name(),r.detail().x()+8,r.detail().y()-12,accentColor());
         }
+        int selectedCategoryY=r.rail().y()+categoryFocus*geometry.categoryRowHeight();
+        g.fill(r.rail().x(),selectedCategoryY,r.rail().x()+2,Math.min(r.rail().bottom(),selectedCategoryY+Math.min(24,geometry.categoryRowHeight())),accentColor());
+        g.fill(geometry.panelX()+1,geometry.panelY()+33,geometry.panelX()+geometry.panelWidth()-1,geometry.panelY()+34,accentColor());
         super.render(g,mouseX,mouseY,delta);
+        for(int i=0;i<renderedModules.size();i++){
+            Module module=renderedModules.get(i);
+            ClickGuiLayoutModel.Rect card=geometry.moduleCard(i,renderedModules.size());
+            if(module==selected) g.renderOutline(card.x(),card.y(),card.width(),card.height(),accentColor());
+            if(module.enabled()) g.fill(card.x()+1,card.y()+3,card.x()+3,card.bottom()-3,accentColor());
+        }
+        g.drawString(font,"MODULES",r.moduleList().x()+2,r.moduleList().y()-10,0xFF8D99AA);
+        g.drawString(font,"SETTINGS",r.detail().x()+2,r.detail().y()-10,0xFF8D99AA);
+        g.fill(r.footer().x(),r.footer().y(),r.footer().right(),r.footer().y()+1,0x553A4657);
     }
 
     private static void rounded(GuiGraphics g,int x,int y,int w,int h,int color){
