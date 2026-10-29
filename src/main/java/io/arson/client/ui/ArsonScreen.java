@@ -42,6 +42,7 @@ public final class ArsonScreen extends Screen {
     private int scroll, detailScroll;
     private boolean categoryCollapsed;
     private boolean detailCollapsed;
+    private int railWidthBeforeCollapse = -1;
     private String settingGroupId = "all";
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
     private Theme theme = Theme.MIDNIGHT;
@@ -53,6 +54,21 @@ public final class ArsonScreen extends Screen {
     @Override protected void init() {
         syncPreferences();
         geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
+        if(categoryCollapsed && geometry.mode()!=ClickGuiLayoutModel.Mode.NARROW) {
+            var g=geometry;
+            var rail=new ClickGuiLayoutModel.Rect(g.rail().x(),g.rail().y(),Math.min(28,g.rail().width()),g.rail().height());
+            int contentX=rail.right()+8;
+            int contentW=Math.max(100,g.panelX()+g.panelWidth()-12-contentX);
+            var searchRect=new ClickGuiLayoutModel.Rect(contentX,g.search().y(),contentW,g.search().height());
+            var toolbarRect=new ClickGuiLayoutModel.Rect(contentX,g.toolbar().y(),contentW,g.toolbar().height());
+            var contentRect=new ClickGuiLayoutModel.Rect(contentX,g.content().y(),contentW,g.content().height());
+            int cols=contentW>=540?2:1, gap=cols==2?9:6;
+            ClickGuiLayoutModel.Rect list,detail;
+            if(cols==2){int listW=Math.max(100,(contentW-gap)/2);list=new ClickGuiLayoutModel.Rect(contentX,contentRect.y(),listW,contentRect.height());int dx=list.right()+gap;detail=new ClickGuiLayoutModel.Rect(dx,contentRect.y(),Math.max(80,contentX+contentW-dx),contentRect.height());}
+            else{int lh=Math.min(contentRect.height(),Math.max(52,contentRect.height()/2));list=new ClickGuiLayoutModel.Rect(contentX,contentRect.y(),contentW,lh);int dy=list.bottom()+gap;detail=new ClickGuiLayoutModel.Rect(contentX,dy,contentW,Math.max(40,contentRect.bottom()-dy));}
+            int cw=Math.max(70,(list.width()-gap*(cols-1))/cols);
+            geometry=new ClickGuiLayoutModel.Geometry(g.mode(),g.panelX(),g.panelY(),g.panelWidth(),g.panelHeight(),rail,searchRect,toolbarRect,contentRect,list,detail,g.footer(),cols,cw,g.cardHeight(),gap,g.safeMargin(),g.categoryRowHeight());
+        }
         rebuild();
     }
 
