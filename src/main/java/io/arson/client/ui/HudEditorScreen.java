@@ -34,7 +34,7 @@ public final class HudEditorScreen extends Screen {
     @Override protected void init(){hud=(HudModule)ArsonClient.getInstance().modules().get("hud");layout=(HudLayoutModule)ArsonClient.getInstance().modules().get("hud-layout");arrayList=(ArrayListModule)ArsonClient.getInstance().modules().get("array-list");if(hud==null)return;
         repairLayout();
         int selectorGap=5;
-        int selectorWidth=Math.max(34,(width-20-selectorGap*(ELEMENTS.length-1))/ELEMENTS.length);
+        int selectorWidth=Math.max(16,(width-20-selectorGap*(ELEMENTS.length-1))/ELEMENTS.length);
         String[] shortNames={"Watermark","Coords","FPS","Player","World","Array"};
         for(int i=0;i<ELEMENTS.length;i++){
             final String e=ELEMENTS[i];
@@ -56,7 +56,8 @@ public final class HudEditorScreen extends Screen {
         addHudButton("Select All",78,cursor,()->{selection.replace(java.util.Arrays.asList(ELEMENTS));rebuild();});
         addHudButton("Clear Selection",98,cursor,()->{selection.clear();rebuild();});
         toolbarBottom=cursor[1]+27;
-        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(Math.max(10,width-85),Math.max(toolbarBottom+8,height-30),75,22).build());
+        int doneY=Math.max(36,Math.min(toolbarBottom+8,height-26));
+        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(Math.max(4,width-79),doneY,75,22).build());
     }
     private void addHudButton(String label,int preferredWidth,int[] cursor,Runnable action){
         int available=Math.max(40,width-20);
@@ -93,7 +94,7 @@ public final class HudEditorScreen extends Screen {
             else if(setting instanceof io.arson.client.settings.StringSetting str&&str.id().equals(e+"-align"))str.set(s.alignment);
         }}
     private void anchorSelected(){if(layout==null)return;HudLayoutModule.Anchor[] anchors=HudLayoutModule.Anchor.values();for(String e:selection.elements()){if("array-list".equals(e))continue;Snapshot current=snapshot(e);HudLayoutModule.Anchor next=anchors[(layout.anchor(e).ordinal()+1)%anchors.length];layout.setAnchorPreservingPosition(e,next,current.x,current.y,width,height,190,hud.scale()*hud.elementScale(e)*35);}}
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.button()==0){for(String e:ELEMENTS)if(hit(e,event.x(),event.y())){boolean additive=event.hasShiftDown();if(additive&&selection.contains(e)){selection.select(e,true);dragging=false;draggedElement=null;rebuild();return true;}selection.select(e,additive);draggedElement=e;double[]p=position(e);offsetX=event.x()-p[0];offsetY=event.y()-p[1];dragging=true;return true;}}return super.mouseClicked(event,doubleClick);}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.y()<Math.min(height,toolbarBottom+12))return super.mouseClicked(event,doubleClick);if(event.button()==0){for(String e:ELEMENTS)if(hit(e,event.x(),event.y())){boolean additive=event.hasShiftDown();if(additive&&selection.contains(e)){selection.select(e,true);dragging=false;draggedElement=null;rebuild();return true;}selection.select(e,additive);draggedElement=e;double[]p=position(e);offsetX=event.x()-p[0];offsetY=event.y()-p[1];dragging=true;return true;}}return super.mouseClicked(event,doubleClick);}
     @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0&&draggedElement!=null&&selection.contains(draggedElement)){double x=event.x()-offsetX,y=event.y()-offsetY;double[] anchor=position(draggedElement);double dx=x-anchor[0],dy=y-anchor[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}return true;}return super.mouseDragged(event,dragX,dragY);}
     @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;draggedElement=null;repairLayout();save();return true;}return super.mouseReleased(event);}
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
