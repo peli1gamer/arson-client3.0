@@ -54,7 +54,7 @@ public final class ArsonScreen extends Screen {
     @Override protected void init() {
         syncPreferences();
         geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
-        if(categoryCollapsed && geometry.mode()!=ClickGuiLayoutModel.Mode.NARROW) {
+        if(categoryCollapsed) {
             var g=geometry;
             var rail=new ClickGuiLayoutModel.Rect(g.rail().x(),g.rail().y(),Math.min(28,g.rail().width()),g.rail().height());
             int contentX=rail.right()+8;
@@ -62,7 +62,7 @@ public final class ArsonScreen extends Screen {
             var searchRect=new ClickGuiLayoutModel.Rect(contentX,g.search().y(),contentW,g.search().height());
             var toolbarRect=new ClickGuiLayoutModel.Rect(contentX,g.toolbar().y(),contentW,g.toolbar().height());
             var contentRect=new ClickGuiLayoutModel.Rect(contentX,g.content().y(),contentW,g.content().height());
-            int cols=contentW>=540?2:1, gap=cols==2?9:6;
+            int cols=geometry.mode()==ClickGuiLayoutModel.Mode.NARROW?1:(contentW>=540?2:1), gap=cols==2?9:6;
             ClickGuiLayoutModel.Rect list,detail;
             if(cols==2){int listW=Math.max(100,(contentW-gap)/2);list=new ClickGuiLayoutModel.Rect(contentX,contentRect.y(),listW,contentRect.height());int dx=list.right()+gap;detail=new ClickGuiLayoutModel.Rect(dx,contentRect.y(),Math.max(80,contentX+contentW-dx),contentRect.height());}
             else{int lh=Math.min(contentRect.height(),Math.max(52,contentRect.height()/2));list=new ClickGuiLayoutModel.Rect(contentX,contentRect.y(),contentW,lh);int dy=list.bottom()+gap;detail=new ClickGuiLayoutModel.Rect(contentX,dy,contentW,Math.max(40,contentRect.bottom()-dy));}
