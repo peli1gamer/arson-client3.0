@@ -37,6 +37,7 @@ public final class ArsonScreen extends Screen {
     private StringSetting editingString;
     private ColorSetting editingColor;
     private final List<Button> moduleButtons = new ArrayList<>();
+    private final List<Module> renderedModules = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
     private String settingGroupId = "all";
@@ -101,6 +102,7 @@ public final class ArsonScreen extends Screen {
         String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
         moduleButtons.clear();
+        renderedModules.clear();
         profile = null;
         editBox = null;
 
@@ -188,8 +190,9 @@ public final class ArsonScreen extends Screen {
     }
 
     private void addModuleCards(List<Module> visible) {
-        int maxCards = Math.min(4, Math.max(1, Math.min(geometry.visibleRows(visible.size()), Math.max(1, geometry.moduleList().height() / (geometry.cardHeight()+geometry.cardGap()))) * geometry.columns()));
-        int start = Math.min(scroll, Math.max(0, visible.size()-1));
+        int maxCards = Math.min(visible.size(), visibleCardCapacity());
+        int start = Math.max(0, Math.min(scroll, maxModuleScroll(visible)));
+        scroll = start;
         int shown=0;
         for(int i=start;i<visible.size() && shown<maxCards;i++,shown++){
             Module m=visible.get(i);
@@ -200,8 +203,21 @@ public final class ArsonScreen extends Screen {
             Button b=Button.builder(Component.literal((m.favorite()?"★ ":"  ")+(m.enabled()?"● ":"○ ")+m.name()), x -> {
                 if(selected!=chosen) settingGroupId="all"; selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(card.x(),card.y(),card.width(),card.height()).build();
-            moduleButtons.add(b); addRenderableWidget(b);
+            moduleButtons.add(b); renderedModules.add(m); addRenderableWidget(b);
         }
+    }
+
+    private int visibleCardCapacity() {
+        int stride = geometry.cardHeight() + geometry.cardGap();
+        int rows = Math.max(1, (geometry.moduleList().height() + geometry.cardGap()) / Math.max(1, stride));
+        return rows * Math.max(1, geometry.columns());
+    }
+
+    private int maxModuleScroll(List<Module> visible) {
+        int columns = Math.max(1, geometry.columns());
+        int visibleRows = Math.max(1, visibleCardCapacity() / columns);
+        int totalRows = (visible.size() + columns - 1) / columns;
+        return Math.max(0, totalRows - visibleRows) * columns;
     }
 
     private void addDetailWidgets(Rects r) {
@@ -378,7 +394,7 @@ public final class ArsonScreen extends Screen {
         if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){
             int direction=vertical>0?-1:1;
             if(geometry.detail().contains(mouseX,mouseY)) detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+direction*3*26));
-            else {List<Module> visible=visibleModules();int step=geometry.columns()*2;int max=Math.max(0,((visible.size()+geometry.columns()-1)/geometry.columns())*geometry.columns()-4);scroll=Math.max(0,Math.min(max,scroll+direction*step));}
+            else {List<Module> visible=visibleModules();int step=geometry.columns()*2;int max=maxModuleScroll(visible);scroll=Math.max(0,Math.min(max,scroll+direction*step));}
             rebuild();return true;
         }
         return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
@@ -425,6 +441,7 @@ public final class ArsonScreen extends Screen {
     private record Rects(ClickGuiLayoutModel.Geometry g){
         ClickGuiLayoutModel.Rect rail(){return g.rail();}
         ClickGuiLayoutModel.Rect detail(){return g.detail();}
+        ClickGuiLayoutModel.Rect moduleList(){return g.moduleList();}
         ClickGuiLayoutModel.Rect search(){return g.search();}
         ClickGuiLayoutModel.Rect toolbar(){return g.toolbar();}
         ClickGuiLayoutModel.Rect footer(){return g.footer();}
