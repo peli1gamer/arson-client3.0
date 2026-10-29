@@ -423,8 +423,9 @@ public final class ArsonScreen extends Screen {
         g.drawString(font,""+ArsonClient.getInstance().modules().enabledCount()+" enabled",geometry.panelX()+geometry.panelWidth()-92,geometry.panelY()+12,0xFFB8C1CC);
         g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
         g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
+        g.drawString(font,categoryCollapsed ? "CATEGORIES +" : "CATEGORIES −",geometry.rail().x()+3,geometry.rail().y()-14,0xFF9EADBF);
         rounded(g,r.moduleList().x(),r.moduleList().y(),r.moduleList().width(),r.moduleList().height(),0x501A202A);
-        rounded(g,r.detail().x(),r.detail().y(),r.detail().width(),r.detail().height(),0x501A202A);
+        if(!detailCollapsed) rounded(g,r.detail().x(),r.detail().y(),r.detail().width(),r.detail().height(),0x501A202A);
         g.fill(r.moduleList().right(),r.moduleList().y()+4,r.moduleList().right()+1,r.moduleList().bottom()-4,0x553A4657);
         if(selected!=null){
             g.fill(r.detail().x()+7,r.detail().y()+5,r.detail().right()-7,r.detail().y()+6,accentColor());
