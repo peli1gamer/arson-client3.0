@@ -1,6 +1,7 @@
 package io.arson.client.ui;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ public final class HudSelectionModel {
         if (!selected.add(element) && additive) selected.remove(element);
     }
     public boolean contains(String element) { return selected.contains(element); }
-    public Set<String> elements() { return Set.copyOf(selected); }
+    public Set<String> elements() { return Collections.unmodifiableSet(new LinkedHashSet<>(selected)); }
     public int size() { return selected.size(); }
     public void clear() { selected.clear(); }
     public void replace(Collection<String> elements) { selected.clear(); if (elements != null) for (String e : elements) if (e != null && !e.isBlank()) selected.add(e); }

@@ -17,7 +17,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,26 +27,44 @@ public final class HudEditorScreen extends Screen {
     private static final String[] ELEMENTS={"watermark","coordinates","fps","player-info","world-info","array-list"};
     private final Screen parent; private HudModule hud; private HudLayoutModule layout; private ArrayListModule arrayList;
     private final HudSelectionModel selection=new HudSelectionModel("watermark");
-    private final Map<String,Snapshot> clipboard=new HashMap<>();
-    private boolean dragging; private double offsetX,offsetY;
+    private final Map<String,Snapshot> clipboard=new LinkedHashMap<>();
+    private boolean dragging; private String draggedElement; private double offsetX,offsetY;
+    private int toolbarBottom = 136;
     public HudEditorScreen(Screen parent){super(Component.literal("HUD Editor"));this.parent=parent;}
     @Override protected void init(){hud=(HudModule)ArsonClient.getInstance().modules().get("hud");layout=(HudLayoutModule)ArsonClient.getInstance().modules().get("hud-layout");arrayList=(ArrayListModule)ArsonClient.getInstance().modules().get("array-list");if(hud==null)return;
         repairLayout();
-        for(int i=0;i<ELEMENTS.length;i++){final String e=ELEMENTS[i];addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+e),b->{selection.select(e,false);rebuild();}).bounds(10+i*92,45,88,22).build());}
-        int y=78;
-        addRenderableWidget(Button.builder(Component.literal("Visible: "+(allVisible()?"ON":"MIXED")),b->{toggleVisible();save();rebuild();}).bounds(10,y,120,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale -"),b->{adjustScale(-.05);save();rebuild();}).bounds(135,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale +"),b->{adjustScale(.05);save();rebuild();}).bounds(210,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Align"),b->{cycleAlignment();save();rebuild();}).bounds(285,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Anchor"),b->{anchorSelected();save();rebuild();}).bounds(360,y,75,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Copy"),b->{copySelected();rebuild();}).bounds(440,y,60,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Paste"),b->{pasteSelected();save();rebuild();}).bounds(505,y,60,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Duplicate"),b->{duplicateSelected();save();rebuild();}).bounds(570,y,78,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Background"),b->{toggleBackground();save();rebuild();}).bounds(653,y,90,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Reset Selected"),b->{resetSelected();save();rebuild();}).bounds(748,y,105,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Select All"),b->{selection.replace(Set.of(ELEMENTS));rebuild();}).bounds(10,106,85,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Clear Selection"),b->{selection.clear();rebuild();}).bounds(100,106,100,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(width-85,height-30,75,22).build());
+        int selectorGap=5;
+        int selectorWidth=Math.max(16,(width-20-selectorGap*(ELEMENTS.length-1))/ELEMENTS.length);
+        String[] shortNames={"Watermark","Coords","FPS","Player","World","Array"};
+        for(int i=0;i<ELEMENTS.length;i++){
+            final String e=ELEMENTS[i];
+            String label=selectorWidth<72?shortNames[i]:e;
+            int x=10+i*(selectorWidth+selectorGap);
+            addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+label),b->{selection.select(e,false);rebuild();}).bounds(x,45,selectorWidth,22).build());
+        }
+        int[] cursor={10,78};
+        addHudButton("Visible: "+(allVisible()?"ON":"MIXED"),112,cursor,()->{toggleVisible();save();rebuild();});
+        addHudButton("Scale -",64,cursor,()->{adjustScale(-.05);save();rebuild();});
+        addHudButton("Scale +",64,cursor,()->{adjustScale(.05);save();rebuild();});
+        addHudButton("Align",58,cursor,()->{cycleAlignment();save();rebuild();});
+        addHudButton("Anchor",64,cursor,()->{anchorSelected();save();rebuild();});
+        addHudButton("Copy",52,cursor,()->{copySelected();rebuild();});
+        addHudButton("Paste",52,cursor,()->{pasteSelected();save();rebuild();});
+        addHudButton("Duplicate",76,cursor,()->{duplicateSelected();save();rebuild();});
+        addHudButton("Background",84,cursor,()->{toggleBackground();save();rebuild();});
+        addHudButton("Reset Selected",104,cursor,()->{resetSelected();save();rebuild();});
+        addHudButton("Select All",78,cursor,()->{selection.replace(java.util.Arrays.asList(ELEMENTS));rebuild();});
+        addHudButton("Clear Selection",98,cursor,()->{selection.clear();rebuild();});
+        toolbarBottom=cursor[1]+27;
+        int doneY=Math.max(36,Math.min(toolbarBottom+8,height-26));
+        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(Math.max(4,width-79),doneY,75,22).build());
+    }
+    private void addHudButton(String label,int preferredWidth,int[] cursor,Runnable action){
+        int available=Math.max(40,width-20);
+        int buttonWidth=Math.min(preferredWidth,available);
+        if(cursor[0]+buttonWidth>width-10){cursor[0]=10;cursor[1]+=27;}
+        addRenderableWidget(Button.builder(Component.literal(label),b->action.run()).bounds(cursor[0],cursor[1],buttonWidth,22).build());
+        cursor[0]+=buttonWidth+5;
     }
     private void rebuild(){clearWidgets();init();}
     private void repairLayout(){
@@ -76,11 +94,33 @@ public final class HudEditorScreen extends Screen {
             else if(setting instanceof io.arson.client.settings.StringSetting str&&str.id().equals(e+"-align"))str.set(s.alignment);
         }}
     private void anchorSelected(){if(layout==null)return;HudLayoutModule.Anchor[] anchors=HudLayoutModule.Anchor.values();for(String e:selection.elements()){if("array-list".equals(e))continue;Snapshot current=snapshot(e);HudLayoutModule.Anchor next=anchors[(layout.anchor(e).ordinal()+1)%anchors.length];layout.setAnchorPreservingPosition(e,next,current.x,current.y,width,height,190,hud.scale()*hud.elementScale(e)*35);}}
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.button()==0){for(String e:ELEMENTS)if(hit(e,event.x(),event.y())){selection.select(e,event.hasShiftDown());double[]p=position(e);offsetX=event.x()-p[0];offsetY=event.y()-p[1];dragging=true;return true;}}return super.mouseClicked(event,doubleClick);}
-    @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0){double x=event.x()-offsetX,y=event.y()-offsetY;if(selection.size()>0){String anchor=selection.elements().iterator().next();double[] a=position(anchor);double dx=x-a[0],dy=y-a[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}}return true;}return super.mouseDragged(event,dragX,dragY);}
-    @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;repairLayout();save();return true;}return super.mouseReleased(event);}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(event.y()<Math.min(height,toolbarBottom+12))return super.mouseClicked(event,doubleClick);if(event.button()==0){for(String e:ELEMENTS)if(hit(e,event.x(),event.y())){boolean additive=event.hasShiftDown();if(additive&&selection.contains(e)){selection.select(e,true);dragging=false;draggedElement=null;rebuild();return true;}selection.select(e,additive);draggedElement=e;double[]p=position(e);offsetX=event.x()-p[0];offsetY=event.y()-p[1];dragging=true;return true;}}return super.mouseClicked(event,doubleClick);}
+    @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0&&draggedElement!=null&&selection.contains(draggedElement)){double x=event.x()-offsetX,y=event.y()-offsetY;double[] anchor=position(draggedElement);double dx=x-anchor[0],dy=y-anchor[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}return true;}return super.mouseDragged(event,dragX,dragY);}
+    @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;draggedElement=null;repairLayout();save();return true;}return super.mouseReleased(event);}
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
-    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(0,0,width,height,0x66000000);graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);graphics.drawString(font,"Shift-click group | drag | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);for(String e:selection.elements())if(visible(e)){double[]p=position(e);int x=(int)p[0],y=(int)p[1];graphics.renderOutline(x-4,y-4,190,35,0xFF55AAFF);graphics.drawString(font,e,x,y+6,0xFFFFFFFF);}super.render(graphics,mouseX,mouseY,delta);}
+    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){
+        graphics.fill(0,0,width,height,0x66000000);
+        graphics.fill(0,0,width,36,0xE50D1118);
+        graphics.fill(0,37,width,toolbarBottom+7,0xC9161C25);
+        graphics.fill(0,35,width,36,0xFF4C8DFF);
+        int canvasTop=Math.min(height,toolbarBottom+12);
+        for(int x=0;x<width;x+=24)graphics.fill(x,canvasTop,x+1,height,0x183E536B);
+        for(int y=canvasTop;y<height;y+=24)graphics.fill(0,y,width,y+1,0x183E536B);
+        graphics.drawString(font,"HUD EDITOR",10,8,0xFFFFFFFF);
+        graphics.drawString(font,selection.size()+" selected  •  Shift-click to group",10,21,0xFF9EADBF);
+        graphics.fill(10,toolbarBottom+7,width-10,toolbarBottom+8,0x554C8DFF);
+        super.render(graphics,mouseX,mouseY,delta);
+        for(String e:selection.elements())if(visible(e)){
+            double[]p=position(e);
+            double scale="array-list".equals(e)?arrayList.scale():hud.scale()*hud.elementScale(e);
+            int x=(int)Math.round(p[0]),y=(int)Math.round(p[1]);
+            int w=Math.max(1,(int)Math.round(190*scale)),h=Math.max(1,(int)Math.round(35*scale));
+            graphics.renderOutline(x-4,y-4,w+8,h+8,0xFF55AAFF);
+            graphics.fill(x-4,y-4,x+w+4,y-2,0xFF55AAFF);
+            graphics.fill(x-4,y-4,x+Math.min(w+4,font.width(e)+10),y+10,0xD9253448);
+            graphics.drawString(font,e,x+1,y-2,0xFFFFFFFF);
+        }
+    }
     @Override public void onClose(){save();minecraft.setScreen(parent);}
     private record Snapshot(String source,boolean visible,double x,double y,double scale,boolean background,String alignment,int color,HudLayoutModule.Anchor anchor){}
     static final class HudClipboardCompatible {

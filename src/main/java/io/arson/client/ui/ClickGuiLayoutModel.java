@@ -47,20 +47,22 @@ public final class ClickGuiLayoutModel {
         int categoryRowHeight=Math.max(18,Math.min(28,Math.max(18,(rail.height()-4)/categoryRows)));
         int cols=mode==Mode.NARROW?1:contentW>=540?2:1,cardGap=mode==Mode.NARROW?6:9;
         Rect list,detail;
+        int cardH=mode==Mode.NARROW?30:54;
         if(cols==2){
             int listW=Math.max(100,(contentW-cardGap)*5/10);
             list=new Rect(content.x(),content.y(),listW,content.height());
             int dx=list.right()+cardGap;
             detail=new Rect(dx,content.y(),Math.max(80,content.right()-dx),content.height());
         }else{
-            int listH=Math.max(52,Math.min(content.height()/2,mode==Mode.NARROW?150:190));
+            int minListH=Math.min(content.height(),Math.max(52,cardH));
+            int desiredListH=4*(cardH+cardGap);
+            int listH=Math.min(Math.max(minListH,Math.min(desiredListH,Math.max(minListH,content.height()/2))),Math.max(minListH,content.height()-40));
             list=new Rect(content.x(),content.y(),content.width(),listH);
             int dy=list.bottom()+cardGap;
             detail=new Rect(content.x(),dy,content.width(),Math.max(40,content.bottom()-dy));
         }
         Rect footer=new Rect(x+pad,y+ph-footerH-pad/2,Math.max(80,pw-pad*2),footerH);
         int cardW=Math.max(70,(list.width()-cardGap*(cols-1))/cols);
-        int cardH=mode==Mode.NARROW?40:54;
         return new Geometry(mode,x,y,pw,ph,rail,search,toolbar,content,list,detail,footer,cols,cardW,cardH,cardGap,safe,categoryRowHeight);
     }
 
