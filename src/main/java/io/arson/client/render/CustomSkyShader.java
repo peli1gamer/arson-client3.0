@@ -167,8 +167,8 @@ public final class CustomSkyShader {
                     addSkyVertex(builder, longitude0, latitude0, u0, 0.5F - (float) (latitude0 / Math.PI));
                     addSkyVertex(builder, longitude1, latitude0, u1, 0.5F - (float) (latitude0 / Math.PI));
                     addSkyVertex(builder, longitude1, latitude1, u1, 0.5F - (float) (latitude1 / Math.PI));
-                    addSkyVertex(builder, longitude0, latitude0, u0, 1.0F - v0);
-                    addSkyVertex(builder, longitude1, latitude1, u1, 1.0F - v1);
+                    addSkyVertex(builder, longitude0, latitude0, u0, 0.5F - (float) (latitude0 / Math.PI));
+                    addSkyVertex(builder, longitude1, latitude1, u1, 0.5F - (float) (latitude1 / Math.PI));
                     addSkyVertex(builder, longitude0, latitude1, u0, 0.5F - (float) (latitude1 / Math.PI));
                 }
             }
