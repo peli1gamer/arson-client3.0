@@ -36,6 +36,21 @@ class ModuleCatalogueTest {
         );
     }
 
+
+    @Test
+    void customSkyExposesShaderControls() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        var module = manager.get("custom-sky");
+        assertNotNull(module);
+        assertEquals("Render", module.category().displayName());
+        assertTrue(module.description().contains("sky shader"));
+        assertAll(
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("custom-sky"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-tint")))
+        );
+    }
+
     @Test
     void coreFeatureFamiliesRemainDiscoverableAsConcreteModules() {
         ModuleManager manager = new ModuleManager();
