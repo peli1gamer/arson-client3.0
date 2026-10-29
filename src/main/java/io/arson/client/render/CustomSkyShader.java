@@ -3,6 +3,7 @@ package io.arson.client.render;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -26,10 +27,12 @@ import java.util.OptionalInt;
 /** GPU-backed sky dome using Arson's registered core shader. */
 public final class CustomSkyShader {
     private static final RenderPipeline PIPELINE = RenderPipelines.register(
-            RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            RenderPipeline.builder()
                     .withLocation(Identifier.fromNamespaceAndPath("arson", "pipeline/custom_sky"))
                     .withVertexShader("arson:core/custom_sky")
                     .withFragmentShader("arson:core/custom_sky")
+                    .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                    .withUniform("Projection", UniformType.UNIFORM_BUFFER)
                     .withDepthWrite(false)
                     .withVertexFormat(DefaultVertexFormat.POSITION, VertexFormat.Mode.TRIANGLE_FAN)
                     .build()
@@ -71,19 +74,13 @@ public final class CustomSkyShader {
     private static GpuBuffer domeBuffer() {
         if (domeBuffer != null) return domeBuffer;
         int segments = 64;
-        int rings = 4;
-        int count = 2 + segments * rings;
+        int count = segments + 2;
         try (ByteBufferBuilder allocator = ByteBufferBuilder.exactlySized(count * DefaultVertexFormat.POSITION.getVertexSize())) {
             BufferBuilder builder = new BufferBuilder(allocator, VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION);
             builder.addVertex(0.0F, 512.0F, 0.0F);
-            for (int ring = 1; ring <= rings; ring++) {
-                float theta = (float) (Math.PI * 0.5 * ring / rings);
-                float radius = (float) (512.0 * Math.cos(theta));
-                float y = (float) (512.0 * Math.sin(theta));
-                for (int i = 0; i <= segments; i++) {
-                    float angle = (float) (Math.PI * 2.0 * i / segments);
-                    builder.addVertex((float) (Math.cos(angle) * radius), y, (float) (Math.sin(angle) * radius));
-                }
+            for (int i = 0; i <= segments; i++) {
+                float angle = (float) (Math.PI * 2.0 * i / segments);
+                builder.addVertex((float) (Math.cos(angle) * 512.0), 0.0F, (float) (Math.sin(angle) * 512.0));
             }
             try (MeshData mesh = builder.buildOrThrow()) {
                 domeBuffer = RenderSystem.getDevice().createBuffer(() -> "Arson custom sky dome", 32, mesh.vertexBuffer());
