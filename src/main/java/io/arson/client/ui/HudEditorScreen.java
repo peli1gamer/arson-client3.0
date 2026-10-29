@@ -29,24 +29,41 @@ public final class HudEditorScreen extends Screen {
     private final HudSelectionModel selection=new HudSelectionModel("watermark");
     private final Map<String,Snapshot> clipboard=new LinkedHashMap<>();
     private boolean dragging; private String draggedElement; private double offsetX,offsetY;
+    private int toolbarBottom = 136;
     public HudEditorScreen(Screen parent){super(Component.literal("HUD Editor"));this.parent=parent;}
     @Override protected void init(){hud=(HudModule)ArsonClient.getInstance().modules().get("hud");layout=(HudLayoutModule)ArsonClient.getInstance().modules().get("hud-layout");arrayList=(ArrayListModule)ArsonClient.getInstance().modules().get("array-list");if(hud==null)return;
         repairLayout();
-        for(int i=0;i<ELEMENTS.length;i++){final String e=ELEMENTS[i];addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+e),b->{selection.select(e,false);rebuild();}).bounds(10+i*92,45,88,22).build());}
-        int y=78;
-        addRenderableWidget(Button.builder(Component.literal("Visible: "+(allVisible()?"ON":"MIXED")),b->{toggleVisible();save();rebuild();}).bounds(10,y,120,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale -"),b->{adjustScale(-.05);save();rebuild();}).bounds(135,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale +"),b->{adjustScale(.05);save();rebuild();}).bounds(210,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Align"),b->{cycleAlignment();save();rebuild();}).bounds(285,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Anchor"),b->{anchorSelected();save();rebuild();}).bounds(360,y,75,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Copy"),b->{copySelected();rebuild();}).bounds(440,y,60,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Paste"),b->{pasteSelected();save();rebuild();}).bounds(505,y,60,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Duplicate"),b->{duplicateSelected();save();rebuild();}).bounds(570,y,78,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Background"),b->{toggleBackground();save();rebuild();}).bounds(653,y,90,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Reset Selected"),b->{resetSelected();save();rebuild();}).bounds(748,y,105,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Select All"),b->{selection.replace(java.util.Arrays.asList(ELEMENTS));rebuild();}).bounds(10,106,85,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Clear Selection"),b->{selection.clear();rebuild();}).bounds(100,106,100,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(width-85,height-30,75,22).build());
+        int selectorGap=5;
+        int selectorWidth=Math.max(34,(width-20-selectorGap*(ELEMENTS.length-1))/ELEMENTS.length);
+        String[] shortNames={"Watermark","Coords","FPS","Player","World","Array"};
+        for(int i=0;i<ELEMENTS.length;i++){
+            final String e=ELEMENTS[i];
+            String label=selectorWidth<72?shortNames[i]:e;
+            int x=10+i*(selectorWidth+selectorGap);
+            addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+label),b->{selection.select(e,false);rebuild();}).bounds(x,45,selectorWidth,22).build());
+        }
+        int[] cursor={10,78};
+        addHudButton("Visible: "+(allVisible()?"ON":"MIXED"),112,cursor,()->{toggleVisible();save();rebuild();});
+        addHudButton("Scale -",64,cursor,()->{adjustScale(-.05);save();rebuild();});
+        addHudButton("Scale +",64,cursor,()->{adjustScale(.05);save();rebuild();});
+        addHudButton("Align",58,cursor,()->{cycleAlignment();save();rebuild();});
+        addHudButton("Anchor",64,cursor,()->{anchorSelected();save();rebuild();});
+        addHudButton("Copy",52,cursor,()->{copySelected();rebuild();});
+        addHudButton("Paste",52,cursor,()->{pasteSelected();save();rebuild();});
+        addHudButton("Duplicate",76,cursor,()->{duplicateSelected();save();rebuild();});
+        addHudButton("Background",84,cursor,()->{toggleBackground();save();rebuild();});
+        addHudButton("Reset Selected",104,cursor,()->{resetSelected();save();rebuild();});
+        addHudButton("Select All",78,cursor,()->{selection.replace(java.util.Arrays.asList(ELEMENTS));rebuild();});
+        addHudButton("Clear Selection",98,cursor,()->{selection.clear();rebuild();});
+        toolbarBottom=cursor[1]+27;
+        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(Math.max(10,width-85),Math.max(toolbarBottom+8,height-30),75,22).build());
+    }
+    private void addHudButton(String label,int preferredWidth,int[] cursor,Runnable action){
+        int available=Math.max(40,width-20);
+        int buttonWidth=Math.min(preferredWidth,available);
+        if(cursor[0]+buttonWidth>width-10){cursor[0]=10;cursor[1]+=27;}
+        addRenderableWidget(Button.builder(Component.literal(label),b->action.run()).bounds(cursor[0],cursor[1],buttonWidth,22).build());
+        cursor[0]+=buttonWidth+5;
     }
     private void rebuild(){clearWidgets();init();}
     private void repairLayout(){
