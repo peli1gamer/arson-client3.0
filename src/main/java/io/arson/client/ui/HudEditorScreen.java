@@ -97,7 +97,29 @@ public final class HudEditorScreen extends Screen {
     @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0&&draggedElement!=null&&selection.contains(draggedElement)){double x=event.x()-offsetX,y=event.y()-offsetY;double[] anchor=position(draggedElement);double dx=x-anchor[0],dy=y-anchor[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}return true;}return super.mouseDragged(event,dragX,dragY);}
     @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;draggedElement=null;repairLayout();save();return true;}return super.mouseReleased(event);}
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
-    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(0,0,width,height,0x66000000);graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);graphics.drawString(font,"Shift-click group | drag | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);for(String e:selection.elements())if(visible(e)){double[]p=position(e);int x=(int)p[0],y=(int)p[1];graphics.renderOutline(x-4,y-4,190,35,0xFF55AAFF);graphics.drawString(font,e,x,y+6,0xFFFFFFFF);}super.render(graphics,mouseX,mouseY,delta);}
+    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){
+        graphics.fill(0,0,width,height,0x66000000);
+        graphics.fill(0,0,width,36,0xE50D1118);
+        graphics.fill(0,37,width,toolbarBottom+7,0xC9161C25);
+        graphics.fill(0,35,width,36,0xFF4C8DFF);
+        int canvasTop=Math.min(height,toolbarBottom+12);
+        for(int x=0;x<width;x+=24)graphics.fill(x,canvasTop,x+1,height,0x183E536B);
+        for(int y=canvasTop;y<height;y+=24)graphics.fill(0,y,width,y+1,0x183E536B);
+        graphics.drawString(font,"HUD EDITOR",10,8,0xFFFFFFFF);
+        graphics.drawString(font,selection.size()+" selected  •  Shift-click to group",10,21,0xFF9EADBF);
+        graphics.fill(10,toolbarBottom+7,width-10,toolbarBottom+8,0x554C8DFF);
+        super.render(graphics,mouseX,mouseY,delta);
+        for(String e:selection.elements())if(visible(e)){
+            double[]p=position(e);
+            double scale="array-list".equals(e)?arrayList.scale():hud.scale()*hud.elementScale(e);
+            int x=(int)Math.round(p[0]),y=(int)Math.round(p[1]);
+            int w=Math.max(1,(int)Math.round(190*scale)),h=Math.max(1,(int)Math.round(35*scale));
+            graphics.renderOutline(x-4,y-4,w+8,h+8,0xFF55AAFF);
+            graphics.fill(x-4,y-4,x+w+4,y-2,0xFF55AAFF);
+            graphics.fill(x-4,y-4,x+Math.min(w+4,font.width(e)+10),y+10,0xD9253448);
+            graphics.drawString(font,e,x+1,y-2,0xFFFFFFFF);
+        }
+    }
     @Override public void onClose(){save();minecraft.setScreen(parent);}
     private record Snapshot(String source,boolean visible,double x,double y,double scale,boolean background,String alignment,int color,HudLayoutModule.Anchor anchor){}
     static final class HudClipboardCompatible {
