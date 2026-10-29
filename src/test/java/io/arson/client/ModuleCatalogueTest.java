@@ -44,7 +44,7 @@ class ModuleCatalogueTest {
         var module = manager.get("custom-sky");
         assertNotNull(module);
         assertEquals("Render", module.category().displayName());
-        assertTrue(module.description().contains("sky shader"));
+        assertTrue(module.description().contains("shader tint"));
         assertAll(
             () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("custom-sky"))),
             () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-tint")))
