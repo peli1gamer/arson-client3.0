@@ -36,6 +36,24 @@ class ModuleCatalogueTest {
         );
     }
 
+
+    @Test
+    void customSkyExposesShaderControls() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        var module = manager.get("custom-sky");
+        assertNotNull(module);
+        assertEquals("Render", module.category().displayName());
+        assertTrue(module.description().contains("equirectangular texture"));
+        assertAll(
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("custom-sky"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-mode"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-tint"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-texture"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-panorama")))
+        );
+    }
+
     @Test
     void coreFeatureFamiliesRemainDiscoverableAsConcreteModules() {
         ModuleManager manager = new ModuleManager();
