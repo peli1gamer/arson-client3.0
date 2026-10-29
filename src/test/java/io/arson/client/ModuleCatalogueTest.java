@@ -50,7 +50,7 @@ class ModuleCatalogueTest {
             () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-mode"))),
             () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-tint"))),
             () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-texture"))),
-            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-panorama"))))
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-panorama")))
         );
     }
 
