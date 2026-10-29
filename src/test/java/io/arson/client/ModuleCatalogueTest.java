@@ -44,10 +44,13 @@ class ModuleCatalogueTest {
         var module = manager.get("custom-sky");
         assertNotNull(module);
         assertEquals("Render", module.category().displayName());
-        assertTrue(module.description().contains("shader tint"));
+        assertTrue(module.description().contains("equirectangular texture"));
         assertAll(
             () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("custom-sky"))),
-            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-tint")))
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-mode"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-tint"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-texture"))),
+            () -> assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("sky-panorama"))))
         );
     }
 
