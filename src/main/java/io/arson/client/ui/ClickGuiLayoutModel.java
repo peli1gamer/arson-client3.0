@@ -54,8 +54,9 @@ public final class ClickGuiLayoutModel {
             int dx=list.right()+cardGap;
             detail=new Rect(dx,content.y(),Math.max(80,content.right()-dx),content.height());
         }else{
+            int minListH=Math.min(content.height(),Math.max(52,cardH));
             int desiredListH=4*(cardH+cardGap);
-            int listH=Math.max(52,Math.min(desiredListH,Math.max(52,content.height()-70)));
+            int listH=Math.min(Math.max(minListH,Math.min(desiredListH,Math.max(minListH,content.height()/2))),Math.max(minListH,content.height()-40));
             list=new Rect(content.x(),content.y(),content.width(),listH);
             int dy=list.bottom()+cardGap;
             detail=new Rect(content.x(),dy,content.width(),Math.max(40,content.bottom()-dy));
