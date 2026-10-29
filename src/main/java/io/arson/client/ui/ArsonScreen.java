@@ -41,6 +41,7 @@ public final class ArsonScreen extends Screen {
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
     private boolean categoryCollapsed;
+    private boolean detailCollapsed;
     private String settingGroupId = "all";
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
     private Theme theme = Theme.MIDNIGHT;
@@ -151,7 +152,13 @@ public final class ArsonScreen extends Screen {
         }).bounds(railToggleX, Math.max(geometry.panelY()+38, r.rail().y()-24), r.rail().width(), 20).build());
         addCategoryButtons(r);
         addModuleCards(visible);
-        if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
+        addRenderableWidget(Button.builder(Component.literal(detailCollapsed ? "+" : "−"), b -> {
+            detailCollapsed = !detailCollapsed;
+            rebuild();
+        }).bounds(r.detail().x(), Math.max(geometry.panelY()+38, r.detail().y()-24), 22, 20).build());
+        if (!detailCollapsed) {
+            if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
+        }
         addFooter(r, profileValue);
     }
 
