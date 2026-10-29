@@ -3,6 +3,7 @@ package io.arson.client.render;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -19,7 +20,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -33,6 +33,7 @@ public final class CustomSkyShader {
                     .withFragmentShader("arson:core/custom_sky")
                     .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                     .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                    .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                     .withDepthWrite(false)
                     .withVertexFormat(DefaultVertexFormat.POSITION, VertexFormat.Mode.TRIANGLE_FAN)
                     .build()
@@ -83,7 +84,7 @@ public final class CustomSkyShader {
                 builder.addVertex((float) (Math.cos(angle) * 512.0), 0.0F, (float) (Math.sin(angle) * 512.0));
             }
             try (MeshData mesh = builder.buildOrThrow()) {
-                domeBuffer = RenderSystem.getDevice().createBuffer(() -> "Arson custom sky dome", 32, mesh.vertexBuffer());
+                domeBuffer = RenderSystem.getDevice().createBuffer(() -> "Arson custom sky dome", GpuBuffer.USAGE_VERTEX, mesh.vertexBuffer());
             }
         } catch (RuntimeException exception) {
             return null;
