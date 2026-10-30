@@ -19,12 +19,16 @@ public final class CustomSkyModule extends Module {
 
     public CustomSkyModule() {
         super("custom-sky", "Custom Sky", Category.RENDER,
-                "Renders a local sky gradient, equirectangular texture, or panorama. Texture files can be supplied by a resource pack.");
+                "Renders a local sky gradient, equirectangular texture, or equirectangular panorama. Texture files can be supplied by a resource pack.");
         customSky.description("Enable or disable the custom sky renderer.");
-        skyMode.description("Gradient uses the built-in shader. Texture and Panorama sample equirectangular image resources.");
+        skyMode.description("Gradient uses the built-in shader. Texture and Panorama use 2:1 equirectangular image resources.");
         skyTint.description("ARGB color multiplier applied to the selected sky.");
-        textureId.description("Resource identifier for a 2:1 equirectangular sky texture, for example arson:textures/sky/custom.png.");
-        panoramaId.description("Resource identifier for a 2:1 equirectangular panorama, for example arson:textures/sky/panorama.png.");
+        textureId.description("Resource identifier for a 2:1 equirectangular sky texture, for example arson:textures/sky/custom.png.")
+                .visibleWhen(() -> customSky.enabled() && skyMode.get() == SkyMode.TEXTURE);
+        panoramaId.description("Resource identifier for a 2:1 equirectangular panorama, for example arson:textures/sky/panorama.png.")
+                .visibleWhen(() -> customSky.enabled() && skyMode.get() == SkyMode.PANORAMA);
+        skyTint.visibleWhen(customSky::enabled);
+        skyMode.visibleWhen(customSky::enabled);
     }
 
     public boolean customSkyEnabled() { return customSky.enabled(); }
