@@ -82,7 +82,8 @@ public final class CustomSkyShader {
     private static boolean renderGradient(Minecraft client, CustomSkyModule module, int vanillaSkyColor) {
         GpuBuffer buffer = gradientDomeBuffer();
         if (buffer == null) return false;
-        int sky = ARGB.multiply(vanillaSkyColor, module.skyTintArgb());
+        int presetTint = ARGB.multiply(module.gradientPresetArgb(), module.skyTintArgb());
+        int sky = ARGB.multiply(vanillaSkyColor, presetTint);
         GpuBufferSlice transforms = RenderSystem.getDynamicUniforms().writeTransform(
                 RenderSystem.getModelViewMatrix(), ARGB.vector4fFromARGB32(sky),
                 new Vector3f(), new Matrix4f());
@@ -104,7 +105,7 @@ public final class CustomSkyShader {
         if (buffer == null) return false;
 
         GpuBufferSlice transforms = RenderSystem.getDynamicUniforms().writeTransform(
-                RenderSystem.getModelViewMatrix(), ARGB.vector4fFromARGB32(module.skyTintArgb()),
+                textureTransform(module), ARGB.vector4fFromARGB32(module.skyTintArgb()),
                 new Vector3f(), new Matrix4f());
         try (RenderPass pass = createPass(client, "Arson custom sky texture")) {
             pass.setPipeline(TEXTURE_PIPELINE);
@@ -115,6 +116,12 @@ public final class CustomSkyShader {
             pass.draw(0, LATITUDE_SEGMENTS * LONGITUDE_SEGMENTS * 6);
         }
         return true;
+    }
+
+    private static Matrix4f textureTransform(CustomSkyModule module) {
+        return new Matrix4f(RenderSystem.getModelViewMatrix())
+                .rotateY((float) Math.toRadians(module.rotationDegrees()))
+                .rotateX((float) Math.toRadians(module.verticalOffsetDegrees()));
     }
 
     private static RenderPass createPass(Minecraft client, String name) {
