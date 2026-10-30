@@ -67,20 +67,35 @@ public final class ConfigManager {
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
-                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
-                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
-                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
-                JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
+                Boolean enabled = readBoolean(data.get("enabled"));
+                Boolean favorite = readBoolean(data.get("favorite"));
+                Integer keyCode = readInteger(data.get("keyCode"));
+                if (favorite != null) module.setFavorite(favorite);
+                if (keyCode != null) module.setKeyCode(keyCode);
+
+                JsonObject settings = data.has("settings") && data.get("settings").isJsonObject()
+                        ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
-                    JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
+                    JsonElement value = settings.get(setting.id());
+                    if (value == null || !value.isJsonPrimitive()) continue;
                     try {
-                        if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
-                        else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
-                        else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
-                        else if (setting instanceof StringSetting text) text.set(value.getAsString());
-                        else if (setting instanceof EnumSetting<?> select) setEnum(select, value.getAsString());
-                    } catch (RuntimeException ignored) {}
+                        if (setting instanceof BooleanSetting bool && value.getAsJsonPrimitive().isBoolean()) {
+                            bool.set(value.getAsBoolean());
+                        } else if (setting instanceof DoubleSetting number && value.getAsJsonPrimitive().isNumber()) {
+                            number.set(value.getAsDouble());
+                        } else if (setting instanceof ColorSetting color && value.getAsJsonPrimitive().isNumber()) {
+                            color.set(value.getAsInt());
+                        } else if (setting instanceof StringSetting text && value.getAsJsonPrimitive().isString()) {
+                            text.set(value.getAsString());
+                        } else if (setting instanceof EnumSetting<?> select && value.getAsJsonPrimitive().isString()) {
+                            setEnum(select, value.getAsString());
+                        }
+                    } catch (RuntimeException ignored) {
+                        // A malformed individual value must not prevent other settings from loading.
+                    }
                 }
+                // Apply enabled state last so module lifecycle hooks observe restored settings.
+                if (enabled != null) module.setEnabled(enabled);
             }
             return true;
         } catch (Exception ignored) { return false; }
@@ -130,6 +145,22 @@ public final class ConfigManager {
             if (Double.isFinite(number)) target.addProperty(targetKey, number);
         } catch (RuntimeException ignored) {
             // Ignore malformed legacy fields without rejecting the rest of the config.
+        }
+    }
+    private static Boolean readBoolean(JsonElement value) {
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean()
+                ? value.getAsBoolean() : null;
+    }
+
+    private static Integer readInteger(JsonElement value) {
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return null;
+        try {
+            long number = value.getAsLong();
+            if (number < Integer.MIN_VALUE || number > Integer.MAX_VALUE
+                    || value.getAsDouble() != number) return null;
+            return (int) number;
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
     private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
