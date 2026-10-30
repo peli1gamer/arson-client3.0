@@ -68,34 +68,41 @@ public final class CustomSkyShader {
         if (!(ArsonClient.getInstance().modules().get("custom-sky") instanceof CustomSkyModule module)
                 || !module.enabled() || !module.customSkyEnabled()) return false;
 
-        if (module.skyMode() == CustomSkyModule.SkyMode.GRADIENT) {
-            GpuBuffer buffer = gradientDomeBuffer();
-            if (buffer == null) return false;
-            int sky = ARGB.multiply(vanillaSkyColor, module.skyTintArgb());
-            GpuBufferSlice transforms = RenderSystem.getDynamicUniforms().writeTransform(
-                    RenderSystem.getModelViewMatrix(), ARGB.vector4fFromARGB32(sky),
-                    new Vector3f(), new Matrix4f());
-            try (RenderPass pass = createPass(client, "Arson custom sky gradient")) {
-                pass.setPipeline(GRADIENT_PIPELINE);
-                RenderSystem.bindDefaultUniforms(pass);
-                pass.setUniform("DynamicTransforms", transforms);
-                pass.setVertexBuffer(0, buffer);
-                pass.draw(0, 66);
+        try {
+            if (module.skyMode() == CustomSkyModule.SkyMode.GRADIENT) {
+                return renderGradient(client, module, vanillaSkyColor);
             }
-            return true;
+            return renderTexture(client, module);
+        } catch (RuntimeException exception) {
+            // A failed custom pass must never prevent vanilla from rendering the sky.
+            return false;
         }
+    }
 
+    private static boolean renderGradient(Minecraft client, CustomSkyModule module, int vanillaSkyColor) {
+        GpuBuffer buffer = gradientDomeBuffer();
+        if (buffer == null) return false;
+        int sky = ARGB.multiply(vanillaSkyColor, module.skyTintArgb());
+        GpuBufferSlice transforms = RenderSystem.getDynamicUniforms().writeTransform(
+                RenderSystem.getModelViewMatrix(), ARGB.vector4fFromARGB32(sky),
+                new Vector3f(), new Matrix4f());
+        try (RenderPass pass = createPass(client, "Arson custom sky gradient")) {
+            pass.setPipeline(GRADIENT_PIPELINE);
+            RenderSystem.bindDefaultUniforms(pass);
+            pass.setUniform("DynamicTransforms", transforms);
+            pass.setVertexBuffer(0, buffer);
+            pass.draw(0, 66);
+        }
+        return true;
+    }
+
+    private static boolean renderTexture(Minecraft client, CustomSkyModule module) {
         Identifier textureId = resolveTextureId(module);
         if (textureId == null || client.getResourceManager().getResource(textureId).isEmpty()) return false;
+        AbstractTexture texture = client.getTextureManager().getTexture(textureId);
         GpuBuffer buffer = textureDomeBuffer();
         if (buffer == null) return false;
 
-        AbstractTexture texture;
-        try {
-            texture = client.getTextureManager().getTexture(textureId);
-        } catch (RuntimeException exception) {
-            return false;
-        }
         GpuBufferSlice transforms = RenderSystem.getDynamicUniforms().writeTransform(
                 RenderSystem.getModelViewMatrix(), ARGB.vector4fFromARGB32(module.skyTintArgb()),
                 new Vector3f(), new Matrix4f());
@@ -106,8 +113,6 @@ public final class CustomSkyShader {
             pass.bindTexture("Sampler0", texture.getTextureView(), texture.getSampler());
             pass.setVertexBuffer(0, buffer);
             pass.draw(0, LATITUDE_SEGMENTS * LONGITUDE_SEGMENTS * 6);
-        } catch (RuntimeException exception) {
-            return false;
         }
         return true;
     }
@@ -138,7 +143,7 @@ public final class CustomSkyShader {
             builder.addVertex(0.0F, 512.0F, 0.0F);
             for (int i = 0; i <= 64; i++) {
                 float angle = (float) (Math.PI * 2.0 * i / 64);
-                builder.addVertex((float) (Math.cos(angle) * 512.0), 0.0F, (float) (Math.sin(angle) * 512.0));
+                builder.addVertex((float) (Math.cos(angle) * 512.0), 0.0F, (float) (Math.sin(angle) * 512.0F));
             }
             try (MeshData mesh = builder.buildOrThrow()) {
                 gradientDomeBuffer = RenderSystem.getDevice().createBuffer(
@@ -180,6 +185,18 @@ public final class CustomSkyShader {
             return null;
         }
         return textureDomeBuffer;
+    }
+
+    /** Releases cached GPU buffers when the client shuts down. */
+    public static void release() {
+        if (gradientDomeBuffer != null) {
+            gradientDomeBuffer.close();
+            gradientDomeBuffer = null;
+        }
+        if (textureDomeBuffer != null) {
+            textureDomeBuffer.close();
+            textureDomeBuffer = null;
+        }
     }
 
     private static void addSkyVertex(BufferBuilder builder, double longitude, double latitude, float u, float v) {
