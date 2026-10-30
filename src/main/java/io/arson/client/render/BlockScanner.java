@@ -125,7 +125,7 @@ public final class BlockScanner {
         if (nextX > maxX) {
             cachedTargets = List.copyOf(workingTargets);
             cachedLevel = scanLevel;
-            cachedTick = scanStartedTick;
+            cachedTick = client.level.getGameTime();
             cachedChunkX = scanChunkX;
             cachedChunkZ = scanChunkZ;
             cachedConfigHash = scanConfigHash;
