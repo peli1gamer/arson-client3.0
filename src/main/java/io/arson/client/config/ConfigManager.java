@@ -102,16 +102,34 @@ public final class ConfigManager {
             JsonElement raw = elements.get(element);
             if (raw == null || !raw.isJsonObject()) continue;
             JsonObject value = raw.getAsJsonObject();
-            JsonObject settings = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout").getAsJsonObject("settings") : new JsonObject();
-            if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
-            if (value.has("x") && value.get("x").isJsonPrimitive()) settings.addProperty(element + "-x", value.get("x").getAsDouble());
-            if (value.has("y") && value.get("y").isJsonPrimitive()) settings.addProperty(element + "-y", value.get("y").getAsDouble());
-            if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
             JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
                     ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
+            JsonObject settings = moduleData.has("settings") && moduleData.get("settings").isJsonObject()
+                    ? moduleData.getAsJsonObject("settings") : new JsonObject();
+
+            // Migrate each field independently so a partially upgraded config keeps
+            // its explicit values while still receiving missing legacy coordinates.
+            copyLegacyNumber(value, settings, "x", element + "-x");
+            copyLegacyNumber(value, settings, "y", element + "-y");
+            JsonElement anchor = value.get("anchor");
+            if (!settings.has(element + "-anchor") && anchor != null
+                    && anchor.isJsonPrimitive() && anchor.getAsJsonPrimitive().isString()) {
+                settings.addProperty(element + "-anchor", anchor.getAsString());
+            }
+
             moduleData.add("settings", settings);
             moduleRoot.add("hud-layout", moduleData);
+        }
+    }
+    private static void copyLegacyNumber(JsonObject source, JsonObject target, String sourceKey, String targetKey) {
+        if (target.has(targetKey)) return;
+        JsonElement value = source.get(sourceKey);
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return;
+        try {
+            double number = value.getAsDouble();
+            if (Double.isFinite(number)) target.addProperty(targetKey, number);
+        } catch (RuntimeException ignored) {
+            // Ignore malformed legacy fields without rejecting the rest of the config.
         }
     }
     private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
