@@ -57,7 +57,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (distance > range) continue;
 
-            float fade = distanceFade(distance, range);
+            float fade = module.distanceFade() ? distanceFade(distance, range) : 1.0f;
             if (fade <= 0.0f) continue;
             RenderStyle style = fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
