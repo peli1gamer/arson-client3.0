@@ -26,7 +26,13 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
 
     @Override
     public void render(WorldRenderContext context) {
-        if (!module.enabled() || client.level == null || client.player == null) {
+        if (client.level == null || client.player == null) {
+            cachedTargets = List.of();
+            lastVisibleCount = 0;
+            return;
+        }
+        if (!module.enabled()) {
+            cachedTargets = scanner.scan(client, module);
             lastVisibleCount = 0;
             return;
         }
