@@ -113,4 +113,48 @@ class ConfigPersistenceTest {
             Files.deleteIfExists(config);
         }
     }
+
+    @Test
+    void enabledLifecycleHookSeesRestoredSettingValues() throws Exception {
+        Path config = Files.createTempFile("arson-lifecycle-config", ".json");
+        Files.writeString(config, """
+                {
+                  "version": 4,
+                  "modules": {
+                    "lifecycle-test": {
+                      "enabled": true,
+                      "settings": {
+                        "armed": true
+                      }
+                    }
+                  }
+                }
+                """);
+
+        LifecycleModule module = new LifecycleModule();
+        ModuleManager manager = new ModuleManager();
+        manager.register(module);
+        try {
+            assertTrue(ConfigManager.loadFromPath(config, manager));
+            assertTrue(module.enabled());
+            assertTrue(module.armedWhenEnabled);
+        } finally {
+            Files.deleteIfExists(config);
+        }
+    }
+
+    private static final class LifecycleModule extends Module {
+        private final io.arson.client.settings.BooleanSetting armed =
+                setting(new io.arson.client.settings.BooleanSetting("armed", "Armed", false));
+        private boolean armedWhenEnabled;
+
+        private LifecycleModule() {
+            super("lifecycle-test", "Lifecycle Test", Category.MISC);
+        }
+
+        @Override
+        protected void onEnable() {
+            armedWhenEnabled = armed.enabled();
+        }
+    }
 }
