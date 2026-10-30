@@ -31,11 +31,13 @@ import io.arson.client.render.ItemRenderStage;
 import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
+import io.arson.client.render.CustomSkyShader;
 import io.arson.client.render.WorldEffectsRenderStage;
 import io.arson.client.module.WorldEffectsModule;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
@@ -62,6 +64,7 @@ public final class ArsonClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         instance = this;
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> CustomSkyShader.release());
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
