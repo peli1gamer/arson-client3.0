@@ -109,6 +109,16 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = 31 * hash + module.diamondStyle().hashCode();
+        hash = 31 * hash + module.emeraldStyle().hashCode();
+        hash = 31 * hash + module.goldStyle().hashCode();
+        hash = 31 * hash + module.ironStyle().hashCode();
+        hash = 31 * hash + module.copperStyle().hashCode();
+        hash = 31 * hash + module.coalStyle().hashCode();
+        hash = 31 * hash + module.redstoneStyle().hashCode();
+        hash = 31 * hash + module.lapisStyle().hashCode();
+        hash = 31 * hash + module.quartzStyle().hashCode();
+        hash = 31 * hash + module.ancientDebrisStyle().hashCode();
         return hash;
     }
 
