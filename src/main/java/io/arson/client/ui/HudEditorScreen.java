@@ -32,21 +32,41 @@ public final class HudEditorScreen extends Screen {
     public HudEditorScreen(Screen parent){super(Component.literal("HUD Editor"));this.parent=parent;}
     @Override protected void init(){hud=(HudModule)ArsonClient.getInstance().modules().get("hud");layout=(HudLayoutModule)ArsonClient.getInstance().modules().get("hud-layout");arrayList=(ArrayListModule)ArsonClient.getInstance().modules().get("array-list");if(hud==null)return;
         repairLayout();
-        for(int i=0;i<ELEMENTS.length;i++){final String e=ELEMENTS[i];addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+e),b->{selection.select(e,false);rebuild();}).bounds(10+i*92,45,88,22).build());}
-        int y=78;
-        addRenderableWidget(Button.builder(Component.literal("Visible: "+(allVisible()?"ON":"MIXED")),b->{toggleVisible();save();rebuild();}).bounds(10,y,120,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale -"),b->{adjustScale(-.05);save();rebuild();}).bounds(135,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale +"),b->{adjustScale(.05);save();rebuild();}).bounds(210,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Align"),b->{cycleAlignment();save();rebuild();}).bounds(285,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Anchor"),b->{anchorSelected();save();rebuild();}).bounds(360,y,75,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Copy"),b->{copySelected();rebuild();}).bounds(440,y,60,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Paste"),b->{pasteSelected();save();rebuild();}).bounds(505,y,60,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Duplicate"),b->{duplicateSelected();save();rebuild();}).bounds(570,y,78,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Background"),b->{toggleBackground();save();rebuild();}).bounds(653,y,90,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Reset Selected"),b->{resetSelected();save();rebuild();}).bounds(748,y,105,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Select All"),b->{selection.replace(Set.of(ELEMENTS));rebuild();}).bounds(10,106,85,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Clear Selection"),b->{selection.clear();rebuild();}).bounds(100,106,100,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(width-85,height-30,75,22).build());
+        boolean compact=width<880;
+        int selectorColumns=compact?3:6;
+        int selectorWidth=compact?Math.max(72,(width-30)/3):88;
+        for(int i=0;i<ELEMENTS.length;i++){
+            final String element=ELEMENTS[i];
+            int sx=10+(i%selectorColumns)*(selectorWidth+4);
+            int sy=45+(i/selectorColumns)*24;
+            addRenderableWidget(Button.builder(Component.literal((selection.contains(element)?"> ":"")+element),
+                    b->{selection.select(element,false);rebuild();})
+                    .bounds(sx,sy,selectorWidth,22).build());
+        }
+        int actionY=compact?96:78;
+        int actionColumns=compact?4:10;
+        int actionWidth=compact?Math.max(64,(width-30-9)/4):Math.max(54,(width-30-27)/10);
+        addEditorAction("Visible",10,actionY,actionWidth,()->{toggleVisible();save();rebuild();},0,actionColumns,compact,actionWidth);
+        addEditorAction("Scale -",10,actionY,actionWidth,()->{adjustScale(-.05);save();rebuild();},1,actionColumns,compact,actionWidth);
+        addEditorAction("Scale +",10,actionY,actionWidth,()->{adjustScale(.05);save();rebuild();},2,actionColumns,compact,actionWidth);
+        addEditorAction("Align",10,actionY,actionWidth,()->{cycleAlignment();save();rebuild();},3,actionColumns,compact,actionWidth);
+        addEditorAction("Anchor",10,actionY,actionWidth,()->{anchorSelected();save();rebuild();},4,actionColumns,compact,actionWidth);
+        addEditorAction("Copy",10,actionY,actionWidth,()->{copySelected();rebuild();},5,actionColumns,compact,actionWidth);
+        addEditorAction("Paste",10,actionY,actionWidth,()->{pasteSelected();save();rebuild();},6,actionColumns,compact,actionWidth);
+        addEditorAction("Duplicate",10,actionY,actionWidth,()->{duplicateSelected();save();rebuild();},7,actionColumns,compact,actionWidth);
+        addEditorAction("Background",10,actionY,actionWidth,()->{toggleBackground();save();rebuild();},8,actionColumns,compact,actionWidth);
+        addEditorAction("Reset",10,actionY,actionWidth,()->{resetSelected();save();rebuild();},9,actionColumns,compact,actionWidth);
+        int utilityY=actionY+(compact?3:1)*24+2;
+        addRenderableWidget(Button.builder(Component.literal("Select All"),b->{selection.replace(Set.of(ELEMENTS));rebuild();}).bounds(10,utilityY,85,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Clear Selection"),b->{selection.clear();rebuild();}).bounds(100,utilityY,100,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(Math.max(10,width-85),height-30,75,22).build());
+    }
+    private void addEditorAction(String label,int baseX,int baseY,int buttonWidth,Runnable action,
+                                 int index,int columns,boolean compact,int width) {
+        int x=baseX+(index%columns)*(buttonWidth+3);
+        int y=baseY+(index/columns)*24;
+        addRenderableWidget(Button.builder(Component.literal(label),b->action.run())
+                .bounds(x,y,buttonWidth,22).build());
     }
     private void rebuild(){clearWidgets();init();}
     private void repairLayout(){

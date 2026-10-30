@@ -186,6 +186,11 @@ public final class ArsonScreen extends Screen {
         return 0;
     }
 
+    private int visibleCardCapacity(int moduleCount) {
+        int rows=Math.max(1,Math.min(geometry.visibleRows(moduleCount),Math.max(1,geometry.moduleList().height()/(geometry.cardHeight()+geometry.cardGap()))));
+        return Math.max(1,rows*geometry.columns());
+    }
+
     private void addModuleCards(List<Module> visible) {
         int maxCards = Math.max(1, Math.min(geometry.visibleRows(visible.size()), Math.max(1, geometry.moduleList().height() / (geometry.cardHeight()+geometry.cardGap()))) * geometry.columns());
         int start = Math.min(scroll, Math.max(0, visible.size()-1));
@@ -306,7 +311,7 @@ public final class ArsonScreen extends Screen {
         if(focus==ClickGuiLayoutModel.Focus.MODULE&&(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT||key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){
             int delta=(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT)?(key==GLFW.GLFW_KEY_LEFT?-1:1):(key==GLFW.GLFW_KEY_UP?-1:1);
             if(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN) delta*=geometry.columns();
-            List<Module> visible=visibleModules();moduleFocus=ClickGuiLayoutModel.moveModule(moduleFocus,delta,visible.size(),geometry.columns());Module m=ClickGuiLayoutModel.safeGet(visible,moduleFocus);if(m!=null){selected=m;scroll=0;rebuild();}return true;
+            List<Module> visible=visibleModules();moduleFocus=ClickGuiLayoutModel.moveModule(moduleFocus,delta,visible.size(),geometry.columns());Module m=ClickGuiLayoutModel.safeGet(visible,moduleFocus);if(m!=null){selected=m;int capacity=visibleCardCapacity(visible.size());if(moduleFocus<scroll)scroll=moduleFocus;else if(moduleFocus>=scroll+capacity)scroll=moduleFocus-capacity+1;rebuild();}return true;
         }
         if(key==GLFW.GLFW_KEY_ENTER&&focus==ClickGuiLayoutModel.Focus.MODULE){toggleSelected();return true;}
         return super.keyPressed(event);
