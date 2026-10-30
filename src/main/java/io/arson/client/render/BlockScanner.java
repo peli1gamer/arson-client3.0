@@ -30,7 +30,7 @@ public final class BlockScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
-        boolean refreshDue = gameTime - cachedTick >= module.scanInterval() || gameTime < cachedTick;
+        boolean refreshDue = shouldRefresh(gameTime, cachedTick, module.scanInterval());
 
         if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
@@ -44,6 +44,10 @@ public final class BlockScanner {
         cachedChunkZ = chunkZ;
         cachedConfigHash = configHash;
         return cachedTargets;
+    }
+
+    static boolean shouldRefresh(long gameTime, long cachedTick, int scanInterval) {
+        return gameTime < cachedTick || gameTime - cachedTick >= Math.max(1, scanInterval);
     }
 
     private static List<BlockTarget> scanWorld(Minecraft client, BlockESPModule module) {
