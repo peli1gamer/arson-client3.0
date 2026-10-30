@@ -56,4 +56,105 @@ class ConfigPersistenceTest {
         assertFalse(ConfigManager.loadFromPath(profile, manager));
         assertTrue(manager.get("sprint").enabled());
     }
+
+    @Test
+    void malformedModuleMetadataIsIgnoredWithoutAbortingOtherValues() throws Exception {
+        Path config = Files.createTempFile("arson-malformed-values", ".json");
+        Files.writeString(config, """
+                {
+                  "version": 4,
+                  "modules": {
+                    "sprint": {
+                      "enabled": "not-a-boolean",
+                      "favorite": 7,
+                      "keyCode": "not-a-number",
+                      "settings": {
+                        "forward-only": false
+                      }
+                    }
+                  }
+                }
+                """);
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        try {
+            assertTrue(ConfigManager.loadFromPath(config, loaded));
+            Module sprint = loaded.get("sprint");
+            assertFalse(sprint.enabled());
+            assertFalse(sprint.favorite());
+            assertEquals(0, sprint.keyCode());
+            assertFalse((Boolean) sprint.settings().get(0).get());
+        } finally {
+            Files.deleteIfExists(config);
+        }
+    }
+
+    @Test
+    void fractionalKeyCodeIsIgnoredInsteadOfTruncated() throws Exception {
+        Path config = Files.createTempFile("arson-fractional-key", ".json");
+        Files.writeString(config, """
+                {
+                  "version": 4,
+                  "modules": {
+                    "sprint": {
+                      "keyCode": 65.5
+                    }
+                  }
+                }
+                """);
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        try {
+            assertTrue(ConfigManager.loadFromPath(config, loaded));
+            assertEquals(0, loaded.get("sprint").keyCode());
+        } finally {
+            Files.deleteIfExists(config);
+        }
+    }
+
+    @Test
+    void enabledLifecycleHookSeesRestoredSettingValues() throws Exception {
+        Path config = Files.createTempFile("arson-lifecycle-config", ".json");
+        Files.writeString(config, """
+                {
+                  "version": 4,
+                  "modules": {
+                    "lifecycle-test": {
+                      "enabled": true,
+                      "settings": {
+                        "armed": true
+                      }
+                    }
+                  }
+                }
+                """);
+
+        LifecycleModule module = new LifecycleModule();
+        ModuleManager manager = new ModuleManager();
+        manager.register(module);
+        try {
+            assertTrue(ConfigManager.loadFromPath(config, manager));
+            assertTrue(module.enabled());
+            assertTrue(module.armedWhenEnabled);
+        } finally {
+            Files.deleteIfExists(config);
+        }
+    }
+
+    private static final class LifecycleModule extends Module {
+        private final io.arson.client.settings.BooleanSetting armed =
+                setting(new io.arson.client.settings.BooleanSetting("armed", "Armed", false));
+        private boolean armedWhenEnabled;
+
+        private LifecycleModule() {
+            super("lifecycle-test", "Lifecycle Test", Category.MISC);
+        }
+
+        @Override
+        protected void onEnable() {
+            armedWhenEnabled = armed.enabled();
+        }
+    }
 }

@@ -111,4 +111,17 @@ class ModuleParityTest {
         background.set(false); background.reset(); scale.set(1.75); scale.reset(); text.set("Changed"); text.reset(); color.set(0xFF123456); color.reset();
         assertEquals(background.defaultValue(), background.get()); assertEquals(scale.defaultValue(), scale.get()); assertEquals(text.defaultValue(), text.get()); assertEquals(color.defaultValue(), color.get());
     }
+
+    @Test
+    void everyModuleHasUniqueStableSettingIdsForConfigPersistence() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        for (Module module : manager.all()) {
+            var ids = new java.util.HashSet<String>();
+            for (var setting : module.settings()) {
+                assertTrue(ids.add(setting.id()),
+                        () -> "Duplicate setting id '" + setting.id() + "' in module " + module.id());
+            }
+        }
+    }
 }

@@ -7,7 +7,9 @@ public final class StringSetting extends Setting<String> {
         super(id, name, defaultValue == null ? "" : defaultValue);
         if (maxLength <= 0) throw new IllegalArgumentException("Invalid string setting length");
         this.maxLength = maxLength;
+        set(defaultValue);
     }
+    @Override public void reset() { set(defaultValue()); }
     @Override public void set(String value) { String safe = value == null ? "" : value; super.set(safe.length() > maxLength ? safe.substring(0, maxLength) : safe); }
     public int maxLength() { return maxLength; }
 }
