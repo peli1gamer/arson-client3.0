@@ -109,16 +109,26 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
-        hash = 31 * hash + module.diamondStyle().hashCode();
-        hash = 31 * hash + module.emeraldStyle().hashCode();
-        hash = 31 * hash + module.goldStyle().hashCode();
-        hash = 31 * hash + module.ironStyle().hashCode();
-        hash = 31 * hash + module.copperStyle().hashCode();
-        hash = 31 * hash + module.coalStyle().hashCode();
-        hash = 31 * hash + module.redstoneStyle().hashCode();
-        hash = 31 * hash + module.lapisStyle().hashCode();
-        hash = 31 * hash + module.quartzStyle().hashCode();
-        hash = 31 * hash + module.ancientDebrisStyle().hashCode();
+        hash = 31 * hash + styleHash(module.diamondStyle());
+        hash = 31 * hash + styleHash(module.emeraldStyle());
+        hash = 31 * hash + styleHash(module.goldStyle());
+        hash = 31 * hash + styleHash(module.ironStyle());
+        hash = 31 * hash + styleHash(module.copperStyle());
+        hash = 31 * hash + styleHash(module.coalStyle());
+        hash = 31 * hash + styleHash(module.redstoneStyle());
+        hash = 31 * hash + styleHash(module.lapisStyle());
+        hash = 31 * hash + styleHash(module.quartzStyle());
+        hash = 31 * hash + styleHash(module.ancientDebrisStyle());
+        return hash;
+    }
+
+    private static int styleHash(RenderStyle style) {
+        int hash = style.color().argb();
+        hash = 31 * hash + Boolean.hashCode(style.fill());
+        hash = 31 * hash + Boolean.hashCode(style.outline());
+        hash = 31 * hash + Float.hashCode(style.fillAlpha());
+        hash = 31 * hash + Float.hashCode(style.outlineAlpha());
+        hash = 31 * hash + Float.hashCode(style.lineWidth());
         return hash;
     }
 
