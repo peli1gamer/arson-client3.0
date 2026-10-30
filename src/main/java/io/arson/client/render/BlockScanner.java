@@ -12,6 +12,8 @@ import java.util.List;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
+    private static final int POSITIONS_PER_CALL = 16_384;
+
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
@@ -19,8 +21,32 @@ public final class BlockScanner {
     private int cachedConfigHash;
     private List<BlockTarget> cachedTargets = List.of();
 
+    private boolean scanning;
+    private Object scanLevel;
+    private int scanChunkX;
+    private int scanChunkZ;
+    private int scanConfigHash;
+    private double scanPlayerX;
+    private double scanPlayerY;
+    private double scanPlayerZ;
+    private double scanRangeSquared;
+    private int minX, maxX, minY, maxY, minZ, maxZ;
+    private int nextX, nextY, nextZ;
+    private BlockPos.MutableBlockPos mutable;
+    private List<BlockTarget> workingTargets;
+
+    /**
+     * Advances a bounded slice of the ore scan on each render call. The previous
+     * completed snapshot remains visible until the replacement scan is complete.
+     */
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
-        if (client.level == null || client.player == null || !module.enabled()) return List.of();
+        if (client.level == null || client.player == null || !module.enabled()) {
+            scanning = false;
+            cachedTargets = List.of();
+            cachedLevel = null;
+            cachedTick = Long.MIN_VALUE;
+            return cachedTargets;
+        }
 
         long gameTime = client.level.getGameTime();
         int chunkX = client.player.blockPosition().getX() >> 4;
@@ -30,72 +56,95 @@ public final class BlockScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
-        boolean refreshDue = shouldRefresh(gameTime, cachedTick, module.scanInterval());
+        boolean scanInvalidated = scanning && (scanLevel != client.level
+                || scanChunkX != chunkX || scanChunkZ != chunkZ || scanConfigHash != configHash);
 
-        if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
-            return cachedTargets;
+        if (scanInvalidated) scanning = false;
+        boolean refreshDue = shouldRefresh(gameTime, cachedTick, module.scanInterval());
+        if (!scanning && (worldChanged || movedChunk || configChanged || refreshDue)) {
+            beginScan(client, module, gameTime, chunkX, chunkZ, configHash);
         }
 
-        List<BlockTarget> result = scanWorld(client, module);
-        cachedTargets = List.copyOf(result);
-        cachedLevel = client.level;
-        cachedTick = gameTime;
-        cachedChunkX = chunkX;
-        cachedChunkZ = chunkZ;
-        cachedConfigHash = configHash;
+        if (scanning) advanceScan(client, module);
         return cachedTargets;
     }
 
     static boolean shouldRefresh(long gameTime, long cachedTick, int scanInterval) {
-        return gameTime < cachedTick || gameTime - cachedTick >= Math.max(1, scanInterval);
+        return cachedTick == Long.MIN_VALUE || gameTime < cachedTick
+                || gameTime - cachedTick >= Math.max(1, scanInterval);
     }
 
-    private static List<BlockTarget> scanWorld(Minecraft client, BlockESPModule module) {
-        double playerX = client.player.getX();
-        double playerY = client.player.getY();
-        double playerZ = client.player.getZ();
+    private void beginScan(Minecraft client, BlockESPModule module, long gameTime,
+                           int chunkX, int chunkZ, int configHash) {
+        scanLevel = client.level;
+        scanChunkX = chunkX;
+        scanChunkZ = chunkZ;
+        scanConfigHash = configHash;
+        scanPlayerX = client.player.getX();
+        scanPlayerY = client.player.getY();
+        scanPlayerZ = client.player.getZ();
         double range = Math.max(1.0, module.range());
-        double rangeSquared = range * range;
+        scanRangeSquared = range * range;
         int radius = Math.max(1, Math.min(64, (int) Math.ceil(range)));
         BlockPos center = client.player.blockPosition();
-        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
-        List<BlockTarget> result = new ArrayList<>();
+        minX = center.getX() - radius;
+        maxX = center.getX() + radius;
+        minY = Math.max(client.level.getMinY(), center.getY() - radius);
+        maxY = Math.min(client.level.getMaxY(), center.getY() + radius);
+        minZ = center.getZ() - radius;
+        maxZ = center.getZ() + radius;
+        nextX = minX;
+        nextY = minY;
+        nextZ = minZ;
+        mutable = new BlockPos.MutableBlockPos();
+        workingTargets = new ArrayList<>();
+        scanning = true;
+    }
 
-        int minX = center.getX() - radius;
-        int maxX = center.getX() + radius;
-        int minY = Math.max(client.level.getMinY(), center.getY() - radius);
-        int maxY = Math.min(client.level.getMaxY(), center.getY() + radius);
-        int minZ = center.getZ() - radius;
-        int maxZ = center.getZ() + radius;
+    private void advanceScan(Minecraft client, BlockESPModule module) {
+        int visited = 0;
+        while (scanning && visited < POSITIONS_PER_CALL && nextX <= maxX) {
+            int x = nextX, y = nextY, z = nextZ;
+            advanceCursor();
+            visited++;
 
-        for (int x = minX; x <= maxX; x++) {
-            double dx = x + 0.5 - playerX;
-            double dxSquared = dx * dx;
-            if (dxSquared > rangeSquared) continue;
+            double dx = x + 0.5 - scanPlayerX;
+            double dy = y + 0.5 - scanPlayerY;
+            double dz = z + 0.5 - scanPlayerZ;
+            if (dx * dx + dy * dy + dz * dz > scanRangeSquared) continue;
 
-            for (int y = minY; y <= maxY; y++) {
-                double dy = y + 0.5 - playerY;
-                double partialDistanceSquared = dxSquared + dy * dy;
-                if (partialDistanceSquared > rangeSquared) continue;
+            mutable.set(x, y, z);
+            BlockState state = client.level.getBlockState(mutable);
+            RenderStyleMatch match = match(state.getBlock(), module);
+            if (match == null) continue;
 
-                for (int z = minZ; z <= maxZ; z++) {
-                    double dz = z + 0.5 - playerZ;
-                    double distanceSquared = partialDistanceSquared + dz * dz;
-                    if (distanceSquared > rangeSquared) continue;
+            workingTargets.add(new BlockTarget(
+                    x, y, z, x + 1.0, y + 1.0, z + 1.0, match.style()));
+        }
 
-                    mutable.set(x, y, z);
-                    BlockState state = client.level.getBlockState(mutable);
-                    RenderStyleMatch match = match(state.getBlock(), module);
-                    if (match == null) continue;
+        if (nextX > maxX) {
+            cachedTargets = List.copyOf(workingTargets);
+            cachedLevel = scanLevel;
+            cachedTick = client.level.getGameTime();
+            cachedChunkX = scanChunkX;
+            cachedChunkZ = scanChunkZ;
+            cachedConfigHash = scanConfigHash;
+            workingTargets = null;
+            mutable = null;
+            scanning = false;
+        }
+    }
 
-                    result.add(new BlockTarget(
-                            x, y, z,
-                            x + 1.0, y + 1.0, z + 1.0,
-                            match.style()));
-                }
+    private void advanceCursor() {
+        nextZ++;
+        if (nextZ > maxZ) {
+            nextZ = minZ;
+            nextY++;
+            if (nextY > maxY) {
+                nextY = minY;
+                nextX++;
             }
         }
-        return result;
     }
 
     private static int configHash(BlockESPModule module) {
