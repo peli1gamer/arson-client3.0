@@ -12,8 +12,6 @@ import java.util.List;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
-    private static final int CACHE_REFRESH_TICKS = 40;
-
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
@@ -32,7 +30,7 @@ public final class BlockScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
-        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
+        boolean refreshDue = gameTime - cachedTick >= module.scanInterval() || gameTime < cachedTick;
 
         if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
