@@ -7,7 +7,10 @@ public final class DoubleSetting extends Setting<Double> {
 
     public DoubleSetting(String id, String name, double defaultValue, double min, double max, double step) {
         super(id, name, defaultValue);
-        if (min > max || step <= 0) throw new IllegalArgumentException("Invalid numeric setting range");
+        if (!Double.isFinite(min) || !Double.isFinite(max) || !Double.isFinite(step)
+                || !Double.isFinite(defaultValue) || min > max || step <= 0) {
+            throw new IllegalArgumentException("Invalid numeric setting range");
+        }
         this.min = min;
         this.max = max;
         this.step = step;
