@@ -23,7 +23,6 @@ public final class BlockScanner {
 
     private boolean scanning;
     private Object scanLevel;
-    private long scanStartedTick;
     private int scanChunkX;
     private int scanChunkZ;
     private int scanConfigHash;
@@ -76,7 +75,6 @@ public final class BlockScanner {
     private void beginScan(Minecraft client, BlockESPModule module, long gameTime,
                            int chunkX, int chunkZ, int configHash) {
         scanLevel = client.level;
-        scanStartedTick = gameTime;
         scanChunkX = chunkX;
         scanChunkZ = chunkZ;
         scanConfigHash = configHash;
