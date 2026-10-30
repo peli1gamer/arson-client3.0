@@ -43,6 +43,8 @@ public final class BlockScanner {
         if (client.level == null || client.player == null || !module.enabled()) {
             scanning = false;
             cachedTargets = List.of();
+            cachedLevel = null;
+            cachedTick = Long.MIN_VALUE;
             return cachedTargets;
         }
 
