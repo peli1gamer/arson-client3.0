@@ -16,7 +16,6 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
     private final BlockScanner scanner;
     private final BlockESPModule module;
     private List<BlockTarget> cachedTargets = List.of();
-    private long lastScanTick = Long.MIN_VALUE;
     private int lastVisibleCount;
 
     public BlockRenderStage(Minecraft client, BlockScanner scanner, BlockESPModule module) {
@@ -32,11 +31,8 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             return;
         }
 
-        long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
-            cachedTargets = scanner.scan(client, module);
-            lastScanTick = gameTime;
-        }
+        // Scanner owns interval scheduling and advances a bounded work slice each frame.
+        cachedTargets = scanner.scan(client, module);
 
         if (cachedTargets.isEmpty()) {
             lastVisibleCount = 0;
