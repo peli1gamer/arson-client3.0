@@ -45,7 +45,7 @@ public final class HudEditorScreen extends Screen {
         }
         int actionY=compact?96:78;
         int actionColumns=compact?4:10;
-        int actionWidth=compact?Math.max(64,(width-30)/4):Math.max(54,(width-30)/10);
+        int actionWidth=compact?Math.max(64,(width-30-9)/4):Math.max(54,(width-30-27)/10);
         addEditorAction("Visible",10,actionY,actionWidth,()->{toggleVisible();save();rebuild();},0,actionColumns,compact,actionWidth);
         addEditorAction("Scale -",10,actionY,actionWidth,()->{adjustScale(-.05);save();rebuild();},1,actionColumns,compact,actionWidth);
         addEditorAction("Scale +",10,actionY,actionWidth,()->{adjustScale(.05);save();rebuild();},2,actionColumns,compact,actionWidth);
