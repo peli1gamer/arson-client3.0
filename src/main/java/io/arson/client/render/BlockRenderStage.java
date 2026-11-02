@@ -3,6 +3,8 @@ package io.arson.client.render;
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
+import io.arson.client.render.RenderLineRenderer;
+import net.minecraft.client.renderer.VertexConsumer;
 import io.arson.client.module.BlockESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
@@ -45,6 +47,8 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
         double range = Math.max(1.0, module.range());
         double rangeSquared = range * range;
         List<RenderBox> boxes = new ArrayList<>(targets.size());
+        VertexConsumer tracerBuffer = module.tracers()
+                ? RenderLineRenderer.lineBuffer(context.consumers()) : null;
 
         for (BlockTarget target : targets) {
             BlockPos position = BlockPos.containing(target.minX(), target.minY(), target.minZ());
@@ -63,6 +67,13 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             RenderStyle style = fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
+            if (tracerBuffer != null) {
+                RenderStyle tracerStyle = new RenderStyle(style.color(), false, true, 0.0f,
+                        style.outlineAlpha() * module.tracerAlpha(), module.tracerLineWidth());
+                RenderLineRenderer.line(context.matrices(), tracerBuffer, 0.0, 0.0, 0.0,
+                        target.centerX() - camera.x, target.centerY() - camera.y,
+                        target.centerZ() - camera.z, tracerStyle);
+            }
         }
 
         lastVisibleCount = boxes.size();
