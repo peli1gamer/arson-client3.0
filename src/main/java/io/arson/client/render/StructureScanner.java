@@ -138,7 +138,7 @@ public final class StructureScanner {
         }
 
         lastFrameInspected = inspected;
-        if (!cursor.hasNext()) {
+        if (!cursor.hasNext() && workingTargets != null) {
             cachedTargets = workingTargets == null || workingTargets.isEmpty()
                     ? List.of() : List.copyOf(workingTargets);
             workingTargets = null;
