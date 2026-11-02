@@ -14,7 +14,7 @@ public final class PlayerCoordinatesModule extends Module {
     }
 
     @Override protected void onTick(Minecraft client) {
-        if (client.player == null) return;
+        if (client.player == null) { x = y = z = 0; return; }
         x = client.player.blockPosition().getX();
         y = client.player.blockPosition().getY();
         z = client.player.blockPosition().getZ();
