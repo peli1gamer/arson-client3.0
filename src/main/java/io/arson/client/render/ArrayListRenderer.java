@@ -3,6 +3,7 @@ package io.arson.client.render;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.module.Module;
+import io.arson.client.ui.HudEditorScreen;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -25,7 +26,8 @@ public final class ArrayListRenderer {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || client.level == null) return;
         ArrayListModule module = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
-        if (module == null || !module.enabled()) return;
+        boolean editorOpen = client.screen instanceof HudEditorScreen;
+        if (module == null || (!module.enabled() && !editorOpen)) return;
 
         long now = System.nanoTime();
         float deltaSeconds = Math.min(0.1f, Math.max(0.0f, (now - lastFrameNanos) / 1_000_000_000.0f));
