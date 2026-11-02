@@ -53,6 +53,12 @@ public final class NoOverlapLayout {
                 else {
                     Rect compactedCandidate=findCompactedCandidate(preferred.getOrDefault(id,chosen),w,h,safeLeft,safeTop,safeRight,safeBottom,step,occupied);
                     if(compactedCandidate!=null){ chosen=compactedCandidate; compacted=true; }
+                    else {
+                        reflowIntoRows(result, occupied, id, pref, safeLeft, safeTop,
+                                safeRight, safeBottom, preferred);
+                        chosen = result.get(id).rect();
+                        compacted = true;
+                    }
                 }
             }
             boolean moved=chosen.x()!=pref.x()||chosen.y()!=pref.y();
@@ -60,6 +66,30 @@ public final class NoOverlapLayout {
             occupied.add(chosen);
         }
         return result;
+    }
+
+    private static void reflowIntoRows(Map<String,Placement> result, List<Rect> occupied,
+                                        String currentId, Rect currentPreferred,
+                                        int left, int top, int right, int bottom,
+                                        Map<String,Rect> preferred) {
+        List<String> ids = new ArrayList<>(result.keySet());
+        ids.add(currentId);
+        int count = ids.size();
+        int regionHeight = Math.max(0, bottom - top);
+        int rowHeight = count == 0 ? 0 : regionHeight / count;
+        result.clear();
+        occupied.clear();
+        for (int i = 0; i < count; i++) {
+            String id = ids.get(i);
+            Rect original = id.equals(currentId) ? currentPreferred
+                    : preferred.getOrDefault(id, new Rect(left, top, right-left, rowHeight));
+            int y = top + i * rowHeight;
+            int height = i == count - 1 ? Math.max(0, bottom - y) : rowHeight;
+            Rect placed = new Rect(left, y, Math.max(0, right-left), height);
+            result.put(id, new Placement(id, placed,
+                    placed.x() != original.x() || placed.y() != original.y(), true));
+            occupied.add(placed);
+        }
     }
 
     private static Rect findCandidate(Rect preferred,int w,int h,int left,int top,int right,int bottom,int gap,List<Rect> occupied){
