@@ -15,6 +15,7 @@ public final class BlockScanner {
     private static final int CACHE_REFRESH_TICKS = 40;
 
     private Object cachedLevel;
+    private Object cachedPlayer;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
     private int cachedChunkZ = Integer.MIN_VALUE;
@@ -23,6 +24,7 @@ public final class BlockScanner {
 
     public void invalidate() {
         cachedLevel = null;
+        cachedPlayer = null;
         cachedTick = Long.MIN_VALUE;
         cachedChunkX = Integer.MIN_VALUE;
         cachedChunkZ = Integer.MIN_VALUE;
@@ -39,17 +41,19 @@ public final class BlockScanner {
         int configHash = configHash(module);
 
         boolean worldChanged = cachedLevel != client.level;
+        boolean playerChanged = cachedPlayer != client.player;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
         boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
 
-        if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
+        if (!worldChanged && !playerChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
         }
 
         List<BlockTarget> result = scanWorld(client, module);
         cachedTargets = List.copyOf(result);
         cachedLevel = client.level;
+        cachedPlayer = client.player;
         cachedTick = gameTime;
         cachedChunkX = chunkX;
         cachedChunkZ = chunkZ;
