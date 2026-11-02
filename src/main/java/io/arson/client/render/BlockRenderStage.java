@@ -33,6 +33,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             cachedLevel = null;
             lastScanTick = Long.MIN_VALUE;
             lastVisibleCount = 0;
+            scanner.invalidate();
             return;
         }
 
