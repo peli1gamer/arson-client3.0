@@ -14,7 +14,7 @@ public final class HoleESPModule extends VisualModule {
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 16.0, 8.0, 32.0, 1.0));
     private final DoubleSetting verticalRange = setting(new DoubleSetting("vertical-range", "Vertical Range", 6.0, 2.0, 16.0, 1.0));
-    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 5.0, 1.0, 20.0, 1.0));
+    private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 20.0, 1.0, 20.0, 1.0));
     private final ColorSetting safeColor = setting(new ColorSetting("safe-color", "Safe Hole Color", 0xD655FF78));
     private final ColorSetting unsafeColor = setting(new ColorSetting("unsafe-color", "Unsafe Hole Color", 0xD8FF5555));
 
