@@ -48,8 +48,7 @@ public final class BlockScanner {
      * Unloaded positions are filtered by the render stage while the replacement scan runs.
      */
     public void requestRefresh() {
-        cursor = null;
-        workingTargets = null;
+        // Finish the current bounded pass before restarting; chunk streaming must not starve scans.
         refreshRequested = true;
     }
 
