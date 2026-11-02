@@ -37,6 +37,7 @@ public final class ArsonScreen extends Screen {
     private StringSetting editingString;
     private ColorSetting editingColor;
     private final List<Button> moduleButtons = new ArrayList<>();
+    private final List<ModuleCard> moduleCards = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
@@ -100,6 +101,7 @@ public final class ArsonScreen extends Screen {
         String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
         moduleButtons.clear();
+        moduleCards.clear();
         profile = null;
         editBox = null;
 
@@ -197,9 +199,14 @@ public final class ArsonScreen extends Screen {
             if(card.bottom()>geometry.detail().bottom() && geometry.columns()==1) continue;
             Module chosen=m;
             Button b=Button.builder(Component.literal((m.favorite()?"★ ":"  ")+(m.enabled()?"● ":"○ ")+m.name()), x -> {
-                selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                chosen.toggle();
+                NotificationCenter.push(chosen.name(), chosen.enabled()?"Enabled":"Disabled");
+                saveConfig();
+                rebuild();
             }).bounds(card.x(),card.y(),card.width(),card.height()).build();
-            moduleButtons.add(b); addRenderableWidget(b);
+            moduleButtons.add(b);
+            moduleCards.add(new ModuleCard(card, chosen));
+            addRenderableWidget(b);
         }
     }
 
@@ -296,6 +303,22 @@ public final class ArsonScreen extends Screen {
     private void saveProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue()))NotificationCenter.push("Profile","Saved "+profile.getValue());else NotificationCenter.push("Profile","Invalid profile name");}
     private void loadProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
 
+    @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick){
+        if (event.button() == 1) {
+            for (ModuleCard card : moduleCards) {
+                if (card.bounds().contains(event.x(), event.y())) {
+                    selected = card.module();
+                    moduleFocus = visibleModules().indexOf(selected);
+                    detailScroll = 0;
+                    focus = ClickGuiLayoutModel.Focus.MODULE;
+                    rebuild();
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
     @Override public boolean keyPressed(KeyEvent event){
         int key=event.key();
         if(bindingModule!=null){if(key==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}bindingModule.setKeyCode(key);NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(key));bindingModule=null;saveConfig();rebuild();return true;}
@@ -346,6 +369,8 @@ public final class ArsonScreen extends Screen {
         g.fill(x+2,y,x+w-2,y+h,color);g.fill(x,y+2,x+w,y+h-2,color);
         g.fill(x+1,y+1,x+w-1,y+2,color);g.fill(x+1,y+h-2,x+w-1,y+h-1,color);
     }
+
+    private record ModuleCard(ClickGuiLayoutModel.Rect bounds, Module module) {}
 
     private record Rects(ClickGuiLayoutModel.Geometry g){
         ClickGuiLayoutModel.Rect rail(){return g.rail();}
