@@ -66,6 +66,9 @@ public final class ConfigManager {
             migrateLegacyLayout(root, moduleRoot, modules);
             if (!validateModuleData(moduleRoot, modules)) return false;
             for (Module module : modules.all()) {
+                // Configs and profiles are snapshots: missing module fields must not leak
+                // values from whichever profile happened to be loaded previously.
+                module.resetToDefaults();
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
