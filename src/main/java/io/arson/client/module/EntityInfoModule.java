@@ -25,6 +25,7 @@ public final class EntityInfoModule extends Module implements EntityScanConfig {
     private final DoubleSetting scale = setting(new DoubleSetting("scale", "Scale", 1.0, 0.5, 2.0, 0.05));
     private final DoubleSetting heightOffset = setting(new DoubleSetting("height-offset", "Height Offset", 0.35, 0.0, 1.5, 0.05));
     private final DoubleSetting backgroundPadding = setting(new DoubleSetting("background-padding", "Background Padding", 2.0, 0.0, 8.0, 1.0));
+    private final DoubleSetting fadeStart = setting(new DoubleSetting("fade-start", "Fade Start", 0.45, 0.10, 0.90, 0.05));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 2.0, 1.0, 10.0, 1.0));
 
     public EntityInfoModule() {
@@ -54,6 +55,7 @@ public final class EntityInfoModule extends Module implements EntityScanConfig {
     public double scale() { return scale.get(); }
     public double heightOffset() { return heightOffset.get(); }
     public double backgroundPadding() { return backgroundPadding.get(); }
+    public double fadeStart() { return fadeStart.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 
     @Override public int playerColor() { return playerTextColor.get(); }
