@@ -108,7 +108,20 @@ public final class HudEditorScreen extends Screen {
     @Override public boolean mouseDragged(MouseButtonEvent event,double dragX,double dragY){if(dragging&&event.button()==0){double x=event.x()-offsetX,y=event.y()-offsetY;if(selection.size()>0){String anchor=selection.elements().iterator().next();double[] a=position(anchor);double dx=x-a[0],dy=y-a[1];for(String e:selection.elements()){double[]p=position(e);setPosition(e,p[0]+dx,p[1]+dy);}}return true;}return super.mouseDragged(event,dragX,dragY);}
     @Override public boolean mouseReleased(MouseButtonEvent event){if(event.button()==0&&dragging){dragging=false;repairLayout();save();return true;}return super.mouseReleased(event);}
     @Override public boolean keyPressed(KeyEvent event){if(event.key()==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}if(event.key()==GLFW.GLFW_KEY_C&&event.hasControlDown()){copySelected();return true;}if(event.key()==GLFW.GLFW_KEY_V&&event.hasControlDown()){pasteSelected();save();rebuild();return true;}if(event.key()==GLFW.GLFW_KEY_D&&event.hasControlDown()){duplicateSelected();save();rebuild();return true;}return super.keyPressed(event);}
-    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){graphics.fill(0,0,width,height,0x66000000);graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);graphics.drawString(font,"Shift-click group | drag | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);for(String e:selection.elements())if(visible(e)){double[]p=position(e);int x=(int)p[0],y=(int)p[1];graphics.renderOutline(x-4,y-4,190,35,0xFF55AAFF);graphics.drawString(font,e,x,y+6,0xFFFFFFFF);}super.render(graphics,mouseX,mouseY,delta);}
+    @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float delta){
+        graphics.fill(0,0,width,height,0x66000000);
+        graphics.drawString(font,"HUD Editor — "+selection.size()+" selected",10,12,0xFFFFFFFF);
+        graphics.drawString(font,"Left-click labels to toggle | right-click to select | drag elements | Ctrl+C/V/D copy, paste, duplicate",10,27,0xFFAAAAAA);
+        for(String e:ELEMENTS)if(visible(e)){
+            double[]p=position(e);
+            int x=(int)p[0],y=(int)p[1];
+            boolean selected=selection.contains(e);
+            graphics.fill(x-4,y-4,x+186,y+31,selected?0x443C78B8:0x22000000);
+            graphics.renderOutline(x-4,y-4,190,35,selected?0xFF55AAFF:0x667F8A99);
+            graphics.drawString(font,e,x,y+6,0xFFFFFFFF);
+        }
+        super.render(graphics,mouseX,mouseY,delta);
+    }
     @Override public void onClose(){save();minecraft.setScreen(parent);}
     private record Snapshot(String source,boolean visible,double x,double y,double scale,boolean background,String alignment,int color,HudLayoutModule.Anchor anchor){}
     static final class HudClipboardCompatible {
