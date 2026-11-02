@@ -67,7 +67,7 @@ public final class BlockScanner {
             double dz = mutable.getZ() + 0.5 - playerZ;
             if (partialDistanceSquared + dz * dz > rangeSquared || !client.level.hasChunkAt(mutable)) continue;
             BlockState state = client.level.getBlockState(mutable);
-            RenderStyle style = match(state.getBlock(), module);
+            RenderStyle style = match(state, module);
             if (style == null) continue;
             int x = mutable.getX(), y = mutable.getY(), z = mutable.getZ();
             workingTargets.add(new BlockTarget(x, y, z, x + 1.0, y + 1.0, z + 1.0, style));
@@ -116,6 +116,10 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = 31 * hash + Boolean.hashCode(module.showSpawners());
+        hash = 31 * hash + Boolean.hashCode(module.showLightSources());
+        hash = 31 * hash + Boolean.hashCode(module.showAmethyst());
+        hash = 31 * hash + module.lightThreshold();
         hash = 31 * hash + styleHash(module.diamondStyle());
         hash = 31 * hash + styleHash(module.emeraldStyle());
         hash = 31 * hash + styleHash(module.goldStyle());
@@ -126,6 +130,8 @@ public final class BlockScanner {
         hash = 31 * hash + styleHash(module.lapisStyle());
         hash = 31 * hash + styleHash(module.quartzStyle());
         hash = 31 * hash + styleHash(module.ancientDebrisStyle());
+        hash = 31 * hash + styleHash(module.spawnerStyle());
+        hash = 31 * hash + styleHash(module.amethystStyle());
         return hash;
     }
 
@@ -143,7 +149,8 @@ public final class BlockScanner {
         return hash;
     }
 
-    private static RenderStyle match(Block block, BlockESPModule module) {
+    private static RenderStyle match(BlockState state, BlockESPModule module) {
+        Block block = state.getBlock();
         if (module.showDiamond() && (block == Blocks.DIAMOND_ORE || block == Blocks.DEEPSLATE_DIAMOND_ORE)) return module.diamondStyle();
         if (module.showEmerald() && (block == Blocks.EMERALD_ORE || block == Blocks.DEEPSLATE_EMERALD_ORE)) return module.emeraldStyle();
         if (module.showGold() && (block == Blocks.GOLD_ORE || block == Blocks.DEEPSLATE_GOLD_ORE || block == Blocks.NETHER_GOLD_ORE)) return module.goldStyle();
@@ -154,6 +161,13 @@ public final class BlockScanner {
         if (module.showLapis() && (block == Blocks.LAPIS_ORE || block == Blocks.DEEPSLATE_LAPIS_ORE)) return module.lapisStyle();
         if (module.showQuartz() && block == Blocks.NETHER_QUARTZ_ORE) return module.quartzStyle();
         if (module.showAncientDebris() && block == Blocks.ANCIENT_DEBRIS) return module.ancientDebrisStyle();
+        if (module.showSpawners() && block == Blocks.SPAWNER) return module.spawnerStyle();
+        if (module.showAmethyst() && (block == Blocks.AMETHYST_CLUSTER
+                || block == Blocks.SMALL_AMETHYST_BUD
+                || block == Blocks.MEDIUM_AMETHYST_BUD
+                || block == Blocks.LARGE_AMETHYST_BUD)) return module.amethystStyle();
+        int emission = state.getLightEmission();
+        if (module.showLightSources() && emission >= module.lightThreshold()) return module.lightStyle(emission);
         return null;
     }
 }
