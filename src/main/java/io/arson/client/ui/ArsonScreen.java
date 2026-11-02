@@ -236,7 +236,13 @@ public final class ArsonScreen extends Screen {
         for(Setting<?> setting:selected.settings()){
             if(!setting.visible()) continue;
             SettingGroup group=setting.group();
-            if(group!=null&&!group.id().equals(groupId)){groupId=group.id();y+=4;}
+            if(group!=null&&!group.id().equals(groupId)){
+                groupId=group.id();
+                y+=4;
+                if(y+18>top-1&&y<bottom)
+                    addRenderableWidget(Button.builder(Component.literal(group.name()),b->{}).bounds(x,y,w,18).build());
+                y+=20;
+            }
             int controlW=Math.max(45,w-32);
             if(y+22>top-1&&y<bottom){
                 if(setting instanceof BooleanSetting bs)
