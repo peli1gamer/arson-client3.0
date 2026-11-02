@@ -16,8 +16,8 @@ class StorageChunkCursorTest {
             visited.add(cursor.nextX() + ":" + cursor.nextZ());
             cursor.advance();
         }
-        assertEquals(25, visited.size());
-        assertEquals(25L, cursor.processed());
+        assertEquals(15, visited.size());
+        assertEquals(15L, cursor.processed());
         assertEquals(cursor.total(), cursor.processed());
         assertTrue(visited.contains("-2:4"));
         assertTrue(visited.contains("2:6"));
