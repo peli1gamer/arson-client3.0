@@ -47,6 +47,7 @@ public final class StorageScanner {
 
     public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range) {
         if (client.level == null || client.player == null) {
+            invalidate();
             return List.of();
         }
 
