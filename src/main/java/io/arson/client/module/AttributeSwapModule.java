@@ -37,10 +37,14 @@ public final class AttributeSwapModule extends Module {
     private boolean manualOverride;
     private String activeSwap = "";
     public AttributeSwapModule() { super("attribute-swap", "Attribute Swap", Category.COMBAT); }
-    @Override protected void onDisable() { restorePrevious(Minecraft.getInstance()); }
+    @Override protected void onDisable() {
+        restorePrevious(Minecraft.getInstance());
+        manualOverride = false;
+    }
     @Override protected void onTick(Minecraft client) {
         if (client.player == null) {
             clearSwapState();
+            manualOverride = false;
             return;
         }
         if (swapPlayer != null && swapPlayer != client.player) clearSwapState();
