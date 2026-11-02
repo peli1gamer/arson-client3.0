@@ -14,7 +14,7 @@ public final class PlayerDirectionModule extends Module {
 
     @Override
     protected void onTick(Minecraft client) {
-        if (client.player == null) return;
+        if (client.player == null) { direction = "North"; yaw = 0.0f; return; }
         yaw = client.player.getYRot();
         direction = cardinal(yaw);
     }
