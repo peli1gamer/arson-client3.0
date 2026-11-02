@@ -4,7 +4,11 @@ import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.DispenserBlockEntity;
@@ -112,10 +116,10 @@ public final class StorageScanner {
         BlockPos north = pos.north();
 
         BlockPos partner = null;
-        if (isChest(client, east)) partner = east;
-        else if (isChest(client, south)) partner = south;
-        else if (isChest(client, west)) partner = west;
-        else if (isChest(client, north)) partner = north;
+        if (isCompatibleChestPair(client, pos, east)) partner = east;
+        else if (isCompatibleChestPair(client, pos, south)) partner = south;
+        else if (isCompatibleChestPair(client, pos, west)) partner = west;
+        else if (isCompatibleChestPair(client, pos, north)) partner = north;
 
         double x = pos.getX();
         double z = pos.getZ();
@@ -135,9 +139,32 @@ public final class StorageScanner {
                 StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
     }
 
-    private static boolean isChest(Minecraft client, BlockPos pos) {
-        BlockEntity entity = client.level.getBlockEntity(pos);
-        return entity instanceof ChestBlockEntity;
+    static boolean isCompatibleChestPair(Minecraft client, BlockPos firstPos, BlockPos secondPos) {
+        if (!(client.level.getBlockEntity(firstPos) instanceof ChestBlockEntity)
+                || !(client.level.getBlockEntity(secondPos) instanceof ChestBlockEntity)) {
+            return false;
+        }
+
+        BlockState first = client.level.getBlockState(firstPos);
+        BlockState second = client.level.getBlockState(secondPos);
+        if (!isChestBlock(first) || !isChestBlock(second)) return false;
+        if (first.getBlock() != second.getBlock()) return false;
+
+        Direction facing = first.getValue(ChestBlock.FACING);
+        if (facing != second.getValue(ChestBlock.FACING)) return false;
+
+        ChestType firstType = first.getValue(ChestBlock.TYPE);
+        ChestType secondType = second.getValue(ChestBlock.TYPE);
+        if (firstType == ChestType.SINGLE || secondType == ChestType.SINGLE || firstType == secondType) {
+            return false;
+        }
+
+        return secondPos.equals(firstPos.relative(facing.getClockWise()))
+                || secondPos.equals(firstPos.relative(facing.getCounterClockWise()));
+    }
+
+    private static boolean isChestBlock(BlockState state) {
+        return state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST);
     }
 
     private static StorageType classify(BlockEntity entity) {
