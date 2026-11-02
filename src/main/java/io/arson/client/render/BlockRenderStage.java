@@ -4,7 +4,7 @@ import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
 import io.arson.client.render.RenderLineRenderer;
-import net.minecraft.client.renderer.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.arson.client.module.BlockESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
