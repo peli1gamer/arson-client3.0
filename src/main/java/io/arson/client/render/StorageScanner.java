@@ -183,7 +183,7 @@ public final class StorageScanner {
         }
     }
 
-    static boolean isTargetLoaded(Minecraft client, StorageOverlay.StorageTarget target) {
+    public static boolean isTargetLoaded(Minecraft client, StorageOverlay.StorageTarget target) {
         BlockPos first = BlockPos.containing(target.x(), target.y(), target.z());
         BlockPos last = BlockPos.containing(target.x() + Math.max(0.0, target.width() - 1.0),
                 target.y(), target.z() + Math.max(0.0, target.depth() - 1.0));
