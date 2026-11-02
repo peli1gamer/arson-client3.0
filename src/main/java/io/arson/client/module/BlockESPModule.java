@@ -85,7 +85,7 @@ public final class BlockESPModule extends VisualModule {
     public RenderStyle spawnerStyle() { return renderStyle(spawnerColor.get()); }
     public RenderStyle amethystStyle() { return renderStyle(amethystColor.get()); }
     public RenderStyle dripstoneStyle() { return renderStyle(dripstoneColor.get()); }
-    public RenderStyle beehiveStyle() { return renderStyle(beehiveColor.get());
+    public RenderStyle beehiveStyle() { return renderStyle(beehiveColor.get()); }
     public RenderStyle lightStyle(int emission) {
         int threshold = lightThreshold();
         float intensity = Math.max(0.0f, Math.min(1.0f, (emission - threshold) / (float) Math.max(1, 15 - threshold)));
