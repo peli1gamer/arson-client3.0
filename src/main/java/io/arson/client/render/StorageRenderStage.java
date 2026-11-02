@@ -77,8 +77,14 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
             VertexConsumer tracerBuffer = RenderLineRenderer.lineBuffer(context.consumers());
             for (RenderBox box : boxes) {
                 RenderStyle style = box.style();
+                double dx = box.centerX() - client.player.getX();
+                double dy = box.centerY() - client.player.getY();
+                double dz = box.centerZ() - client.player.getZ();
+                float fade = module.distanceFade()
+                        ? EspRenderMath.distanceFade(Math.sqrt(dx * dx + dy * dy + dz * dz),
+                                module.range(), module.fadeStart()) : 1.0f;
                 RenderStyle tracerStyle = new RenderStyle(style.color(), false, true, 0.0f,
-                        style.outlineAlpha() * module.tracerAlpha(), module.tracerLineWidth());
+                        module.tracerAlpha() * fade, module.tracerLineWidth());
                 RenderLineRenderer.line(context.matrices(), tracerBuffer, 0.0, 0.0, 0.0,
                         box.centerX() - camera.x, box.centerY() - camera.y,
                         box.centerZ() - camera.z, tracerStyle);
