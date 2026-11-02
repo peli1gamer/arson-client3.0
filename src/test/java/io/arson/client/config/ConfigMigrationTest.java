@@ -11,6 +11,29 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigMigrationTest {
     @Test
+    void invalidModuleValueIsRejectedBeforeAnyStateIsApplied() throws Exception {
+        ModuleManager modules = new ModuleManager();
+        modules.registerDefaults();
+
+        JsonObject root = new JsonObject();
+        JsonObject moduleRoot = new JsonObject();
+        JsonObject sprint = new JsonObject();
+        sprint.addProperty("enabled", true);
+        sprint.addProperty("keyCode", "not-a-number");
+        moduleRoot.add("sprint", sprint);
+        root.add("modules", moduleRoot);
+
+        var path = Files.createTempFile("arson-v3-invalid-", ".json");
+        try {
+            Files.writeString(path, root.toString());
+            assertFalse(ConfigManager.loadFromPath(path, modules));
+            assertFalse(modules.get("sprint").enabled());
+        } finally {
+            Files.deleteIfExists(path);
+        }
+    }
+
+    @Test
     void legacyHudLayoutObjectMigratesIntoAnchorSettings() throws Exception {
         ModuleManager modules = new ModuleManager();
         modules.registerDefaults();
