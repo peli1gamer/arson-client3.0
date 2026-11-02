@@ -49,6 +49,19 @@ class HoleDetectorTest {
     }
 
     @Test
+    void detectsDoubleHoleAlongTheZAxis() {
+        Grid grid = new Grid();
+        addDoubleHoleZ(grid, 0, 1, 0, true);
+
+        HoleDetector.HoleTarget target = HoleDetector.detectAt(grid, 0, 1, 0);
+
+        assertNotNull(target);
+        assertEquals(1, target.width());
+        assertEquals(2, target.depth());
+        assertTrue(target.safe());
+    }
+
+    @Test
     void rejectsAnOpenSideAndInsufficientHeadroom() {
         Grid openSide = new Grid();
         addSingleHole(openSide, 0, 1, 0, true);
@@ -85,6 +98,21 @@ class HoleDetectorTest {
         addWallColumn(grid, x, y, z - 1, safe);
         addWallColumn(grid, x + 1, y, z - 1, safe);
         addWallColumn(grid, x, y, z + 1, safe);
+        addWallColumn(grid, x + 1, y, z + 1, safe);
+    }
+
+    private static void addDoubleHoleZ(Grid grid, int x, int y, int z, boolean safe) {
+        grid.addAir(x, y, z);
+        grid.addAir(x, y + 1, z);
+        grid.addAir(x, y, z + 1);
+        grid.addAir(x, y + 1, z + 1);
+        grid.addSolid(x, y - 1, z, safe);
+        grid.addSolid(x, y - 1, z + 1, safe);
+        addWallColumn(grid, x, y, z - 1, safe);
+        addWallColumn(grid, x, y, z + 2, safe);
+        addWallColumn(grid, x - 1, y, z, safe);
+        addWallColumn(grid, x - 1, y, z + 1, safe);
+        addWallColumn(grid, x + 1, y, z, safe);
         addWallColumn(grid, x + 1, y, z + 1, safe);
     }
 
