@@ -37,9 +37,11 @@ public final class ArsonScreen extends Screen {
     private StringSetting editingString;
     private ColorSetting editingColor;
     private final List<Button> moduleButtons = new ArrayList<>();
+    private final List<ModuleCard> moduleCards = new ArrayList<>();
     private ClickGuiLayoutModel.Geometry geometry;
     private int scroll, detailScroll;
     private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
+    private boolean settingsOpen;
     private Theme theme = Theme.MIDNIGHT;
     private ClickGuiLayoutModel.Focus focus = ClickGuiLayoutModel.Focus.MODULE;
     private int categoryFocus, moduleFocus;
@@ -48,6 +50,7 @@ public final class ArsonScreen extends Screen {
 
     @Override protected void init() {
         syncPreferences();
+        categoryFocus = categoriesIndex(category);
         geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
         rebuild();
     }
@@ -100,6 +103,7 @@ public final class ArsonScreen extends Screen {
         String profileValue = profile == null ? "" : profile.getValue();
         clearWidgets();
         moduleButtons.clear();
+        moduleCards.clear();
         profile = null;
         editBox = null;
 
@@ -174,7 +178,7 @@ public final class ArsonScreen extends Screen {
             int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
-                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; settingsOpen=false; editingString=null; editingColor=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
             addRenderableWidget(b);
         }
@@ -197,14 +201,19 @@ public final class ArsonScreen extends Screen {
             if(card.bottom()>geometry.detail().bottom() && geometry.columns()==1) continue;
             Module chosen=m;
             Button b=Button.builder(Component.literal((m.favorite()?"★ ":"  ")+(m.enabled()?"● ":"○ ")+m.name()), x -> {
-                selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                chosen.toggle();
+                NotificationCenter.push(chosen.name(), chosen.enabled()?"Enabled":"Disabled");
+                saveConfig();
+                rebuild();
             }).bounds(card.x(),card.y(),card.width(),card.height()).build();
-            moduleButtons.add(b); addRenderableWidget(b);
+            moduleButtons.add(b);
+            moduleCards.add(new ModuleCard(card, chosen));
+            addRenderableWidget(b);
         }
     }
 
     private void addDetailWidgets(Rects r) {
-        if(selected==null) return;
+        if(selected==null || !settingsOpen) return;
         int x=r.detail().x()+8, w=Math.max(60,r.detail().width()-16);
         int top=r.detail().y()+6, bottom=r.detail().bottom()-6, y=top-detailScroll;
         int controlH=22,gapY=26;
@@ -229,7 +238,13 @@ public final class ArsonScreen extends Screen {
         for(Setting<?> setting:selected.settings()){
             if(!setting.visible()) continue;
             SettingGroup group=setting.group();
-            if(group!=null&&!group.id().equals(groupId)){groupId=group.id();y+=4;}
+            if(group!=null&&!group.id().equals(groupId)){
+                groupId=group.id();
+                y+=4;
+                if(y+18>top-1&&y<bottom)
+                    addRenderableWidget(Button.builder(Component.literal(group.name()),b->{}).bounds(x,y,w,18).build());
+                y+=20;
+            }
             int controlW=Math.max(45,w-32);
             if(y+22>top-1&&y<bottom){
                 if(setting instanceof BooleanSetting bs)
@@ -250,9 +265,18 @@ public final class ArsonScreen extends Screen {
     }
     private int maxDetailScroll(){
         if(selected==null)return 0;
-        int lines=3+(selected.description().isBlank()?0:2);
-        for(Setting<?> setting:selected.settings()) if(setting.visible()) lines++;
-        return Math.max(0,lines*26-Math.max(24,geometry.detail().height()-12));
+        int contentHeight=3*26+(selected.description().isBlank()?0:40);
+        String previousGroup=null;
+        for(Setting<?> setting:selected.settings()){
+            if(!setting.visible())continue;
+            SettingGroup group=setting.group();
+            if(group!=null&&!group.id().equals(previousGroup)){
+                previousGroup=group.id();
+                contentHeight+=24;
+            }
+            contentHeight+=26;
+        }
+        return Math.max(0,contentHeight-Math.max(24,geometry.detail().height()-12));
     }
 
     private void addFooter(Rects r,String profileValue) {
@@ -296,6 +320,25 @@ public final class ArsonScreen extends Screen {
     private void saveProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue()))NotificationCenter.push("Profile","Saved "+profile.getValue());else NotificationCenter.push("Profile","Invalid profile name");}
     private void loadProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
 
+    @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick){
+        if (event.button() == 1) {
+            for (ModuleCard card : moduleCards) {
+                if (card.bounds().contains(event.x(), event.y())) {
+                    selected = card.module();
+                    editingString = null;
+                    editingColor = null;
+                    settingsOpen = true;
+                    moduleFocus = visibleModules().indexOf(selected);
+                    detailScroll = 0;
+                    focus = ClickGuiLayoutModel.Focus.MODULE;
+                    rebuild();
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
     @Override public boolean keyPressed(KeyEvent event){
         int key=event.key();
         if(bindingModule!=null){if(key==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}bindingModule.setKeyCode(key);NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(key));bindingModule=null;saveConfig();rebuild();return true;}
@@ -335,10 +378,17 @@ public final class ArsonScreen extends Screen {
         g.drawString(font,""+ArsonClient.getInstance().modules().enabledCount()+" enabled",geometry.panelX()+geometry.panelWidth()-92,geometry.panelY()+12,0xFFB8C1CC);
         g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
         g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
-        if(selected!=null){
+        if(selected!=null && settingsOpen){
             g.drawString(font,selected.name(),r.detail().x()+8,r.detail().y()-12,accentColor());
+        } else {
+            g.drawString(font,"Right-click a module to configure it",r.detail().x()+10,r.detail().y()+10,0xFF7E8998);
         }
         super.render(g,mouseX,mouseY,delta);
+        for(ModuleCard card:moduleCards){
+            ClickGuiLayoutModel.Rect bounds=card.bounds();
+            if(card.module().enabled())g.fill(bounds.x(),bounds.y(),bounds.x()+3,bounds.bottom(),accentColor());
+            if(settingsOpen && card.module()==selected)g.renderOutline(bounds.x(),bounds.y(),bounds.width(),bounds.height(),accentColor());
+        }
     }
 
     private static void rounded(GuiGraphics g,int x,int y,int w,int h,int color){
@@ -346,6 +396,8 @@ public final class ArsonScreen extends Screen {
         g.fill(x+2,y,x+w-2,y+h,color);g.fill(x,y+2,x+w,y+h-2,color);
         g.fill(x+1,y+1,x+w-1,y+2,color);g.fill(x+1,y+h-2,x+w-1,y+h-1,color);
     }
+
+    private record ModuleCard(ClickGuiLayoutModel.Rect bounds, Module module) {}
 
     private record Rects(ClickGuiLayoutModel.Geometry g){
         ClickGuiLayoutModel.Rect rail(){return g.rail();}

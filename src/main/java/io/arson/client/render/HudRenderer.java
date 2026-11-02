@@ -38,6 +38,7 @@ import io.arson.client.module.WorldBorderInfoModule;
 import io.arson.client.module.WorldSpawnInfoModule;
 import io.arson.client.module.RenderResolutionInfoModule;
 import io.arson.client.module.WorldMoonInfoModule;
+import io.arson.client.ui.HudEditorScreen;
 import io.arson.client.module.WorldChunkInfoModule;
 import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.DeltaTracker;
@@ -54,7 +55,8 @@ public final class HudRenderer {
         renderNotifications(graphics, client);
         if (client.player == null || client.level == null) return;
         HudModule hud = (HudModule) ArsonClient.getInstance().modules().get("hud");
-        if (hud == null || !hud.enabled()) return;
+        boolean editorOpen = client.screen instanceof HudEditorScreen;
+        if (hud == null || (!hud.enabled() && !editorOpen)) return;
         HudLayoutModule layout = (HudLayoutModule) ArsonClient.getInstance().modules().get("hud-layout");
         ArrayListModule arrayList = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
         PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
