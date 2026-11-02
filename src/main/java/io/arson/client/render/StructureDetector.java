@@ -21,9 +21,18 @@ final class StructureDetector {
         STAIRCASE
     }
 
-    record StructureTarget(StructureType type,
-                           int minX, int minY, int minZ,
-                           int maxX, int maxY, int maxZ) {}
+    record StructureTarget(StructureType type, int x, int y, int z,
+                           int length, int stepY, boolean alongX) {
+        int minX() { return x; }
+        int maxX() { return x + (alongX ? length : 1); }
+        int minY() { return Math.min(y, y + stepY * (length - 1)); }
+        int maxY() {
+            return Math.max(y, y + stepY * (length - 1))
+                    + (type == StructureType.TUNNEL ? 2 : 3);
+        }
+        int minZ() { return z; }
+        int maxZ() { return z + (alongX ? 1 : length); }
+    }
 
     static StructureTarget detectAt(BlockAccess blocks, int x, int y, int z) {
         if (isTunnelCell(blocks, x, y, z, Direction.EAST)) {
@@ -33,10 +42,6 @@ final class StructureDetector {
         if (isTunnelCell(blocks, x, y, z, Direction.SOUTH)) {
             StructureTarget tunnel = tunnelRun(blocks, x, y, z, Direction.SOUTH);
             if (tunnel != null) return tunnel;
-        }
-        if (isTunnelCell(blocks, x - 1, y, z, Direction.EAST)
-                || isTunnelCell(blocks, x, y, z - 1, Direction.SOUTH)) {
-            return null;
         }
 
         if (!stairAndClear(blocks, x, y, z)) return null;
@@ -50,10 +55,6 @@ final class StructureDetector {
     }
 
     private static StructureTarget tunnelRun(BlockAccess blocks, int x, int y, int z, Direction direction) {
-        int previousX = x - direction.getStepX();
-        int previousZ = z - direction.getStepZ();
-        if (isTunnelCell(blocks, previousX, y, previousZ, direction)) return null;
-
         int length = 0;
         while (length < MAX_STRUCTURE_LENGTH
                 && isTunnelCell(blocks, x + direction.getStepX() * length,
@@ -62,9 +63,8 @@ final class StructureDetector {
         }
         if (length < MIN_TUNNEL_LENGTH) return null;
 
-        int maxX = x + (direction.getAxis() == Direction.Axis.X ? length : 1);
-        int maxZ = z + (direction.getAxis() == Direction.Axis.Z ? length : 1);
-        return new StructureTarget(StructureType.TUNNEL, x, y, z, maxX, y + 2, maxZ);
+        return new StructureTarget(StructureType.TUNNEL, x, y, z, length, 0,
+                direction.getAxis() == Direction.Axis.X);
     }
 
     private static boolean isTunnelCell(BlockAccess blocks, int x, int y, int z, Direction direction) {
@@ -83,10 +83,6 @@ final class StructureDetector {
 
     private static StructureTarget stairRun(BlockAccess blocks, int x, int y, int z,
                                             Direction direction, int verticalStep) {
-        int previousX = x - direction.getStepX();
-        int previousZ = z - direction.getStepZ();
-        if (stairAndClear(blocks, previousX, y - verticalStep, previousZ)) return null;
-
         int length = 0;
         while (length < MAX_STRUCTURE_LENGTH
                 && stairAndClear(blocks,
@@ -97,12 +93,8 @@ final class StructureDetector {
         }
         if (length < MIN_STAIR_COUNT) return null;
 
-        int lastY = y + verticalStep * (length - 1);
-        int minY = Math.min(y, lastY);
-        int maxY = Math.max(y, lastY) + 3;
-        int maxX = x + (direction.getAxis() == Direction.Axis.X ? length : 1);
-        int maxZ = z + (direction.getAxis() == Direction.Axis.Z ? length : 1);
-        return new StructureTarget(StructureType.STAIRCASE, x, minY, z, maxX, maxY, maxZ);
+        return new StructureTarget(StructureType.STAIRCASE, x, y, z, length, verticalStep,
+                direction.getAxis() == Direction.Axis.X);
     }
 
     private static boolean stairAndClear(BlockAccess blocks, int x, int y, int z) {
