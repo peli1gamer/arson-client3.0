@@ -6,10 +6,12 @@ import com.arson.client.render.RenderStyle;
 import io.arson.client.module.BlockESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+
 import java.util.ArrayList;
 import java.util.List;
 
-/** World-render adapter for incrementally scanned Ore ESP targets. */
+/** World-render adapter for incrementally scanned block ESP targets. */
 public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStage {
     private final Minecraft client;
     private final BlockScanner scanner;
@@ -29,25 +31,40 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             scanner.invalidate();
             return;
         }
+
         List<BlockTarget> targets = scanner.scan(client, module);
         if (targets.isEmpty()) {
             lastVisibleCount = 0;
             return;
         }
+
         var camera = context.worldState().cameraRenderState.pos;
-        double playerX = client.player.getX(), playerY = client.player.getY(), playerZ = client.player.getZ();
+        double playerX = client.player.getX();
+        double playerY = client.player.getY();
+        double playerZ = client.player.getZ();
         double range = Math.max(1.0, module.range());
+        double rangeSquared = range * range;
         List<RenderBox> boxes = new ArrayList<>(targets.size());
+
         for (BlockTarget target : targets) {
-            double dx = target.centerX() - playerX, dy = target.centerY() - playerY, dz = target.centerZ() - playerZ;
-            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (distance > range) continue;
+            BlockPos position = BlockPos.containing(target.minX(), target.minY(), target.minZ());
+            if (!client.level.hasChunkAt(position)) continue;
+
+            double dx = target.centerX() - playerX;
+            double dy = target.centerY() - playerY;
+            double dz = target.centerZ() - playerZ;
+            double distanceSquared = dx * dx + dy * dy + dz * dz;
+            if (distanceSquared > rangeSquared) continue;
+
+            double distance = Math.sqrt(distanceSquared);
             float fade = module.distanceFade() ? distanceFade(distance, range) : 1.0f;
             if (fade <= 0.0f) continue;
+
             RenderStyle style = fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
         }
+
         lastVisibleCount = boxes.size();
         if (!boxes.isEmpty()) {
             RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
