@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.network.chat.Component;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import java.util.List;
@@ -70,13 +69,11 @@ public final class EntityInfoStage implements WorldRenderBridge.WorldRenderStage
                 matrices.mulPose(camera.orientation);
                 matrices.scale(-0.025f * scale, -0.025f * scale, 0.025f * scale);
 
-                int width = font.width(text);
                 int textColor = EspRenderMath.fadeAlpha(module.textColorFor(target.type()), fade);
                 int backgroundColor = module.background()
                         ? EspRenderMath.fadeAlpha(module.backgroundColor(), fade) : 0;
-                font.drawInBatch(Component.literal(text), -width / 2.0f, 0, textColor, false,
-                        matrices.last().pose(), consumers, Font.DisplayMode.NORMAL,
-                        backgroundColor, 0xF000F0);
+                BillboardLabelRenderer.draw(font, matrices, consumers, text,
+                        textColor, backgroundColor, (float) module.backgroundPadding(), 0xF000F0);
             } finally {
                 matrices.popPose();
             }
