@@ -2,8 +2,10 @@ package io.arson.client.render;
 
 import net.minecraft.core.BlockPos;
 import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class BlockScanCursorTest {
@@ -40,5 +42,32 @@ class BlockScanCursorTest {
         assertThrows(IllegalStateException.class, () -> cursor.setPosition(mutable));
         cursor.advance();
         assertEquals(1L, cursor.processed());
+    }
+
+    @Test
+    void maximumConfiguredRangeCanBeProcessedInBoundedBatches() {
+        int radius = 64;
+        BlockScanCursor cursor = new BlockScanCursor(-radius, -radius, -radius,
+                radius, radius, radius);
+        long expectedTotal = 129L * 129L * 129L;
+        long processed = 0L;
+        int frames = 0;
+
+        while (cursor.hasNext()) {
+            int frameBudget = 0;
+            while (cursor.hasNext() && frameBudget < BlockScanner.MAX_BLOCKS_PER_FRAME) {
+                cursor.setPosition(new BlockPos.MutableBlockPos());
+                cursor.advance();
+                frameBudget++;
+            }
+            assertTrue(frameBudget <= BlockScanner.MAX_BLOCKS_PER_FRAME);
+            processed += frameBudget;
+            frames++;
+        }
+
+        assertEquals(expectedTotal, processed);
+        assertEquals(expectedTotal, cursor.processed());
+        assertTrue(frames > 1);
+        assertTrue(frames <= Math.ceil(expectedTotal / (double) BlockScanner.MAX_BLOCKS_PER_FRAME));
     }
 }
