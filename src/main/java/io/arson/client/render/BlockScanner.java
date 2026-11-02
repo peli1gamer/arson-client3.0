@@ -182,6 +182,8 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showSpawners());
         hash = 31 * hash + Boolean.hashCode(module.showLightSources());
         hash = 31 * hash + Boolean.hashCode(module.showAmethyst());
+        hash = 31 * hash + Boolean.hashCode(module.showDripstone());
+        hash = 31 * hash + Boolean.hashCode(module.showBeehives());
         hash = 31 * hash + module.lightThreshold();
         hash = 31 * hash + styleHash(module.diamondStyle());
         hash = 31 * hash + styleHash(module.emeraldStyle());
@@ -195,6 +197,8 @@ public final class BlockScanner {
         hash = 31 * hash + styleHash(module.ancientDebrisStyle());
         hash = 31 * hash + styleHash(module.spawnerStyle());
         hash = 31 * hash + styleHash(module.amethystStyle());
+        hash = 31 * hash + styleHash(module.dripstoneStyle());
+        hash = 31 * hash + styleHash(module.beehiveStyle());
         return hash;
     }
 
@@ -229,6 +233,10 @@ public final class BlockScanner {
                 || block == Blocks.SMALL_AMETHYST_BUD
                 || block == Blocks.MEDIUM_AMETHYST_BUD
                 || block == Blocks.LARGE_AMETHYST_BUD)) return module.amethystStyle();
+        if (module.showDripstone() && (block == Blocks.POINTED_DRIPSTONE
+                || block == Blocks.DRIPSTONE_BLOCK)) return module.dripstoneStyle();
+        if (module.showBeehives() && (block == Blocks.BEEHIVE
+                || block == Blocks.BEE_NEST)) return module.beehiveStyle();
         int emission = state.getLightEmission();
         if (module.showLightSources() && emission >= module.lightThreshold()) return module.lightStyle(emission);
         return null;
