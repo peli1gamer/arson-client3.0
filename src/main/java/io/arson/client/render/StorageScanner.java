@@ -66,10 +66,7 @@ public final class StorageScanner {
 
     /** Restarts discovery after chunk load/unload while retaining the last complete snapshot. */
     public void requestRefresh() {
-        cursor = null;
-        currentEntries = null;
-        workingTargets = null;
-        emittedChestPositions = null;
+        // Defer refresh until the active bounded pass completes to avoid starvation during chunk streaming.
         refreshRequested = true;
     }
 
