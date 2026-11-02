@@ -33,13 +33,13 @@ public final class StructureScanner {
     }
 
     public List<StructureTarget> scan(Minecraft client, List<StructureESPModule> modules) {
-        if (client.level == null || client.player == null || modules.stream().noneMatch(Module::enabled)) {
+        if (client.level == null || client.player == null || modules.stream().noneMatch(StructureESPModule::enabled)) {
             invalidate();
             return List.of();
         }
         int enabledSignature = signature(modules);
         BlockPos playerPos = client.player.blockPosition();
-        int nextRadius = (int)Math.ceil(modules.stream().filter(Module::enabled)
+        int nextRadius = (int)Math.ceil(modules.stream().filter(StructureESPModule::enabled)
                 .mapToDouble(StructureESPModule::range).max().orElse(24.0));
         long tick = client.level.getGameTime();
         boolean identityChanged = levelIdentity != client.level || playerIdentity != client.player;
@@ -91,11 +91,11 @@ public final class StructureScanner {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         Set<Long> emitted = new HashSet<>();
 
-        StructureESPModule holesBase = enabled.get(StructureESPModule.Detector.HOLE_TUNNEL_STAIRS);
-        StructureESPModule covered = enabled.get(StructureESPModule.Detector.COVERED_HOLE);
-        StructureESPModule oneByOne = enabled.get(StructureESPModule.Detector.ONE_BY_ONE_HOLE);
-        StructureESPModule dripstone = enabled.get(StructureESPModule.Detector.DRIPSTONE);
-        StructureESPModule beehives = enabled.get(StructureESPModule.Detector.BEEHIVE);
+        HoleTunnelStairsESPModule holesBase = (HoleTunnelStairsESPModule) enabled.get(StructureESPModule.Detector.HOLE_TUNNEL_STAIRS);
+        CoveredHoleESPModule covered = (CoveredHoleESPModule) enabled.get(StructureESPModule.Detector.COVERED_HOLE);
+        OneByOneHoleESPModule oneByOne = (OneByOneHoleESPModule) enabled.get(StructureESPModule.Detector.ONE_BY_ONE_HOLE);
+        DripstoneESPModule dripstone = (DripstoneESPModule) enabled.get(StructureESPModule.Detector.DRIPSTONE);
+        BeehiveESPModule beehives = (BeehiveESPModule) enabled.get(StructureESPModule.Detector.BEEHIVE);
 
         for (Map.Entry<Long, BlockState> entry : blocks.entrySet()) {
             long key = entry.getKey();
@@ -222,7 +222,7 @@ public final class StructureScanner {
     }
     private static boolean cardinalWalls(Map<Long,BlockState>b,BlockPos p){return solid(b,p.north())&&solid(b,p.south())&&solid(b,p.east())&&solid(b,p.west());}
     private static int verticalAirDepth(Map<Long,BlockState>b,BlockPos p,int max){int n=0;while(n<max&&passable(b,p.below(n)))n++;return n;}
-    private static boolean likelyPlacedCover(BlockState s){String id=s.getBlock().builtInRegistryHolder().key().location().getPath();return id.contains("cobblestone")||id.contains("stone_brick")||id.contains("planks")||id.contains("log")||id.contains("wool")||id.contains("concrete")||id.contains("terracotta")||id.contains("glass");}
+    private static boolean likelyPlacedCover(BlockState s){String id=s.getBlock().getDescriptionId().toLowerCase(Locale.ROOT);return id.contains("cobblestone")||id.contains("stone_brick")||id.contains("planks")||id.contains("log")||id.contains("wool")||id.contains("concrete")||id.contains("terracotta")||id.contains("glass");}
     private static boolean passable(Map<Long,BlockState>b,BlockPos p){BlockState s=get(b,p);return s!=null&&s.isAir();}
     private static boolean solid(Map<Long,BlockState>b,BlockPos p){BlockState s=get(b,p);return s!=null&&!s.isAir()&&s.blocksMotion();}
     private static BlockState get(Map<Long,BlockState>b,BlockPos p){return b.get(p.asLong());}
