@@ -178,7 +178,7 @@ public final class ArsonScreen extends Screen {
             int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
             String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
             Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
-                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; settingsOpen=false; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
+                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; settingsOpen=false; editingString=null; editingColor=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
             }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
             addRenderableWidget(b);
         }
@@ -325,6 +325,8 @@ public final class ArsonScreen extends Screen {
             for (ModuleCard card : moduleCards) {
                 if (card.bounds().contains(event.x(), event.y())) {
                     selected = card.module();
+                    editingString = null;
+                    editingColor = null;
                     settingsOpen = true;
                     moduleFocus = visibleModules().indexOf(selected);
                     detailScroll = 0;
