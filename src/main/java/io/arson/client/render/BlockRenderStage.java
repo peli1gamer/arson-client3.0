@@ -69,7 +69,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
                     target.maxX(), target.maxY(), target.maxZ(), style));
             if (tracerBuffer != null) {
                 RenderStyle tracerStyle = new RenderStyle(style.color(), false, true, 0.0f,
-                        style.outlineAlpha() * module.tracerAlpha(), module.tracerLineWidth());
+                        module.tracerAlpha() * fade, module.tracerLineWidth());
                 RenderLineRenderer.line(context.matrices(), tracerBuffer, 0.0, 0.0, 0.0,
                         target.centerX() - camera.x, target.centerY() - camera.y,
                         target.centerZ() - camera.z, tracerStyle);
