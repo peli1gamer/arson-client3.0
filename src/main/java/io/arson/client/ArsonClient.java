@@ -87,7 +87,12 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.attach();
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            contextAdapter.tick(featureContext);
+            try {
+                contextAdapter.tick(featureContext);
+            } catch (RuntimeException exception) {
+                System.err.println("[Arson] Client context tick failed");
+                exception.printStackTrace();
+            }
             while (openMenuKey.consumeClick()) {
                 Screen current = clientTick.screen;
                 clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
