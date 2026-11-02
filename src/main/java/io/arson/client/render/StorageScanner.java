@@ -34,6 +34,15 @@ public final class StorageScanner {
     private int cachedRadius = Integer.MIN_VALUE;
     private List<StorageOverlay.StorageTarget> cachedTargets = List.of();
 
+    public void invalidate() {
+        cachedLevel = null;
+        cachedTick = Long.MIN_VALUE;
+        cachedChunkX = Integer.MIN_VALUE;
+        cachedChunkZ = Integer.MIN_VALUE;
+        cachedRadius = Integer.MIN_VALUE;
+        cachedTargets = List.of();
+    }
+
     public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range) {
         if (client.level == null || client.player == null) {
             return List.of();
