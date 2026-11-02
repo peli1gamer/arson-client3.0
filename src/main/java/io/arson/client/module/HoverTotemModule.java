@@ -27,15 +27,42 @@ public final class HoverTotemModule extends Module {
         }
         Slot hovered = null;
         if (screen instanceof HandledScreenAccessor accessor) hovered = accessor.arson$getHoveredSlot();
-        if (hovered == null || !hovered.hasItem()) return;
-        if (onlyPlayerInventory.enabled() && hovered.getContainerSlot() > 35) return;
-        if (!hovered.getItem().is(Items.TOTEM_OF_UNDYING)) return;
+
+        int sourceInventorySlot = -1;
+        if (requireHover.enabled()) {
+            if (hovered == null || !hovered.hasItem()
+                    || !hovered.getItem().is(Items.TOTEM_OF_UNDYING)) return;
+            sourceInventorySlot = hovered.getContainerSlot();
+            if (onlyPlayerInventory.enabled() && (sourceInventorySlot < 0 || sourceInventorySlot > 35)) return;
+        } else if (hovered != null && hovered.hasItem()
+                && hovered.getItem().is(Items.TOTEM_OF_UNDYING)
+                && (!onlyPlayerInventory.enabled()
+                || (hovered.getContainerSlot() >= 0 && hovered.getContainerSlot() <= 35))) {
+            sourceInventorySlot = hovered.getContainerSlot();
+        } else {
+            sourceInventorySlot = findTotemInventorySlot(client);
+        }
+
+        int source = PlayerInventorySlotMapper.menuSlotId(sourceInventorySlot);
+        if (source < 0) return;
+
         int hotbarIndex = hotbarSlot.get().intValue() - 1;
-        if (autoSwitch.enabled()) client.player.getInventory().setSelectedSlot(hotbarIndex);
         int syncId = screen.getMenu().containerId;
-        int source = hovered.getContainerSlot();
-        if (replaceOffhand.enabled() && !client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING)) { client.gameMode.handleInventoryMouseClick(syncId, source, 40, ClickType.SWAP, client.player); return; }
-        if (hotbarTotem.enabled() && !client.player.getInventory().getItem(hotbarIndex).is(Items.TOTEM_OF_UNDYING)) client.gameMode.handleInventoryMouseClick(syncId, source, hotbarIndex, ClickType.SWAP, client.player);
+        if (replaceOffhand.enabled() && !client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING)) {
+            client.gameMode.handleInventoryMouseClick(syncId, source, 40, ClickType.SWAP, client.player);
+            return;
+        }
+        if (hotbarTotem.enabled() && !client.player.getInventory().getItem(hotbarIndex).is(Items.TOTEM_OF_UNDYING)) {
+            client.gameMode.handleInventoryMouseClick(syncId, source, hotbarIndex, ClickType.SWAP, client.player);
+            if (autoSwitch.enabled()) client.player.getInventory().setSelectedSlot(hotbarIndex);
+        }
     }
-    private boolean hasTotem(Minecraft client) { for (int i = 0; i < 36; i++) if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return true; return false; }
+    private int findTotemInventorySlot(Minecraft client) {
+        for (int i = 0; i < 36; i++) {
+            if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return i;
+        }
+        return -1;
+    }
+
+    private boolean hasTotem(Minecraft client) { return findTotemInventorySlot(client) >= 0; }
 }
