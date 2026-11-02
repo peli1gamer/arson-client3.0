@@ -51,12 +51,12 @@ public final class StructureRenderStage implements WorldRenderBridge.WorldRender
             if (target.type() == StructureDetector.StructureType.STAIRCASE && !module.showStaircases()) continue;
             if (!StructureScanner.isTargetLoaded(client, target)) continue;
 
-            double centerX = (target.minX() + target.maxX()) * 0.5;
-            double centerY = (target.minY() + target.maxY()) * 0.5;
-            double centerZ = (target.minZ() + target.maxZ()) * 0.5;
-            double dx = centerX - playerX;
-            double dy = centerY - playerY;
-            double dz = centerZ - playerZ;
+            double nearestX = Math.max(target.minX(), Math.min(target.maxX(), playerX));
+            double nearestY = Math.max(target.minY(), Math.min(target.maxY(), playerY));
+            double nearestZ = Math.max(target.minZ(), Math.min(target.maxZ(), playerZ));
+            double dx = nearestX - playerX;
+            double dy = nearestY - playerY;
+            double dz = nearestZ - playerZ;
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (distance > module.range()) continue;
 
