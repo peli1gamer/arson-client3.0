@@ -3,6 +3,7 @@ package com.arson.client.render;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Builds lightweight render commands from already-discovered storage positions.
@@ -40,10 +41,18 @@ public final class StorageOverlay {
     public List<RenderBox> build(double cameraX, double cameraY, double cameraZ,
                                  List<StorageTarget> targets,
                                  Function<StorageType, RenderStyle> styleProvider) {
+        return build(cameraX, cameraY, cameraZ, targets, styleProvider, target -> true);
+    }
+
+    public List<RenderBox> build(double cameraX, double cameraY, double cameraZ,
+                                 List<StorageTarget> targets,
+                                 Function<StorageType, RenderStyle> styleProvider,
+                                 Predicate<StorageTarget> targetFilter) {
         List<RenderBox> boxes = new ArrayList<>();
         double rangeSquared = range * range;
 
         for (StorageTarget target : targets) {
+            if (!targetFilter.test(target)) continue;
             if (!profile.enabled(target.type())) {
                 continue;
             }

@@ -34,6 +34,7 @@ import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
@@ -76,13 +77,30 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge = new WorldRenderBridge(featureContext, contextAdapter);
 
         StorageOverlay storageOverlay = new StorageOverlay(new StorageRenderProfile());
-        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, new StorageScanner(), (ContainerESPModule) moduleManager.get("container-esp")));
+        StorageScanner storageScanner = new StorageScanner();
+        BlockScanner blockScanner = new BlockScanner();
+        worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, storageScanner,
+                (ContainerESPModule) moduleManager.get("container-esp")));
         EntityScanner entityScanner = new EntityScanner();
         worldRenderBridge.register(new EntityRenderStage(client, entityScanner, (EntityESPModule) moduleManager.get("entity-esp")));
         worldRenderBridge.register(new ItemRenderStage(client, entityScanner, (ItemESPModule) moduleManager.get("item-esp")));
         worldRenderBridge.register(new EntityInfoStage(client, entityScanner, (EntityInfoModule) moduleManager.get("entity-info")));
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
-        worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
+        worldRenderBridge.register(new BlockRenderStage(client, blockScanner,
+                (BlockESPModule) moduleManager.get("block-esp")));
+
+        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            if (world == client.level) {
+                blockScanner.requestRefresh();
+                storageScanner.requestRefresh();
+            }
+        });
+        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
+            if (world == client.level) {
+                blockScanner.requestRefresh();
+                storageScanner.requestRefresh();
+            }
+        });
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
         worldRenderBridge.attach();
 
