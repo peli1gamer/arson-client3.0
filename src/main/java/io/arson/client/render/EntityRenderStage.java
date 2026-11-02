@@ -36,6 +36,8 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
     @Override
     public void render(WorldRenderContext context) {
         if (!module.enabled() || client.level == null || client.player == null) {
+            cachedTargets = List.of();
+            lastScanTick = Long.MIN_VALUE;
             lastVisibleCount = 0;
             return;
         }
