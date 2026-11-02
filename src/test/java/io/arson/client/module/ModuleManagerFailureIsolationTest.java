@@ -11,16 +11,20 @@ class ModuleManagerFailureIsolationTest {
         ModuleManager manager = new ModuleManager();
         int[] healthyTicks = {0};
 
-        manager.register(new Module("broken", "Broken", Module.Category.MISC) {
+        Module broken = new Module("broken", "Broken", Module.Category.MISC) {
             @Override protected void onTick(Minecraft client) {
                 throw new IllegalStateException("intentional test failure");
             }
-        });
-        manager.register(new Module("healthy", "Healthy", Module.Category.MISC) {
+        };
+        Module healthy = new Module("healthy", "Healthy", Module.Category.MISC) {
             @Override protected void onTick(Minecraft client) {
                 healthyTicks[0]++;
             }
-        });
+        };
+        manager.register(broken);
+        manager.register(healthy);
+        broken.setEnabled(true);
+        healthy.setEnabled(true);
 
         manager.tick(null);
 
