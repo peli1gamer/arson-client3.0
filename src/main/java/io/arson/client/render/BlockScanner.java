@@ -33,7 +33,10 @@ public final class BlockScanner {
     }
 
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
-        if (client.level == null || client.player == null || !module.enabled()) return List.of();
+        if (client.level == null || client.player == null || !module.enabled()) {
+            invalidate();
+            return List.of();
+        }
 
         long gameTime = client.level.getGameTime();
         int chunkX = client.player.blockPosition().getX() >> 4;
