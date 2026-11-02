@@ -51,7 +51,12 @@ public final class AimAssistModule extends Module {
     private final Random random = new Random();
     private LivingEntity target;
 
-    public AimAssistModule() { super("aim-assist", "Aim Assist", Category.COMBAT); }
+    public AimAssistModule() {
+        super("aim-assist", "Aim Assist", Category.COMBAT);
+        fov.description("Maximum angular distance from the crosshair, in degrees.");
+        aimPoint.description("Target point: Closest, Head, Torso, or Legs.");
+        activation.description("Activation mode: Always, Hold Left Click, Hold Right Click, or Hold Key.");
+    }
 
     @Override protected void onDisable() { target = null; }
 
@@ -107,9 +112,13 @@ public final class AimAssistModule extends Module {
         double[] angles = anglesTo(client, point);
         double yawPixels = pixelsFromYaw(client, Math.abs(Mth.wrapDegrees(angles[0] - client.player.getYRot())));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getXRot()));
-        double halfW = crosshairWidth.get() * 0.5;
-        double halfH = crosshairHeight.get() * 0.5;
-        return yawPixels <= halfW && pitchPixels <= halfH;
+        double halfW = Math.max(0.5, crosshairWidth.get() * 0.5);
+        double halfH = Math.max(0.5, crosshairHeight.get() * 0.5);
+        double circleDistance = Math.pow(yawPixels / halfW, 2.0) + Math.pow(pitchPixels / halfH, 2.0);
+        double angularDistance = Math.hypot(
+                Mth.wrapDegrees(angles[0] - client.player.getYRot()),
+                angles[1] - client.player.getXRot());
+        return circleDistance <= 1.0 && angularDistance <= fov.get() * 0.5;
     }
 
     private double crosshairDistance(Minecraft client, LivingEntity entity) {
@@ -123,9 +132,12 @@ public final class AimAssistModule extends Module {
     private Vec3 aimPoint(Minecraft client, LivingEntity entity) {
         AABB box = entity.getBoundingBox();
         String mode = aimPoint.get().trim().toLowerCase();
-        if (mode.equals("head")) return new Vec3(box.getCenter().x, box.maxY - 0.12, box.getCenter().z);
-        if (mode.equals("body")) return new Vec3(box.getCenter().x, box.minY + box.getYsize() * 0.55, box.getCenter().z);
-        if (nearestHitboxPoint.enabled()) return closestPointOnBox(client.player.getEyePosition(), box);
+        double height = box.getYsize();
+        if (mode.equals("head")) return new Vec3(box.getCenter().x, box.minY + height * 0.88, box.getCenter().z);
+        if (mode.equals("torso") || mode.equals("body")) return new Vec3(box.getCenter().x, box.minY + height * 0.58, box.getCenter().z);
+        if (mode.equals("legs") || mode.equals("leg")) return new Vec3(box.getCenter().x, box.minY + height * 0.22, box.getCenter().z);
+        if (mode.equals("closest") && nearestHitboxPoint.enabled()) return closestPointOnBox(client.player.getEyePosition(), box);
+        if (mode.equals("closest")) return box.getCenter();
         return box.getCenter();
     }
 
