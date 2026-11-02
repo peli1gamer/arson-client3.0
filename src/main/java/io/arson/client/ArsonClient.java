@@ -12,6 +12,13 @@ import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ItemESPModule;
+import io.arson.client.module.StructureESPModule;
+import io.arson.client.module.HoleTunnelStairsESPModule;
+import io.arson.client.module.CoveredHoleESPModule;
+import io.arson.client.module.OneByOneHoleESPModule;
+import io.arson.client.module.DripstoneESPModule;
+import io.arson.client.module.BeehiveESPModule;
+import io.arson.client.module.ChunkFinderModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.notification.NotificationCenter;
@@ -30,6 +37,9 @@ import io.arson.client.render.HudRenderer;
 import io.arson.client.render.ItemRenderStage;
 import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
+import io.arson.client.render.StructureScanner;
+import io.arson.client.render.StructureRenderStage;
+import java.util.List;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -88,6 +98,14 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
         worldRenderBridge.register(new BlockRenderStage(client, blockScanner,
                 (BlockESPModule) moduleManager.get("block-esp")));
+        List<StructureESPModule> structureModules = List.of(
+                (HoleTunnelStairsESPModule) moduleManager.get("hole-tunnel-stairs-esp"),
+                (CoveredHoleESPModule) moduleManager.get("covered-hole-esp"),
+                (OneByOneHoleESPModule) moduleManager.get("one-by-one-hole-esp"),
+                (DripstoneESPModule) moduleManager.get("dripstone-esp"),
+                (BeehiveESPModule) moduleManager.get("beehive-esp"),
+                (ChunkFinderModule) moduleManager.get("chunk-finder"));
+        worldRenderBridge.register(new StructureRenderStage(client, new StructureScanner(), structureModules));
 
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (world == client.level) {
