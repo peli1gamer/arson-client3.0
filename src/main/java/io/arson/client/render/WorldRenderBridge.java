@@ -49,7 +49,11 @@ public final class WorldRenderBridge {
         });
         registered = true;
     }
-    float partialTick() { return Math.max(0.0f, Math.min(1.0f, partialTickSource.get())); }
+    float partialTick() {
+        float value = partialTickSource.get();
+        if (!Float.isFinite(value)) return 0.0f;
+        return Math.max(0.0f, Math.min(1.0f, value));
+    }
     public void clear() { stages.clear(); }
     public int stageCount() { return stages.size(); }
     public FeatureContext featureContext() { return featureContext; }
