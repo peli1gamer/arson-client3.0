@@ -49,7 +49,7 @@ class ConfigPersistenceTest {
     @Test
     void missingModulesResetToDefaultsWhenLoadingPartialSnapshot() throws Exception {
         Path profile = Files.createTempFile("arson-partial-profile", ".json");
-        Files.writeString(profile, "{\\"version\\":4,\\"modules\\":{\\"client-info\\":{\\"enabled\\":false}}}");
+        Files.writeString(profile, "{\"version\":4,\"modules\":{\"client-info\":{\"enabled\":false}}}");
 
         ModuleManager manager = new ModuleManager();
         manager.registerDefaults();
