@@ -122,7 +122,7 @@ public final class StructureScanner {
                     }
                 }
                 if (holesBase != null && holesBase.tunnels()) {
-                    detectTunnel(blocks, p, holesBase, found, emitted);
+                    detectTunnel(blocks, p, (HoleTunnelStairsESPModule) holesBase, found, emitted);
                 }
             }
             if (dripstone != null && state.is(Blocks.POINTED_DRIPSTONE)) {
@@ -186,14 +186,18 @@ public final class StructureScanner {
                                         List<StructureTarget> out, Set<Long> emitted) {
         boolean hasAbove = get(blocks,p.above()) != null && get(blocks,p.above()).is(Blocks.POINTED_DRIPSTONE);
         boolean hasBelow = get(blocks,p.below()) != null && get(blocks,p.below()).is(Blocks.POINTED_DRIPSTONE);
-        if (hasAbove || hasBelow) return;
-        int down=1, up=1;
-        while(down<24 && get(blocks,p.below(down))!=null && get(blocks,p.below(down)).is(Blocks.POINTED_DRIPSTONE)) down++;
-        while(up<24 && get(blocks,p.above(up))!=null && get(blocks,p.above(up)).is(Blocks.POINTED_DRIPSTONE)) up++;
-        if(solid(blocks,p.above(up)) && down>=module.minimumStalactiteLength())
-            add(out,emitted,StructureESPModule.Detector.DRIPSTONE,p.getX(),p.getY()-down+1,p.getZ(),1,down,1);
-        if(solid(blocks,p.below(down)) && up>=module.minimumStalagmiteLength())
-            add(out,emitted,StructureESPModule.Detector.DRIPSTONE,p.getX(),p.getY(),p.getZ(),1,up,1);
+        if (!hasAbove && hasBelow) {
+            int length=1;
+            while(length<24 && get(blocks,p.below(length))!=null && get(blocks,p.below(length)).is(Blocks.POINTED_DRIPSTONE)) length++;
+            if(solid(blocks,p.above()) && length>=module.minimumStalactiteLength())
+                add(out,emitted,StructureESPModule.Detector.DRIPSTONE,p.getX(),p.getY()-length+1,p.getZ(),1,length,1);
+        }
+        if (!hasBelow && hasAbove) {
+            int length=1;
+            while(length<24 && get(blocks,p.above(length))!=null && get(blocks,p.above(length)).is(Blocks.POINTED_DRIPSTONE)) length++;
+            if(solid(blocks,p.below()) && length>=module.minimumStalagmiteLength())
+                add(out,emitted,StructureESPModule.Detector.DRIPSTONE,p.getX(),p.getY(),p.getZ(),1,length,1);
+        }
     }
 
     private static void detectChunks(Map<Long,BlockState> blocks, ChunkFinderModule module,
@@ -220,7 +224,7 @@ public final class StructureScanner {
     private static int verticalAirDepth(Map<Long,BlockState>b,BlockPos p,int max){int n=0;while(n<max&&passable(b,p.below(n)))n++;return n;}
     private static boolean likelyPlacedCover(BlockState s){String id=s.getBlock().builtInRegistryHolder().key().location().getPath();return id.contains("cobblestone")||id.contains("stone_brick")||id.contains("planks")||id.contains("log")||id.contains("wool")||id.contains("concrete")||id.contains("terracotta")||id.contains("glass");}
     private static boolean passable(Map<Long,BlockState>b,BlockPos p){BlockState s=get(b,p);return s!=null&&s.isAir();}
-    private static boolean solid(Map<Long,BlockState>b,BlockPos p){BlockState s=get(b,p);return s!=null&&!s.isAir()&&!s.getCollisionShape(null,p).isEmpty();}
+    private static boolean solid(Map<Long,BlockState>b,BlockPos p){BlockState s=get(b,p);return s!=null&&!s.isAir()&&s.blocksMotion();}
     private static BlockState get(Map<Long,BlockState>b,BlockPos p){return b.get(p.asLong());}
     private static void add(List<StructureTarget>out,Set<Long>emitted,StructureESPModule.Detector type,double x,double y,double z,double w,double h,double d){
         long key=BlockPos.asLong((int)x,(int)y,(int)z)^((long)type.ordinal()<<56);
