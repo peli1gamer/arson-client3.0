@@ -15,14 +15,28 @@ public final class BlockScanner {
     private static final int CACHE_REFRESH_TICKS = 40;
 
     private Object cachedLevel;
+    private Object cachedPlayer;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
     private int cachedChunkZ = Integer.MIN_VALUE;
     private int cachedConfigHash;
     private List<BlockTarget> cachedTargets = List.of();
 
+    public void invalidate() {
+        cachedLevel = null;
+        cachedPlayer = null;
+        cachedTick = Long.MIN_VALUE;
+        cachedChunkX = Integer.MIN_VALUE;
+        cachedChunkZ = Integer.MIN_VALUE;
+        cachedConfigHash = 0;
+        cachedTargets = List.of();
+    }
+
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
-        if (client.level == null || client.player == null || !module.enabled()) return List.of();
+        if (client.level == null || client.player == null || !module.enabled()) {
+            invalidate();
+            return List.of();
+        }
 
         long gameTime = client.level.getGameTime();
         int chunkX = client.player.blockPosition().getX() >> 4;
@@ -30,17 +44,19 @@ public final class BlockScanner {
         int configHash = configHash(module);
 
         boolean worldChanged = cachedLevel != client.level;
+        boolean playerChanged = cachedPlayer != client.player;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
         boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
 
-        if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
+        if (!worldChanged && !playerChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
         }
 
         List<BlockTarget> result = scanWorld(client, module);
         cachedTargets = List.copyOf(result);
         cachedLevel = client.level;
+        cachedPlayer = client.player;
         cachedTick = gameTime;
         cachedChunkX = chunkX;
         cachedChunkZ = chunkZ;
@@ -109,6 +125,30 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = 31 * hash + styleHash(module.diamondStyle());
+        hash = 31 * hash + styleHash(module.emeraldStyle());
+        hash = 31 * hash + styleHash(module.goldStyle());
+        hash = 31 * hash + styleHash(module.ironStyle());
+        hash = 31 * hash + styleHash(module.copperStyle());
+        hash = 31 * hash + styleHash(module.coalStyle());
+        hash = 31 * hash + styleHash(module.redstoneStyle());
+        hash = 31 * hash + styleHash(module.lapisStyle());
+        hash = 31 * hash + styleHash(module.quartzStyle());
+        hash = 31 * hash + styleHash(module.ancientDebrisStyle());
+        return hash;
+    }
+
+    private static int styleHash(com.arson.client.render.RenderStyle style) {
+        var color = style.color();
+        int hash = color.red();
+        hash = 31 * hash + color.green();
+        hash = 31 * hash + color.blue();
+        hash = 31 * hash + color.alpha();
+        hash = 31 * hash + Boolean.hashCode(style.fill());
+        hash = 31 * hash + Boolean.hashCode(style.outline());
+        hash = 31 * hash + Float.hashCode(style.fillAlpha());
+        hash = 31 * hash + Float.hashCode(style.outlineAlpha());
+        hash = 31 * hash + Float.hashCode(style.lineWidth());
         return hash;
     }
 

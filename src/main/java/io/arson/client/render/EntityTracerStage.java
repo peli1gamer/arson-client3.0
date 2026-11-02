@@ -16,6 +16,7 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
     private final EntityTracerModule module;
     private List<EntityTarget> cachedTargets = List.of();
     private long lastScanTick = Long.MIN_VALUE;
+    private Object cachedLevel;
     private int lastVisibleCount;
 
     public EntityTracerStage(Minecraft client, EntityScanner scanner, EntityTracerModule module) {
@@ -27,13 +28,17 @@ public final class EntityTracerStage implements WorldRenderBridge.WorldRenderSta
     @Override
     public void render(WorldRenderContext context) {
         if (!module.enabled() || client.level == null || client.player == null) {
+            cachedTargets = List.of();
+            cachedLevel = null;
+            lastScanTick = Long.MIN_VALUE;
             lastVisibleCount = 0;
             return;
         }
 
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
+        if (cachedLevel != client.level || gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, module);
+            cachedLevel = client.level;
             lastScanTick = gameTime;
         }
 

@@ -29,18 +29,18 @@ public final class ClickGuiLayoutModel {
         Mode mode=sw<760||sh<520?Mode.NARROW:sw<1100||sh<700?Mode.COMPACT:Mode.FULL;
         double scale=clamp(requestedScale,.72,mode==Mode.NARROW?1.0:mode==Mode.COMPACT?1.10:1.25);
         int targetW=(int)Math.round(900*scale),targetH=(int)Math.round(540*scale);
-        int availableW=Math.max(260,sw-safe*2),availableH=Math.max(220,sh-safe*2);
+        int availableW=Math.max(1,sw-safe*2),availableH=Math.max(1,sh-safe*2);
         int pw=Math.min(targetW,availableW),ph=Math.min(targetH,availableH);
         int x=Math.max(safe,(sw-pw)/2),y=Math.max(safe,(sh-ph)/2);
         int pad=mode==Mode.NARROW?7:12,gap=mode==Mode.NARROW?7:10,header=36,footerH=mode==Mode.NARROW?48:42;
         int railW=mode==Mode.NARROW?62:mode==Mode.COMPACT?132:150;
         railW=Math.min(railW,Math.max(52,pw/3));
         int contentX=x+pad+railW+gap;
-        int contentW=Math.max(100,x+pw-pad-contentX);
+        int contentW=Math.max(1,x+pw-pad-contentX);
         Rect search=new Rect(contentX,y+7,contentW,21);
         Rect toolbar=new Rect(contentX,search.bottom()+4,contentW,22);
         int contentY=toolbar.bottom()+7;
-        int contentH=Math.max(70,y+ph-footerH-pad-contentY);
+        int contentH=Math.max(1,y+ph-footerH-pad-contentY);
         Rect content=new Rect(contentX,contentY,contentW,contentH);
         Rect rail=new Rect(x+pad,contentY,Math.max(46,railW-pad),contentH);
         int categoryRows=Math.max(1,ModuleCategoryCountHolder.COUNT);
@@ -48,18 +48,18 @@ public final class ClickGuiLayoutModel {
         int cols=mode==Mode.NARROW?1:contentW>=540?2:1,cardGap=mode==Mode.NARROW?6:9;
         Rect list,detail;
         if(cols==2){
-            int listW=Math.max(100,(contentW-cardGap)*5/10);
+            int listW=Math.max(1,(contentW-cardGap)*5/10);
             list=new Rect(content.x(),content.y(),listW,content.height());
             int dx=list.right()+cardGap;
-            detail=new Rect(dx,content.y(),Math.max(80,content.right()-dx),content.height());
+            detail=new Rect(dx,content.y(),Math.max(1,content.right()-dx),content.height());
         }else{
-            int listH=Math.max(52,Math.min(content.height()/2,mode==Mode.NARROW?150:190));
+            int listH=Math.max(1,Math.min(content.height()/2,mode==Mode.NARROW?150:190));
             list=new Rect(content.x(),content.y(),content.width(),listH);
             int dy=list.bottom()+cardGap;
-            detail=new Rect(content.x(),dy,content.width(),Math.max(40,content.bottom()-dy));
+            detail=new Rect(content.x(),dy,content.width(),Math.max(1,content.bottom()-dy));
         }
         Rect footer=new Rect(x+pad,y+ph-footerH-pad/2,Math.max(80,pw-pad*2),footerH);
-        int cardW=Math.max(70,(list.width()-cardGap*(cols-1))/cols);
+        int cardW=Math.max(1,(list.width()-cardGap*(cols-1))/cols);
         int cardH=mode==Mode.NARROW?40:54;
         return new Geometry(mode,x,y,pw,ph,rail,search,toolbar,content,list,detail,footer,cols,cardW,cardH,cardGap,safe,categoryRowHeight);
     }

@@ -18,6 +18,7 @@ public final class EntityScanner {
 
     private static List<RawEntityTarget> snapshot = List.of();
     private static Object snapshotLevel;
+    private static Object snapshotPlayer;
     private static long snapshotTick = Long.MIN_VALUE;
 
     public List<EntityTarget> scan(Minecraft client, EntityScanConfig module) {
@@ -57,7 +58,7 @@ public final class EntityScanner {
 
     private static void refreshSnapshot(Minecraft client) {
         long gameTime = client.level.getGameTime();
-        if (snapshotLevel == client.level && snapshotTick == gameTime) return;
+        if (snapshotLevel == client.level && snapshotPlayer == client.player && snapshotTick == gameTime) return;
 
         List<RawEntityTarget> result = new ArrayList<>();
         for (Entity entity : client.level.entitiesForRendering()) {
@@ -93,6 +94,7 @@ public final class EntityScanner {
 
         snapshot = List.copyOf(result);
         snapshotLevel = client.level;
+        snapshotPlayer = client.player;
         snapshotTick = gameTime;
     }
 

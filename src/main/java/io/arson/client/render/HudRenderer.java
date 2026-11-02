@@ -95,10 +95,11 @@ public final class HudRenderer {
         if(layout != null){
             int[] arraySize=estimateArrayListSize(client,arrayList);
             layout.setArrayListPreferredPosition(arrayList==null?6:arrayList.x(),arrayList==null?6:arrayList.y());
-            if(layout.repairNoOverlap(client.getWindow().getGuiScaledWidth(),client.getWindow().getGuiScaledHeight(),globalScale,arraySize[0],arraySize[1],arrayList))
-                ConfigManager.save(client,ArsonClient.getInstance().modules());
+            layout.repairNoOverlap(client.getWindow().getGuiScaledWidth(),client.getWindow().getGuiScaledHeight(),globalScale,arraySize[0],arraySize[1],arrayList);
         }
-        graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
+        graphics.pose().pushMatrix();
+        try {
+            graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
         if (hud.showCoordinates()) drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.blockPosition().getX(), client.player.blockPosition().getY(), client.player.blockPosition().getZ())});
         if (hud.showFps()) drawElement(graphics, client, hud, layout, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getFps()});
@@ -157,14 +158,15 @@ public final class HudRenderer {
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
             if (resolutionInfo != null && resolutionInfo.enabled()) rows.add(resolutionInfo.formatted());
-            if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             if (weatherInfo != null && weatherInfo.enabled()) rows.add(weatherInfo.formatted());
             if (entityCountInfo != null && entityCountInfo.enabled()) rows.add(entityCountInfo.formatted());
             if (guiInfo != null && guiInfo.enabled()) rows.add(guiInfo.formatted());
             if (frameInfo != null && frameInfo.enabled()) rows.add(frameInfo.formatted());
             drawElement(graphics, client, hud, layout, "world-info", hud.worldInfoX(), hud.worldInfoY(), rows.toArray(String[]::new));
         }
-        graphics.pose().popMatrix();
+        } finally {
+            graphics.pose().popMatrix();
+        }
     }
     private static int[] estimateArrayListSize(Minecraft client, ArrayListModule module) {
         if(module==null || !module.enabled()) return new int[]{1,1};
@@ -198,10 +200,18 @@ double fitH = rows.length == 0 ? elementScale : rawH / Math.max(1.0, rows.length
 elementScale = Math.min(elementScale, Math.max(0.05, Math.min(fitW, fitH)));
 double x = fallbackX, y = fallbackY;
         if (layout != null) { double logicalViewportW = client.getWindow().getGuiScaledWidth() / Math.max(0.001, hud.scale()), logicalViewportH = client.getWindow().getGuiScaledHeight() / Math.max(0.001, hud.scale()); double[] resolved = layout.resolve(element, logicalViewportW, logicalViewportH, maxWidth * elementScale, rows.length * line * elementScale); x = resolved[0]; y = resolved[1]; }
-        graphics.pose().pushMatrix(); graphics.pose().translate((float)x, (float)y); graphics.pose().scale((float) elementScale, (float) elementScale); int padding = hud.padding(); String alignment = hud.elementAlignment(element); int left = alignedX(0, maxWidth, alignment);
+        graphics.pose().pushMatrix();
+        try {
+            graphics.pose().translate((float)x, (float)y);
+            graphics.pose().scale((float) elementScale, (float) elementScale);
+            int padding = hud.padding();
+            String alignment = hud.elementAlignment(element);
+            int left = alignedX(0, maxWidth, alignment);
         if (hud.showBackground() && hud.elementBackground(element)) graphics.fill(left - padding, -padding, left + maxWidth + padding, rows.length * line + padding - 1, hud.elementBackgroundColor());
         for (int i = 0; i < rows.length; i++) { int rowWidth = client.font.width(rows[i]); int rowX = alignedX(0, rowWidth, alignment); graphics.drawString(client.font, rows[i], rowX, i * line, hud.elementColor(element), hud.showShadow()); }
-        graphics.pose().popMatrix();
+        } finally {
+            graphics.pose().popMatrix();
+        }
     }
     private static int alignedX(int x, int width, String alignment) { return switch (alignment == null ? "left" : alignment.trim().toLowerCase(java.util.Locale.ROOT)) { case "center" -> x - width / 2; case "right" -> x - width; default -> x; }; }
     private static String armor(Minecraft client) { int equipped = 0, durabilityTotal = 0, durabilityMax = 0; EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}; for (EquipmentSlot slot : slots) { ItemStack stack = client.player.getItemBySlot(slot); if (!stack.isEmpty()) { equipped++; if (stack.isDamageableItem()) { durabilityTotal += stack.getMaxDamage() - stack.getDamageValue(); durabilityMax += stack.getMaxDamage(); } } } return durabilityMax > 0 ? String.format(java.util.Locale.ROOT, "Armor %d/4  Durability %d%%", equipped, Math.round(durabilityTotal * 100.0f / durabilityMax)) : "Armor " + equipped + "/4"; }

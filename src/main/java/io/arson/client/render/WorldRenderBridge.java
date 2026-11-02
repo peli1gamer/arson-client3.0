@@ -32,12 +32,28 @@ public final class WorldRenderBridge {
         if (registered) return;
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             frame++;
-            if (contextAdapter != null) contextAdapter.render(featureContext, frame, partialTick());
-            for (WorldRenderStage stage : stages) stage.render(context);
+            if (contextAdapter != null) {
+                try { contextAdapter.render(featureContext, frame, partialTick()); }
+                catch (RuntimeException exception) {
+                    System.err.println("[Arson] Render context update failed");
+                    exception.printStackTrace();
+                }
+            }
+            for (WorldRenderStage stage : List.copyOf(stages)) {
+                try { stage.render(context); }
+                catch (RuntimeException exception) {
+                    System.err.println("[Arson] World render stage failed: " + stage.getClass().getName());
+                    exception.printStackTrace();
+                }
+            }
         });
         registered = true;
     }
-    float partialTick() { return Math.max(0.0f, Math.min(1.0f, partialTickSource.get())); }
+    float partialTick() {
+        float value = partialTickSource.get();
+        if (!Float.isFinite(value)) return 0.0f;
+        return Math.max(0.0f, Math.min(1.0f, value));
+    }
     public void clear() { stages.clear(); }
     public int stageCount() { return stages.size(); }
     public FeatureContext featureContext() { return featureContext; }

@@ -20,6 +20,8 @@ public final class TotemPopCounterModule extends Module {
 
     private final Map<UUID, Integer> pops = new HashMap<>();
     private final Map<UUID, Long> lastPopTick = new HashMap<>();
+    private Object trackedLevel;
+    private long lastObservedGameTime = Long.MIN_VALUE;
 
     public TotemPopCounterModule() {
         super("totem-pop-counter", "Totem Pop Counter", Category.COMBAT);
@@ -27,19 +29,34 @@ public final class TotemPopCounterModule extends Module {
 
     @Override
     protected void onDisable() {
-        pops.clear();
-        lastPopTick.clear();
+        clearSession();
     }
 
     @Override
     protected void onTick(Minecraft client) {
-        if (client.level == null) return;
+        if (client.level == null) {
+            clearSession();
+            return;
+        }
+        long now = client.level.getGameTime();
+        if (trackedLevel != client.level || now < lastObservedGameTime) {
+            pops.clear();
+            lastPopTick.clear();
+        }
+        trackedLevel = client.level;
+        lastObservedGameTime = now;
         double seconds = resetAfterSeconds.get();
         if (seconds <= 0.0) return;
-        long now = client.level.getGameTime();
         long timeout = (long) Math.ceil(seconds * 20.0);
         lastPopTick.entrySet().removeIf(entry -> now - entry.getValue() > timeout);
         pops.keySet().removeIf(uuid -> !lastPopTick.containsKey(uuid));
+    }
+
+    private void clearSession() {
+        pops.clear();
+        lastPopTick.clear();
+        trackedLevel = null;
+        lastObservedGameTime = Long.MIN_VALUE;
     }
 
     /** Called by the client packet mixin when vanilla receives entity-status 35. */

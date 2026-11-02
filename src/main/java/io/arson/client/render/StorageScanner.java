@@ -4,7 +4,11 @@ import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.DispenserBlockEntity;
@@ -24,14 +28,26 @@ public final class StorageScanner {
     private static final long CACHE_REFRESH_TICKS = 20L;
 
     private Object cachedLevel;
+    private Object cachedPlayer;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
     private int cachedChunkZ = Integer.MIN_VALUE;
     private int cachedRadius = Integer.MIN_VALUE;
     private List<StorageOverlay.StorageTarget> cachedTargets = List.of();
 
+    public void invalidate() {
+        cachedLevel = null;
+        cachedPlayer = null;
+        cachedTick = Long.MIN_VALUE;
+        cachedChunkX = Integer.MIN_VALUE;
+        cachedChunkZ = Integer.MIN_VALUE;
+        cachedRadius = Integer.MIN_VALUE;
+        cachedTargets = List.of();
+    }
+
     public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range) {
         if (client.level == null || client.player == null) {
+            invalidate();
             return List.of();
         }
 
@@ -42,11 +58,12 @@ public final class StorageScanner {
         long gameTime = client.level.getGameTime();
 
         boolean worldChanged = cachedLevel != client.level;
+        boolean playerChanged = cachedPlayer != client.player;
         boolean chunkChanged = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean radiusChanged = cachedRadius != radius;
         boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
 
-        if (worldChanged || chunkChanged || radiusChanged || refreshDue) {
+        if (worldChanged || playerChanged || chunkChanged || radiusChanged || refreshDue) {
             cachedTargets = scanLoadedStorage(client, radius);
             cachedLevel = client.level;
             cachedTick = gameTime;
@@ -112,10 +129,10 @@ public final class StorageScanner {
         BlockPos north = pos.north();
 
         BlockPos partner = null;
-        if (isChest(client, east)) partner = east;
-        else if (isChest(client, south)) partner = south;
-        else if (isChest(client, west)) partner = west;
-        else if (isChest(client, north)) partner = north;
+        if (isCompatibleChestPair(client, pos, east)) partner = east;
+        else if (isCompatibleChestPair(client, pos, south)) partner = south;
+        else if (isCompatibleChestPair(client, pos, west)) partner = west;
+        else if (isCompatibleChestPair(client, pos, north)) partner = north;
 
         double x = pos.getX();
         double z = pos.getZ();
@@ -135,9 +152,36 @@ public final class StorageScanner {
                 StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
     }
 
-    private static boolean isChest(Minecraft client, BlockPos pos) {
-        BlockEntity entity = client.level.getBlockEntity(pos);
-        return entity instanceof ChestBlockEntity;
+    static boolean isCompatibleChestPair(Minecraft client, BlockPos firstPos, BlockPos secondPos) {
+        if (!(client.level.getBlockEntity(firstPos) instanceof ChestBlockEntity)
+                || !(client.level.getBlockEntity(secondPos) instanceof ChestBlockEntity)) {
+            return false;
+        }
+
+        return areCompatibleChestStates(client.level.getBlockState(firstPos),
+                client.level.getBlockState(secondPos), firstPos, secondPos);
+    }
+
+    static boolean areCompatibleChestStates(BlockState first, BlockState second,
+                                             BlockPos firstPos, BlockPos secondPos) {
+        if (!isChestBlock(first) || !isChestBlock(second)) return false;
+        Direction facing = first.getValue(ChestBlock.FACING);
+        boolean sideAdjacent = secondPos.equals(firstPos.relative(facing.getClockWise()))
+                || secondPos.equals(firstPos.relative(facing.getCounterClockWise()));
+        return areCompatibleChestHalves(first.getValue(ChestBlock.TYPE), second.getValue(ChestBlock.TYPE),
+                facing, second.getValue(ChestBlock.FACING), first.getBlock() == second.getBlock(), sideAdjacent);
+    }
+
+    static boolean areCompatibleChestHalves(ChestType firstType, ChestType secondType,
+                                             Direction firstFacing, Direction secondFacing,
+                                             boolean sameBlock, boolean sideAdjacent) {
+        return sameBlock && sideAdjacent && firstFacing == secondFacing
+                && firstType != ChestType.SINGLE && secondType != ChestType.SINGLE
+                && firstType != secondType;
+    }
+
+    private static boolean isChestBlock(BlockState state) {
+        return state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST);
     }
 
     private static StorageType classify(BlockEntity entity) {

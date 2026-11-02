@@ -61,8 +61,9 @@ public final class CombatInfoRenderer {
         int panelWidth = Math.max(width, 48);
 
         graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
-        graphics.pose().scale(scale, scale);
+        try {
+            graphics.pose().translate(x, y);
+            graphics.pose().scale(scale, scale);
 
         if (module.background()) {
             graphics.fill(-padding, -padding, panelWidth + padding, totalHeight + padding,
@@ -84,7 +85,9 @@ public final class CombatInfoRenderer {
             int filled = Math.round(panelWidth * ratio);
             if (filled > 0) graphics.fill(0, barTop, filled, barTop + barHeight, module.healthColor());
         }
-        graphics.pose().popMatrix();
+        } finally {
+            graphics.pose().popMatrix();
+        }
     }
 
     private static LivingEntity findTarget(Minecraft client, CombatInfoModule module) {

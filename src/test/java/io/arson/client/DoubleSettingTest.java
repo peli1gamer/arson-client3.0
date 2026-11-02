@@ -4,6 +4,7 @@ import io.arson.client.settings.DoubleSetting;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DoubleSettingTest {
     @Test void clampsToRange() {
@@ -20,6 +21,23 @@ class DoubleSettingTest {
         assertEquals(0.3, setting.get(), 1e-9);
         setting.set(0.24);
         assertEquals(0.2, setting.get(), 1e-9);
+    }
+
+    @Test void resetRestoresTheNormalizedDefault() {
+        DoubleSetting setting = new DoubleSetting("value", "Value", 1.26, 0.0, 1.0, 0.1);
+        setting.set(0.4);
+        setting.reset();
+        assertEquals(1.0, setting.get(), 1e-9);
+        assertEquals(1.0, setting.defaultValue(), 1e-9);
+    }
+
+    @Test void rejectsNonFiniteRangesAndDefaults() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new DoubleSetting("bad", "Bad", 0.0, Double.NaN, 1.0, 0.1));
+        assertThrows(IllegalArgumentException.class,
+                () -> new DoubleSetting("bad", "Bad", Double.POSITIVE_INFINITY, 0.0, 1.0, 0.1));
+        assertThrows(IllegalArgumentException.class,
+                () -> new DoubleSetting("bad", "Bad", 0.0, 0.0, 1.0, Double.NaN));
     }
 
     @Test void incrementAndDecrementRespectBounds() {

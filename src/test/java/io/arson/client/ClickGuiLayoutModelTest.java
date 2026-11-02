@@ -22,6 +22,16 @@ class ClickGuiLayoutModelTest {
     }
 
     @Test
+    void verySmallViewportDoesNotForcePanelBeyondScreen() {
+        var g = ClickGuiLayoutModel.compute(320, 200, 1.0);
+        assertTrue(g.panelWidth() <= 320 - g.safeMargin() * 2);
+        assertTrue(g.panelHeight() <= 200 - g.safeMargin() * 2);
+        assertTrue(g.search().x() >= g.panelX());
+        assertTrue(g.search().right() <= g.panelX() + g.panelWidth());
+        assertTrue(g.footer().bottom() <= g.panelY() + g.panelHeight());
+    }
+
+    @Test
     void compactGeometryUsesTwoColumnsWhenSpaceAllows() {
         var g = ClickGuiLayoutModel.compute(1000, 650, 1.0);
         assertEquals(ClickGuiLayoutModel.Mode.COMPACT, g.mode());

@@ -19,7 +19,7 @@ public abstract class Setting<T> {
     public T get() { return value; }
     public T defaultValue() { return defaultValue; }
     public void set(T value) { this.value = value; }
-    public void reset() { this.value = defaultValue; }
+    public void reset() { set(defaultValue); }
     public String description() { return description; }
     public Setting<T> description(String value) { description = value == null ? "" : value; return this; }
     public Setting<T> visibleWhen(BooleanSupplier predicate) { Objects.requireNonNull(predicate); BooleanSupplier previous = visibility; visibility = () -> previous.getAsBoolean() && predicate.getAsBoolean(); return this; }

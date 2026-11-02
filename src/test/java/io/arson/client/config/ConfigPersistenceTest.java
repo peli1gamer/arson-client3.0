@@ -47,6 +47,21 @@ class ConfigPersistenceTest {
     }
 
     @Test
+    void missingModulesResetToDefaultsWhenLoadingPartialSnapshot() throws Exception {
+        Path profile = Files.createTempFile("arson-partial-profile", ".json");
+        Files.writeString(profile, "{\"version\":4,\"modules\":{\"client-info\":{\"enabled\":false}}}");
+
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        manager.get("sprint").setEnabled(true);
+        manager.get("sprint").setKeyCode(65);
+
+        assertTrue(ConfigManager.loadFromPath(profile, manager));
+        assertFalse(manager.get("sprint").enabled());
+        assertEquals(0, manager.get("sprint").keyCode());
+    }
+
+    @Test
     void invalidProfileLoadLeavesExistingStateUntouched() throws Exception {
         Path profile = Files.createTempFile("arson-invalid", ".json");
         Files.writeString(profile, "not json");

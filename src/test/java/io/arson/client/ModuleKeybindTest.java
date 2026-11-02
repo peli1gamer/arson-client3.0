@@ -26,6 +26,18 @@ class ModuleKeybindTest {
         assertTrue(ArsonClient.consumeModuleKeyPress(states, second, true));
     }
 
+    @Test
+    void heldKeyIsNotASecondPressWhenGuiCloses() {
+        Module module = new TestModule("gui-key");
+        Map<String, Boolean> states = new HashMap<>();
+
+        // The press is observed while the GUI is open and deliberately ignored.
+        assertTrue(ArsonClient.consumeModuleKeyPress(states, module, true));
+        // The same held key must not become a fresh press when the GUI closes.
+        assertFalse(ArsonClient.consumeModuleKeyPress(states, module, true));
+        assertFalse(ArsonClient.consumeModuleKeyPress(states, module, false));
+    }
+
     private static final class TestModule extends Module {
         private TestModule(String id) { super(id, id, Category.MISC); }
     }

@@ -13,9 +13,11 @@ public class RenderStyle {
         this.color = color == null ? new RenderColor(255, 80, 80, 255) : color;
         this.filled = filled;
         this.outline = outline;
-        this.fillAlpha = clamp(fillAlpha);
-        this.outlineAlpha = clamp(outlineAlpha);
-        this.lineWidth = Math.max(0.5f, Math.min(8.0f, lineWidth));
+        this.fillAlpha = clampAlpha(fillAlpha);
+        this.outlineAlpha = clampAlpha(outlineAlpha);
+        this.lineWidth = Float.isFinite(lineWidth)
+                ? Math.max(0.5f, Math.min(8.0f, lineWidth))
+                : 1.0f;
     }
 
     public RenderColor color() { return color; }
@@ -29,5 +31,7 @@ public class RenderStyle {
     public RenderColor fillColor() { return withAlpha(color, fillAlpha); }
     public RenderColor outlineColor() { return withAlpha(color, outlineAlpha); }
     private static RenderColor withAlpha(RenderColor color, float alpha) { return new RenderColor(color.red(), color.green(), color.blue(), Math.round(alpha * 255.0f)); }
-    private static float clamp(float value) { return Math.max(0.0f, Math.min(1.0f, value)); }
+    private static float clampAlpha(float value) {
+        return Float.isFinite(value) ? Math.max(0.0f, Math.min(1.0f, value)) : 0.0f;
+    }
 }

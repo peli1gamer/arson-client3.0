@@ -37,7 +37,7 @@ public final class ConfigManager {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
-        save(client, modules); return true;
+        return saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
@@ -64,7 +64,11 @@ public final class ConfigManager {
             if (readVersion(root) > CONFIG_VERSION) return false;
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
             migrateLegacyLayout(root, moduleRoot, modules);
+            if (!validateModuleData(moduleRoot, modules)) return false;
             for (Module module : modules.all()) {
+                // Configs and profiles are snapshots: missing module fields must not leak
+                // values from whichever profile happened to be loaded previously.
+                module.resetToDefaults();
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
@@ -86,6 +90,33 @@ public final class ConfigManager {
         } catch (Exception ignored) { return false; }
     }
 
+    private static boolean validateModuleData(JsonObject moduleRoot, ModuleManager modules) {
+        try {
+            for (Module module : modules.all()) {
+                JsonElement rawModule = moduleRoot.get(module.id());
+                if (rawModule == null || !rawModule.isJsonObject()) continue;
+                JsonObject data = rawModule.getAsJsonObject();
+                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) data.get("enabled").getAsBoolean();
+                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) data.get("favorite").getAsBoolean();
+                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) data.get("keyCode").getAsInt();
+                JsonElement rawSettings = data.get("settings");
+                if (rawSettings == null || !rawSettings.isJsonObject()) continue;
+                JsonObject settings = rawSettings.getAsJsonObject();
+                for (Setting<?> setting : module.settings()) {
+                    JsonElement value = settings.get(setting.id());
+                    if (value == null || !value.isJsonPrimitive()) continue;
+                    if (setting instanceof BooleanSetting) value.getAsBoolean();
+                    else if (setting instanceof DoubleSetting) value.getAsDouble();
+                    else if (setting instanceof ColorSetting) value.getAsInt();
+                    else if (setting instanceof StringSetting || setting instanceof EnumSetting<?>) value.getAsString();
+                }
+            }
+            return true;
+        } catch (RuntimeException invalidValue) {
+            return false;
+        }
+    }
+
     /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
     private static void migrateLegacyLayout(JsonObject root, JsonObject moduleRoot, ModuleManager modules) {
         Module layout = modules.get("hud-layout");
@@ -102,14 +133,17 @@ public final class ConfigManager {
             JsonElement raw = elements.get(element);
             if (raw == null || !raw.isJsonObject()) continue;
             JsonObject value = raw.getAsJsonObject();
-            JsonObject settings = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout").getAsJsonObject("settings") : new JsonObject();
-            if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
-            if (value.has("x") && value.get("x").isJsonPrimitive()) settings.addProperty(element + "-x", value.get("x").getAsDouble());
-            if (value.has("y") && value.get("y").isJsonPrimitive()) settings.addProperty(element + "-y", value.get("y").getAsDouble());
-            if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
             JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
                     ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
+            JsonElement settingsElement = moduleData.get("settings");
+            JsonObject settings = settingsElement != null && settingsElement.isJsonObject()
+                    ? settingsElement.getAsJsonObject() : new JsonObject();
+            if (!settings.has(element + "-x") && value.has("x") && value.get("x").isJsonPrimitive())
+                settings.addProperty(element + "-x", value.get("x").getAsDouble());
+            if (!settings.has(element + "-y") && value.has("y") && value.get("y").isJsonPrimitive())
+                settings.addProperty(element + "-y", value.get("y").getAsDouble());
+            if (!settings.has(element + "-anchor") && value.has("anchor") && value.get("anchor").isJsonPrimitive())
+                settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
             moduleData.add("settings", settings);
             moduleRoot.add("hud-layout", moduleData);
         }

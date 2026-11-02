@@ -17,7 +17,7 @@ public final class ChunkPositionModule extends Module {
     }
 
     @Override protected void onTick(Minecraft client) {
-        if (client.player == null) return;
+        if (client.player == null) { chunkX = chunkZ = regionX = regionZ = 0; return; }
         chunkX = client.player.blockPosition().getX() >> 4;
         chunkZ = client.player.blockPosition().getZ() >> 4;
         regionX = chunkX >> 5;
