@@ -3,6 +3,8 @@ package io.arson.client.ui;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.Map;
 
 /** Deterministic rectangle placer used by HUD and GUI layout code. */
@@ -61,27 +63,46 @@ public final class NoOverlapLayout {
     }
 
     private static Rect findCandidate(Rect preferred,int w,int h,int left,int top,int right,int bottom,int gap,List<Rect> occupied){
-        List<Rect> candidates=new ArrayList<>();
-        candidates.add(new Rect(preferred.x(),clamp(preferred.bottom()+gap,top,bottom-h),w,h));
-        candidates.add(new Rect(clamp(preferred.right()+gap,left,right-w),preferred.y(),w,h));
-        candidates.add(new Rect(left,top,w,h));
-        int maxY=Math.max(top,bottom-h),maxX=Math.max(left,right-w);
-        for(int y=top;y<=maxY;y+=gap){
-            for(int x=left;x<=maxX;x+=gap){
-                candidates.add(new Rect(x,y,w,h));
-            }
+        // A nearest non-overlapping placement must touch a viewport or occupied-rectangle
+        // boundary on at least one axis. Testing those boundaries avoids allocating and
+        // scanning every grid cell on large (4K+) viewports.
+        Set<Integer> xs = new LinkedHashSet<>();
+        Set<Integer> ys = new LinkedHashSet<>();
+        addCandidate(xs, preferred.x(), left, right - w);
+        addCandidate(xs, preferred.right() + gap, left, right - w);
+        addCandidate(xs, left, left, right - w);
+        addCandidate(xs, right - w, left, right - w);
+        addCandidate(ys, preferred.y(), top, bottom - h);
+        addCandidate(ys, preferred.bottom() + gap, top, bottom - h);
+        addCandidate(ys, top, top, bottom - h);
+        addCandidate(ys, bottom - h, top, bottom - h);
+        for (Rect obstacle : occupied) {
+            addCandidate(xs, obstacle.right() + gap, left, right - w);
+            addCandidate(xs, obstacle.x() - w - gap, left, right - w);
+            addCandidate(ys, obstacle.bottom() + gap, top, bottom - h);
+            addCandidate(ys, obstacle.y() - h - gap, top, bottom - h);
         }
-        Rect best=null; long bestDistance=Long.MAX_VALUE;
-        for(Rect candidate:candidates){
-            if(conflicts(candidate,occupied)) continue;
-            long distance=Math.abs((long)candidate.x()-preferred.x())+Math.abs((long)candidate.y()-preferred.y());
-            if(distance<bestDistance || (distance==bestDistance && (best==null || candidate.y()<best.y() || candidate.y()==best.y()&&candidate.x()<best.x()))){
-                best=candidate;bestDistance=distance;
+
+        Rect best = null;
+        long bestDistance = Long.MAX_VALUE;
+        for (int y : ys) {
+            for (int x : xs) {
+                Rect candidate = new Rect(x, y, w, h);
+                if (conflicts(candidate, occupied)) continue;
+                long distance = Math.abs((long) x - preferred.x()) + Math.abs((long) y - preferred.y());
+                if (distance < bestDistance || (distance == bestDistance
+                        && (best == null || y < best.y() || y == best.y() && x < best.x()))) {
+                    best = candidate;
+                    bestDistance = distance;
+                }
             }
         }
         return best;
     }
 
+    private static void addCandidate(Set<Integer> candidates, int value, int min, int max) {
+        candidates.add(clamp(value, min, Math.max(min, max)));
+    }
 
     private static Rect findCompactedCandidate(Rect preferred,int width,int height,int left,int top,int right,int bottom,int gap,List<Rect> occupied){
         double[] factors={0.85,0.70,0.55,0.40,0.25,0.15,0.08};
