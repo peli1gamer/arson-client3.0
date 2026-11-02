@@ -51,7 +51,12 @@ public final class AimAssistModule extends Module {
     private final Random random = new Random();
     private LivingEntity target;
 
-    public AimAssistModule() { super("aim-assist", "Aim Assist", Category.COMBAT); }
+    public AimAssistModule() {
+        super("aim-assist", "Aim Assist", Category.COMBAT);
+        fov.description("Maximum angular distance from the crosshair, in degrees.");
+        aimPoint.description("Target point: Closest, Head, Torso, or Legs.");
+        activation.description("Activation mode: Always, Hold Left Click, Hold Right Click, or Hold Key.");
+    }
 
     @Override protected void onDisable() { target = null; }
 
