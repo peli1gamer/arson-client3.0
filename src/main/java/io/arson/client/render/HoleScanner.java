@@ -96,13 +96,6 @@ public final class HoleScanner {
         workingTargets = new ArrayList<>();
         refreshRequested = false;
 
-        if (minY > maxY) {
-            cursor = null;
-            cachedTargets = List.of();
-            lastCompletedTick = client.level.getGameTime();
-            return;
-        }
-
         cursor = new BlockScanCursor(origin.getX() - horizontal, minY, origin.getZ() - horizontal,
                 origin.getX() + horizontal, maxY, origin.getZ() + horizontal);
     }
@@ -142,7 +135,6 @@ public final class HoleScanner {
             cachedTargets = workingTargets == null || workingTargets.isEmpty()
                     ? List.of() : List.copyOf(workingTargets);
             workingTargets = null;
-            cursor = null;
             lastCompletedTick = gameTime;
         }
     }
