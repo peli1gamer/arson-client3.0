@@ -95,8 +95,7 @@ public final class HudRenderer {
         if(layout != null){
             int[] arraySize=estimateArrayListSize(client,arrayList);
             layout.setArrayListPreferredPosition(arrayList==null?6:arrayList.x(),arrayList==null?6:arrayList.y());
-            if(layout.repairNoOverlap(client.getWindow().getGuiScaledWidth(),client.getWindow().getGuiScaledHeight(),globalScale,arraySize[0],arraySize[1],arrayList))
-                ConfigManager.save(client,ArsonClient.getInstance().modules());
+            layout.repairNoOverlap(client.getWindow().getGuiScaledWidth(),client.getWindow().getGuiScaledHeight(),globalScale,arraySize[0],arraySize[1],arrayList);
         }
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
@@ -157,7 +156,6 @@ public final class HudRenderer {
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
             if (resolutionInfo != null && resolutionInfo.enabled()) rows.add(resolutionInfo.formatted());
-            if (viewportInfo != null && viewportInfo.enabled()) rows.add(viewportInfo.formatted());
             if (weatherInfo != null && weatherInfo.enabled()) rows.add(weatherInfo.formatted());
             if (entityCountInfo != null && entityCountInfo.enabled()) rows.add(entityCountInfo.formatted());
             if (guiInfo != null && guiInfo.enabled()) rows.add(guiInfo.formatted());
