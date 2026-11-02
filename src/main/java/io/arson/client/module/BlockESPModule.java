@@ -17,6 +17,10 @@ public final class BlockESPModule extends VisualModule {
     private final BooleanSetting lapis = setting(new BooleanSetting("lapis", "Lapis", false));
     private final BooleanSetting quartz = setting(new BooleanSetting("quartz", "Quartz", false));
     private final BooleanSetting ancientDebris = setting(new BooleanSetting("ancient-debris", "Ancient Debris", true));
+    private final BooleanSetting spawners = setting(new BooleanSetting("spawners", "Spawners", false));
+    private final BooleanSetting lightSources = setting(new BooleanSetting("light-sources", "Light Sources", false));
+    private final BooleanSetting amethyst = setting(new BooleanSetting("amethyst", "Amethyst", false));
+    private final DoubleSetting lightThreshold = setting(new DoubleSetting("light-threshold", "Minimum Light Level", 8.0, 1.0, 15.0, 1.0));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 32.0, 8.0, 64.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 8.0, 1.0, 20.0, 1.0));
@@ -31,9 +35,11 @@ public final class BlockESPModule extends VisualModule {
     private final ColorSetting lapisColor = setting(new ColorSetting("lapis-color", "Lapis Color", 0xD84D74FF));
     private final ColorSetting quartzColor = setting(new ColorSetting("quartz-color", "Quartz Color", 0xD8FFF0D0));
     private final ColorSetting ancientDebrisColor = setting(new ColorSetting("ancient-debris-color", "Ancient Debris Color", 0xD88A4B35));
+    private final ColorSetting spawnerColor = setting(new ColorSetting("spawner-color", "Spawner Color", 0xD86B8CFF));
+    private final ColorSetting amethystColor = setting(new ColorSetting("amethyst-color", "Amethyst Color", 0xD8C78BFF));
 
     public BlockESPModule() {
-        super("block-esp", "Ore ESP", false);
+        super("block-esp", "Block ESP", false);
     }
 
     public boolean showDiamond() { return diamond.enabled(); }
@@ -46,6 +52,10 @@ public final class BlockESPModule extends VisualModule {
     public boolean showLapis() { return lapis.enabled(); }
     public boolean showQuartz() { return quartz.enabled(); }
     public boolean showAncientDebris() { return ancientDebris.enabled(); }
+    public boolean showSpawners() { return spawners.enabled(); }
+    public boolean showLightSources() { return lightSources.enabled(); }
+    public boolean showAmethyst() { return amethyst.enabled(); }
+    public int lightThreshold() { return (int) Math.round(lightThreshold.get()); }
     public boolean distanceFade() { return distanceFade.enabled(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
@@ -60,4 +70,13 @@ public final class BlockESPModule extends VisualModule {
     public RenderStyle lapisStyle() { return renderStyle(lapisColor.get()); }
     public RenderStyle quartzStyle() { return renderStyle(quartzColor.get()); }
     public RenderStyle ancientDebrisStyle() { return renderStyle(ancientDebrisColor.get()); }
+    public RenderStyle spawnerStyle() { return renderStyle(spawnerColor.get()); }
+    public RenderStyle amethystStyle() { return renderStyle(amethystColor.get()); }
+    public RenderStyle lightStyle(int emission) {
+        int threshold = lightThreshold();
+        float intensity = Math.max(0.0f, Math.min(1.0f, (emission - threshold) / (float) Math.max(1, 15 - threshold)));
+        int green = Math.round(80.0f + 150.0f * intensity);
+        int argb = 0xD8000000 | (0xFF << 16) | (green << 8) | 0x28;
+        return renderStyle(argb);
+    }
 }
