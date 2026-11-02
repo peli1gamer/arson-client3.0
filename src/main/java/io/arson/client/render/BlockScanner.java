@@ -21,6 +21,15 @@ public final class BlockScanner {
     private int cachedConfigHash;
     private List<BlockTarget> cachedTargets = List.of();
 
+    public void invalidate() {
+        cachedLevel = null;
+        cachedTick = Long.MIN_VALUE;
+        cachedChunkX = Integer.MIN_VALUE;
+        cachedChunkZ = Integer.MIN_VALUE;
+        cachedConfigHash = 0;
+        cachedTargets = List.of();
+    }
+
     public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
         if (client.level == null || client.player == null || !module.enabled()) return List.of();
 
