@@ -145,8 +145,12 @@ public final class StorageScanner {
             return false;
         }
 
-        BlockState first = client.level.getBlockState(firstPos);
-        BlockState second = client.level.getBlockState(secondPos);
+        return areCompatibleChestStates(client.level.getBlockState(firstPos),
+                client.level.getBlockState(secondPos), firstPos, secondPos);
+    }
+
+    static boolean areCompatibleChestStates(BlockState first, BlockState second,
+                                             BlockPos firstPos, BlockPos secondPos) {
         if (!isChestBlock(first) || !isChestBlock(second)) return false;
         if (first.getBlock() != second.getBlock()) return false;
 
