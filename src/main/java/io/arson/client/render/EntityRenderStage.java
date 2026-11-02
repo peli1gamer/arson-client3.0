@@ -9,6 +9,8 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -74,6 +76,9 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
         if (module.showHealth()) {
             renderHealthBars(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, cachedTargets);
         }
+        if (module.showLabels()) {
+            renderLabels(context, cachedTargets);
+        }
     }
 
     private RenderStyle styleFor(EntityType type) {
@@ -87,14 +92,52 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
     private float distanceFade(EntityTarget target) {
         if (!module.distanceFade()) return 1.0f;
-        double range = Math.max(1.0, module.range());
-        double normalized = Math.max(0.0, Math.min(1.0, target.distance() / range));
-        return (float) Math.max(0.0, Math.min(1.0, 1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
+        return EspRenderMath.distanceFade(target.distance(), module.range(), module.fadeStart());
     }
 
     private static RenderStyle fadeStyle(RenderStyle style, float fade) {
-        return new RenderStyle(style.color(), style.fill(), style.outline(),
-                style.fillAlpha() * fade, style.outlineAlpha() * fade, style.lineWidth());
+        return EspRenderMath.fadeStyle(style, fade);
+    }
+
+    /** Renders billboarded entity names and optional range information. */
+    private void renderLabels(WorldRenderContext context, List<EntityTarget> targets) {
+        PoseStack matrices = context.matrices();
+        MultiBufferSource consumers = context.consumers();
+        Font font = client.font;
+        var camera = context.worldState().cameraRenderState;
+
+        for (EntityTarget target : targets) {
+            float fade = distanceFade(target);
+            if (fade <= 0.0f) continue;
+
+            String label = target.displayName() == null || target.displayName().isBlank()
+                    ? target.type().name() : target.displayName();
+            if (module.labelDistance()) {
+                label += " [" + String.format(java.util.Locale.ROOT, "%.1fm", target.distance()) + "]";
+            }
+
+            matrices.pushPose();
+            try {
+                matrices.translate(target.centerX() - camera.pos.x,
+                        target.maxY() - camera.pos.y + module.labelHeight(),
+                        target.centerZ() - camera.pos.z);
+                matrices.mulPose(camera.orientation);
+                float scale = module.labelScale();
+                matrices.scale(-0.025f * scale, -0.025f * scale, 0.025f * scale);
+                int width = font.width(label);
+                int color = fadeAlpha(module.labelColor(), fade);
+                int background = module.labelBackground()
+                        ? fadeAlpha(module.labelBackgroundColor(), fade) : 0;
+                font.drawInBatch(Component.literal(label), -width / 2.0f, 0, color, false,
+                        matrices.last().pose(), consumers, Font.DisplayMode.NORMAL, background, 0xF000F0);
+            } finally {
+                matrices.popPose();
+            }
+        }
+    }
+
+    private static int fadeAlpha(int argb, float fade) {
+        return EspRenderMath.fadeAlpha(argb, fade);
     }
 
     /** Renders a compact vertical health bar beside living entity bounds. */

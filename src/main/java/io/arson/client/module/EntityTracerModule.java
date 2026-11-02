@@ -15,6 +15,7 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     private final BooleanSetting animals = setting(new BooleanSetting("animals", "Animals", false));
     private final BooleanSetting items = setting(new BooleanSetting("items", "Dropped Items", false));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
+    private final DoubleSetting fadeStart = setting(new DoubleSetting("fade-start", "Fade Start", 0.45, 0.10, 0.90, 0.05));
     private final ColorSetting playerColor = setting(new ColorSetting("player-color", "Player Color", 0xD6AA66FF));
     private final ColorSetting mobColor = setting(new ColorSetting("mob-color", "Mob Color", 0xD6FF5555));
     private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
@@ -33,6 +34,7 @@ public final class EntityTracerModule extends Module implements EntityScanConfig
     public boolean showAnimals() { return animals.enabled(); }
     public boolean showItems() { return items.enabled(); }
     public boolean distanceFade() { return distanceFade.enabled(); }
+    public double fadeStart() { return fadeStart.get(); }
     public int color() { return playerColor.get(); }
     public int playerColor() { return playerColor.get(); }
     public int mobColor() { return mobColor.get(); }

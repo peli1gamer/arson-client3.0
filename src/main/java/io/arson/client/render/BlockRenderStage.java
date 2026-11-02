@@ -3,6 +3,8 @@ package io.arson.client.render;
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
+import io.arson.client.render.RenderLineRenderer;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.arson.client.module.BlockESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
@@ -45,6 +47,8 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
         double range = Math.max(1.0, module.range());
         double rangeSquared = range * range;
         List<RenderBox> boxes = new ArrayList<>(targets.size());
+        VertexConsumer tracerBuffer = module.tracers()
+                ? RenderLineRenderer.lineBuffer(context.consumers()) : null;
 
         for (BlockTarget target : targets) {
             BlockPos position = BlockPos.containing(target.minX(), target.minY(), target.minZ());
@@ -57,12 +61,19 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             if (distanceSquared > rangeSquared) continue;
 
             double distance = Math.sqrt(distanceSquared);
-            float fade = module.distanceFade() ? distanceFade(distance, range) : 1.0f;
+            float fade = module.distanceFade() ? EspRenderMath.distanceFade(distance, range, module.fadeStart()) : 1.0f;
             if (fade <= 0.0f) continue;
 
-            RenderStyle style = fadeStyle(target.style(), fade);
+            RenderStyle style = EspRenderMath.fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
+            if (tracerBuffer != null) {
+                RenderStyle tracerStyle = new RenderStyle(style.color(), false, true, 0.0f,
+                        module.tracerAlpha() * fade, module.tracerLineWidth());
+                RenderLineRenderer.line(context.matrices(), tracerBuffer, 0.0, 0.0, 0.0,
+                        target.centerX() - camera.x, target.centerY() - camera.y,
+                        target.centerZ() - camera.z, tracerStyle);
+            }
         }
 
         lastVisibleCount = boxes.size();
@@ -70,17 +81,6 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
             RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
         }
-    }
-
-    private static float distanceFade(double distance, double range) {
-        if (range <= 0.0) return 0.0f;
-        double normalized = Math.max(0.0, Math.min(1.0, distance / range));
-        return (float) Math.max(0.0, Math.min(1.0, 1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
-    }
-
-    private static RenderStyle fadeStyle(RenderStyle style, float fade) {
-        return new RenderStyle(style.color(), style.fill(), style.outline(),
-                style.fillAlpha() * fade, style.outlineAlpha() * fade, style.lineWidth());
     }
 
     public int lastVisibleCount() { return lastVisibleCount; }

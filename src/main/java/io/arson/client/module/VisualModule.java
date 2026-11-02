@@ -13,6 +13,7 @@ public abstract class VisualModule extends Module {
     protected final DoubleSetting fillAlpha;
     protected final DoubleSetting outlineAlpha;
     protected final DoubleSetting lineWidth;
+    protected final DoubleSetting fadeStart;
     protected final ColorSetting color;
 
     protected VisualModule(String id, String name) {
@@ -26,6 +27,7 @@ public abstract class VisualModule extends Module {
         this.fillAlpha = setting(new DoubleSetting("fill-alpha", "Fill Alpha", 0.30, 0.0, 1.0, 0.05));
         this.outlineAlpha = setting(new DoubleSetting("outline-alpha", "Outline Alpha", 1.0, 0.0, 1.0, 0.05));
         this.lineWidth = setting(new DoubleSetting("line-width", "Line Width", 1.0, 0.5, 8.0, 0.5));
+        this.fadeStart = setting(new DoubleSetting("fade-start", "Fade Start", 0.45, 0.10, 0.90, 0.05));
         this.color = setting(new ColorSetting("color", "Color", 0xDCEB5B5B));
     }
 
@@ -35,6 +37,7 @@ public abstract class VisualModule extends Module {
     public double fillAlpha() { return fillAlpha.get(); }
     public double outlineAlpha() { return outlineAlpha.get(); }
     public double lineWidth() { return lineWidth.get(); }
+    public double fadeStart() { return fadeStart.get(); }
 
     /** Snapshot the module's current default visual settings. */
     public RenderStyle renderStyle() {

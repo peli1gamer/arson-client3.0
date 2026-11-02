@@ -14,6 +14,9 @@ public final class ContainerESPModule extends VisualModule {
     private final BooleanSetting enderChests = setting(new BooleanSetting("ender-chests", "Ender Chests", true));
     private final BooleanSetting otherStorage = setting(new BooleanSetting("other-storage", "Other Storage", false));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
+    private final BooleanSetting tracers = setting(new BooleanSetting("tracers", "Tracers", false));
+    private final DoubleSetting tracerAlpha = setting(new DoubleSetting("tracer-alpha", "Tracer Alpha", 0.90, 0.05, 1.0, 0.05));
+    private final DoubleSetting tracerLineWidth = setting(new DoubleSetting("tracer-line-width", "Tracer Line Width", 1.5, 0.5, 4.0, 0.5));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 64.0, 8.0, 128.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 5.0, 1.0, 20.0, 1.0));
     private final BooleanSetting showLabels = setting(new BooleanSetting("show-labels", "Show Labels", false));
@@ -62,6 +65,9 @@ public final class ContainerESPModule extends VisualModule {
     public boolean showEnderChests() { return enderChests.enabled(); }
     public boolean showOtherStorage() { return otherStorage.enabled(); }
     public boolean distanceFade() { return distanceFade.enabled(); }
+    public boolean tracers() { return tracers.enabled(); }
+    public float tracerAlpha() { return tracerAlpha.get().floatValue(); }
+    public float tracerLineWidth() { return tracerLineWidth.get().floatValue(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
     public boolean showLabels() { return showLabels.enabled(); }

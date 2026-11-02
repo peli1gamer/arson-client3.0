@@ -39,6 +39,13 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     private final BooleanSetting healthBackground = setting(new BooleanSetting("health-background", "Health Background", true));
     private final BooleanSetting healthRight = setting(new BooleanSetting("health-right", "Health Bar Right", false));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
+    private final BooleanSetting showLabels = setting(new BooleanSetting("show-labels", "Show Labels", false));
+    private final BooleanSetting labelDistance = setting(new BooleanSetting("label-distance", "Label Distance", true));
+    private final BooleanSetting labelBackground = setting(new BooleanSetting("label-background", "Label Background", true));
+    private final DoubleSetting labelScale = setting(new DoubleSetting("label-scale", "Label Scale", 1.0, 0.5, 2.0, 0.05));
+    private final DoubleSetting labelHeight = setting(new DoubleSetting("label-height", "Label Height", 0.35, 0.0, 2.0, 0.05));
+    private final ColorSetting labelColor = setting(new ColorSetting("label-color", "Label Color", 0xFFFFFFFF));
+    private final ColorSetting labelBackgroundColor = setting(new ColorSetting("label-background-color", "Label Background Color", 0xA0000000));
     private final ColorSetting playerColor = setting(new ColorSetting("player-color", "Player Color", 0xD655AAFF));
     private final ColorSetting mobColor = setting(new ColorSetting("mob-color", "Mob Color", 0xD6FF5555));
     private final ColorSetting animalColor = setting(new ColorSetting("animal-color", "Animal Color", 0xD655FF78));
@@ -62,6 +69,13 @@ public final class EntityESPModule extends VisualModule implements EntityScanCon
     public boolean showHealthBackground() { return healthBackground.enabled(); }
     public boolean healthRight() { return healthRight.enabled(); }
     public boolean distanceFade() { return distanceFade.enabled(); }
+    public boolean showLabels() { return showLabels.enabled(); }
+    public boolean labelDistance() { return labelDistance.enabled(); }
+    public boolean labelBackground() { return labelBackground.enabled(); }
+    public float labelScale() { return labelScale.get().floatValue(); }
+    public float labelHeight() { return labelHeight.get().floatValue(); }
+    public int labelColor() { return labelColor.get(); }
+    public int labelBackgroundColor() { return labelBackgroundColor.get(); }
     public boolean fill() { return super.filled(); }
     public boolean outline() { return super.outline(); }
     public int playerColor() { return playerColor.get(); }

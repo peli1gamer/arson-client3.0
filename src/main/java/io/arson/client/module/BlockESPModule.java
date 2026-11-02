@@ -22,6 +22,9 @@ public final class BlockESPModule extends VisualModule {
     private final BooleanSetting amethyst = setting(new BooleanSetting("amethyst", "Amethyst", false));
     private final DoubleSetting lightThreshold = setting(new DoubleSetting("light-threshold", "Minimum Light Level", 8.0, 1.0, 15.0, 1.0));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
+    private final BooleanSetting tracers = setting(new BooleanSetting("tracers", "Tracers", false));
+    private final DoubleSetting tracerAlpha = setting(new DoubleSetting("tracer-alpha", "Tracer Alpha", 0.90, 0.05, 1.0, 0.05));
+    private final DoubleSetting tracerLineWidth = setting(new DoubleSetting("tracer-line-width", "Tracer Line Width", 1.5, 0.5, 4.0, 0.5));
     private final DoubleSetting range = setting(new DoubleSetting("range", "Range", 32.0, 8.0, 64.0, 4.0));
     private final DoubleSetting scanInterval = setting(new DoubleSetting("scan-interval", "Scan Interval", 8.0, 1.0, 20.0, 1.0));
 
@@ -57,6 +60,9 @@ public final class BlockESPModule extends VisualModule {
     public boolean showAmethyst() { return amethyst.enabled(); }
     public int lightThreshold() { return (int) Math.round(lightThreshold.get()); }
     public boolean distanceFade() { return distanceFade.enabled(); }
+    public boolean tracers() { return tracers.enabled(); }
+    public float tracerAlpha() { return tracerAlpha.get().floatValue(); }
+    public float tracerLineWidth() { return tracerLineWidth.get().floatValue(); }
     public double range() { return range.get(); }
     public int scanInterval() { return Math.max(1, (int) Math.round(scanInterval.get())); }
 
