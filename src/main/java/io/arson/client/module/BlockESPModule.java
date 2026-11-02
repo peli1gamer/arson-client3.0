@@ -20,6 +20,8 @@ public final class BlockESPModule extends VisualModule {
     private final BooleanSetting spawners = setting(new BooleanSetting("spawners", "Spawners", false));
     private final BooleanSetting lightSources = setting(new BooleanSetting("light-sources", "Light Sources", false));
     private final BooleanSetting amethyst = setting(new BooleanSetting("amethyst", "Amethyst", false));
+    private final BooleanSetting dripstone = setting(new BooleanSetting("dripstone", "Dripstone", false));
+    private final BooleanSetting beehives = setting(new BooleanSetting("beehives", "Beehives", false));
     private final DoubleSetting lightThreshold = setting(new DoubleSetting("light-threshold", "Minimum Light Level", 8.0, 1.0, 15.0, 1.0));
     private final BooleanSetting distanceFade = setting(new BooleanSetting("distance-fade", "Distance Fade", false));
     private final BooleanSetting tracers = setting(new BooleanSetting("tracers", "Tracers", false));
@@ -40,6 +42,8 @@ public final class BlockESPModule extends VisualModule {
     private final ColorSetting ancientDebrisColor = setting(new ColorSetting("ancient-debris-color", "Ancient Debris Color", 0xD88A4B35));
     private final ColorSetting spawnerColor = setting(new ColorSetting("spawner-color", "Spawner Color", 0xD86B8CFF));
     private final ColorSetting amethystColor = setting(new ColorSetting("amethyst-color", "Amethyst Color", 0xD8C78BFF));
+    private final ColorSetting dripstoneColor = setting(new ColorSetting("dripstone-color", "Dripstone Color", 0xD8C49A70));
+    private final ColorSetting beehiveColor = setting(new ColorSetting("beehive-color", "Beehive Color", 0xD8E6B94F));
 
     public BlockESPModule() {
         super("block-esp", "Block ESP", false);
@@ -58,6 +62,8 @@ public final class BlockESPModule extends VisualModule {
     public boolean showSpawners() { return spawners.enabled(); }
     public boolean showLightSources() { return lightSources.enabled(); }
     public boolean showAmethyst() { return amethyst.enabled(); }
+    public boolean showDripstone() { return dripstone.enabled(); }
+    public boolean showBeehives() { return beehives.enabled(); }
     public int lightThreshold() { return (int) Math.round(lightThreshold.get()); }
     public boolean distanceFade() { return distanceFade.enabled(); }
     public boolean tracers() { return tracers.enabled(); }
@@ -78,6 +84,8 @@ public final class BlockESPModule extends VisualModule {
     public RenderStyle ancientDebrisStyle() { return renderStyle(ancientDebrisColor.get()); }
     public RenderStyle spawnerStyle() { return renderStyle(spawnerColor.get()); }
     public RenderStyle amethystStyle() { return renderStyle(amethystColor.get()); }
+    public RenderStyle dripstoneStyle() { return renderStyle(dripstoneColor.get()); }
+    public RenderStyle beehiveStyle() { return renderStyle(beehiveColor.get());
     public RenderStyle lightStyle(int emission) {
         int threshold = lightThreshold();
         float intensity = Math.max(0.0f, Math.min(1.0f, (emission - threshold) / (float) Math.max(1, 15 - threshold)));
