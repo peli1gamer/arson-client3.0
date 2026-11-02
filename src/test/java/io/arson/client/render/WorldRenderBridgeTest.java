@@ -17,4 +17,11 @@ class WorldRenderBridgeTest {
         assertEquals(0.0f, new WorldRenderBridge(new FeatureContext(), null, () -> -2.0f).partialTick());
         assertEquals(1.0f, new WorldRenderBridge(new FeatureContext(), null, () -> 3.0f).partialTick());
     }
+
+    @Test
+    void renderPartialTickFallsBackForNonFiniteValues() {
+        assertEquals(0.0f, new WorldRenderBridge(new FeatureContext(), null, () -> Float.NaN).partialTick());
+        assertEquals(0.0f, new WorldRenderBridge(new FeatureContext(), null, () -> Float.POSITIVE_INFINITY).partialTick());
+        assertEquals(0.0f, new WorldRenderBridge(new FeatureContext(), null, () -> Float.NEGATIVE_INFINITY).partialTick());
+    }
 }
