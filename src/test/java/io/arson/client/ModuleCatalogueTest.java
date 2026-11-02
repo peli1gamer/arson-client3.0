@@ -19,6 +19,19 @@ class ModuleCatalogueTest {
     }
 
     @Test
+    void holeEspIsRegisteredAsAConfigurableRenderModule() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        var module = manager.get("hole-esp");
+
+        assertNotNull(module);
+        assertEquals("Render", module.category().displayName());
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("safe-holes")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("unsafe-holes")));
+        assertTrue(module.settings().stream().anyMatch(setting -> setting.id().equals("vertical-range")));
+    }
+
+    @Test
     void coreFeatureFamiliesRemainDiscoverableAsConcreteModules() {
         ModuleManager manager = new ModuleManager();
         manager.registerDefaults();
