@@ -45,7 +45,7 @@ public final class StructureScanner {
         boolean identityChanged = levelIdentity != client.level || playerIdentity != client.player;
         boolean moved = origin == null || origin.distSqr(playerPos) >= 64.0;
         boolean intervalElapsed = lastCompleteTick == Long.MIN_VALUE || tick < lastCompleteTick
-                || tick - lastCompleteTick >= modules.stream().filter(Module::enabled)
+                || tick - lastCompleteTick >= modules.stream().filter(StructureESPModule::enabled)
                 .mapToInt(StructureESPModule::scanInterval).min().orElse(10);
         if (identityChanged || enabledSignature != moduleSignature || moved || intervalElapsed) {
             if (working == null) begin(client, playerPos, nextRadius, enabledSignature);
