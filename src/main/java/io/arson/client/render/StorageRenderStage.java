@@ -3,6 +3,7 @@ package io.arson.client.render;
 import com.arson.client.render.RenderBox;
 import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import com.arson.client.render.StorageType;
@@ -14,6 +15,8 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.PoseStack;
+
+import io.arson.client.render.RenderLineRenderer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +73,17 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         }
 
         lastVisibleCount = boxes.size();
+        if (module.tracers() && !boxes.isEmpty()) {
+            VertexConsumer tracerBuffer = RenderLineRenderer.lineBuffer(context.consumers());
+            for (RenderBox box : boxes) {
+                RenderStyle style = box.style();
+                RenderStyle tracerStyle = new RenderStyle(style.color(), false, true, 0.0f,
+                        style.outlineAlpha() * module.tracerAlpha(), module.tracerLineWidth());
+                RenderLineRenderer.line(context.matrices(), tracerBuffer, 0.0, 0.0, 0.0,
+                        box.centerX() - camera.x, box.centerY() - camera.y,
+                        box.centerZ() - camera.z, tracerStyle);
+            }
+        }
         if (!boxes.isEmpty()) {
             RenderBoxRenderer.fill(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
             RenderBoxRenderer.outline(context.matrices(), context.consumers(), camera.x, camera.y, camera.z, boxes);
