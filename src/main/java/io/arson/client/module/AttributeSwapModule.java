@@ -32,15 +32,39 @@ public final class AttributeSwapModule extends Module {
     private final DoubleSetting swordSlot = setting(new DoubleSetting("sword-slot", "Sword Slot", 0.0, 0.0, 9.0, 1.0));
     private final DoubleSetting spearSlot = setting(new DoubleSetting("spear-slot", "Spear Slot", 0.0, 0.0, 9.0, 1.0));
     private int previousSlot = -1;
+    private int activeSwapSlot = -1;
+    private Player swapPlayer;
+    private boolean manualOverride;
     private String activeSwap = "";
     public AttributeSwapModule() { super("attribute-swap", "Attribute Swap", Category.COMBAT); }
     @Override protected void onDisable() { restorePrevious(Minecraft.getInstance()); }
     @Override protected void onTick(Minecraft client) {
-        if (client.player == null || client.level == null || client.screen != null) return;
+        if (client.player == null) {
+            clearSwapState();
+            return;
+        }
+        if (swapPlayer != null && swapPlayer != client.player) clearSwapState();
+        if (client.level == null || client.screen != null) return;
+
         LivingEntity target = findTarget(client);
-        boolean fallingMace = mace.enabled() && target != null && !client.player.onGround() && client.player.getDeltaMovement().y < 0.0 && client.player.fallDistance >= maceFallHeight.get() && findMaceSlot(client.player) >= 0;
+        boolean fallingMace = mace.enabled() && target != null && !client.player.onGround()
+                && client.player.getDeltaMovement().y < 0.0
+                && client.player.fallDistance >= maceFallHeight.get()
+                && findMaceSlot(client.player) >= 0;
+        boolean attackingTarget = client.options.keyAttack.isDown() && target != null;
+
+        if (!activeSwap.isEmpty()
+                && client.player.getInventory().getSelectedSlot() != activeSwapSlot) {
+            clearSwapState();
+            manualOverride = true;
+        }
+        if (manualOverride) {
+            if (!fallingMace && !attackingTarget) manualOverride = false;
+            else return;
+        }
+
         if (fallingMace) { switchTo(client, "mace", maceSlot, true); return; }
-        if (client.options.keyAttack.isDown() && target != null) {
+        if (attackingTarget) {
             if (sword.enabled() && findWeaponSlot(client.player, "sword", swordSlot) >= 0) { switchTo(client, "sword", swordSlot, false); return; }
             if (axe.enabled() && findWeaponSlot(client.player, "axe", axeSlot) >= 0) { switchTo(client, "axe", axeSlot, false); return; }
             if (spear.enabled() && findWeaponSlot(client.player, "spear", spearSlot) >= 0) { switchTo(client, "spear", spearSlot, false); return; }
@@ -56,16 +80,32 @@ public final class AttributeSwapModule extends Module {
     private void switchTo(Minecraft client, String reason, DoubleSetting explicitSlot, boolean maceReason) {
         int slot = maceReason ? findMaceSlot(client.player) : findWeaponSlot(client.player, reason, explicitSlot);
         if (slot < 0) return;
-        if (client.player.getInventory().getSelectedSlot() == slot) { if (activeSwap.isEmpty()) activeSwap = reason; return; }
         if (activeSwap.isEmpty()) previousSlot = client.player.getInventory().getSelectedSlot();
-        activeSwap = reason; client.player.getInventory().setSelectedSlot(slot);
+        activeSwap = reason;
+        activeSwapSlot = slot;
+        swapPlayer = client.player;
+        if (client.player.getInventory().getSelectedSlot() != slot) {
+            client.player.getInventory().setSelectedSlot(slot);
+        }
     }
     private void restorePrevious(Minecraft client) {
-        if (!returnToPrevious.enabled() || previousSlot < 0 || client.player == null) { previousSlot = -1; activeSwap = ""; return; }
-        client.player.getInventory().setSelectedSlot(previousSlot); previousSlot = -1; activeSwap = "";
+        if (returnToPrevious.enabled() && previousSlot >= 0 && client.player != null
+                && swapPlayer == client.player
+                && client.player.getInventory().getSelectedSlot() == activeSwapSlot) {
+            client.player.getInventory().setSelectedSlot(previousSlot);
+        }
+        clearSwapState();
+    }
+
+    private void clearSwapState() {
+        previousSlot = -1;
+        activeSwapSlot = -1;
+        swapPlayer = null;
+        activeSwap = "";
     }
     private int findMaceSlot(Player player) {
-        int explicit = configuredSlot(player, maceSlot, item -> item.is(Items.MACE));
+        int explicit = configuredSlot(player, maceSlot,
+                item -> item.is(Items.MACE) && matchesMaceFilters(item));
         if (explicit >= 0) return explicit;
         for (int i = 0; i < 9; i++) { ItemStack stack = player.getInventory().getItem(i); if (stack.is(Items.MACE) && matchesMaceFilters(stack)) return i; }
         return -1;
