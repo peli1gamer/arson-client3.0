@@ -44,7 +44,7 @@ public final class BlockScanner {
         BlockPos playerPosition = client.player.blockPosition();
         int configHash = configHash(module);
         boolean restart = cursor == null || cachedLevel != client.level || cachedPlayer != client.player
-                || cachedConfigHash != configHash || movedBeyondRefreshDistance(playerPosition)
+                || cachedConfigHash != configHash || movedBeyondRefreshDistance(playerPosition, module.range())
                 || (!cursor.hasNext() && (gameTime < lastCompletedTick
                 || gameTime - lastCompletedTick >= module.scanInterval()));
         if (restart) beginScan(client, module, playerPosition, configHash);
@@ -80,12 +80,13 @@ public final class BlockScanner {
         return cachedTargets;
     }
 
-    private boolean movedBeyondRefreshDistance(BlockPos current) {
+    private boolean movedBeyondRefreshDistance(BlockPos current, double range) {
         if (scanOrigin == null) return true;
         long dx = (long) current.getX() - scanOrigin.getX();
         long dy = (long) current.getY() - scanOrigin.getY();
         long dz = (long) current.getZ() - scanOrigin.getZ();
-        return dx * dx + dy * dy + dz * dz >= 16L;
+        long refreshDistance = Math.max(4L, (long) Math.ceil(Math.max(1.0, range) * 0.5));
+        return dx * dx + dy * dy + dz * dz >= refreshDistance * refreshDistance;
     }
 
     private void beginScan(Minecraft client, BlockESPModule module, BlockPos origin, int configHash) {
