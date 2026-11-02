@@ -152,19 +152,19 @@ public final class StorageScanner {
     static boolean areCompatibleChestStates(BlockState first, BlockState second,
                                              BlockPos firstPos, BlockPos secondPos) {
         if (!isChestBlock(first) || !isChestBlock(second)) return false;
-        if (first.getBlock() != second.getBlock()) return false;
-
         Direction facing = first.getValue(ChestBlock.FACING);
-        if (facing != second.getValue(ChestBlock.FACING)) return false;
-
-        ChestType firstType = first.getValue(ChestBlock.TYPE);
-        ChestType secondType = second.getValue(ChestBlock.TYPE);
-        if (firstType == ChestType.SINGLE || secondType == ChestType.SINGLE || firstType == secondType) {
-            return false;
-        }
-
-        return secondPos.equals(firstPos.relative(facing.getClockWise()))
+        boolean sideAdjacent = secondPos.equals(firstPos.relative(facing.getClockWise()))
                 || secondPos.equals(firstPos.relative(facing.getCounterClockWise()));
+        return areCompatibleChestHalves(first.getValue(ChestBlock.TYPE), second.getValue(ChestBlock.TYPE),
+                facing, second.getValue(ChestBlock.FACING), first.getBlock() == second.getBlock(), sideAdjacent);
+    }
+
+    static boolean areCompatibleChestHalves(ChestType firstType, ChestType secondType,
+                                             Direction firstFacing, Direction secondFacing,
+                                             boolean sameBlock, boolean sideAdjacent) {
+        return sameBlock && sideAdjacent && firstFacing == secondFacing
+                && firstType != ChestType.SINGLE && secondType != ChestType.SINGLE
+                && firstType != secondType;
     }
 
     private static boolean isChestBlock(BlockState state) {
