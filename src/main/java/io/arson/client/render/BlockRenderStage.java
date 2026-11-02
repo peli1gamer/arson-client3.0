@@ -64,7 +64,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             float fade = module.distanceFade() ? EspRenderMath.distanceFade(distance, range, module.fadeStart()) : 1.0f;
             if (fade <= 0.0f) continue;
 
-            RenderStyle style = fadeStyle(target.style(), fade);
+            RenderStyle style = EspRenderMath.fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),
                     target.maxX(), target.maxY(), target.maxZ(), style));
             if (tracerBuffer != null) {
