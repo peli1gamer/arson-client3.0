@@ -92,14 +92,11 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
 
     private float distanceFade(EntityTarget target) {
         if (!module.distanceFade()) return 1.0f;
-        double range = Math.max(1.0, module.range());
-        double normalized = Math.max(0.0, Math.min(1.0, target.distance() / range));
-        return (float) Math.max(0.0, Math.min(1.0, 1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
+        return EspRenderMath.distanceFade(target.distance(), module.range(), module.fadeStart());
     }
 
     private static RenderStyle fadeStyle(RenderStyle style, float fade) {
-        return new RenderStyle(style.color(), style.fill(), style.outline(),
-                style.fillAlpha() * fade, style.outlineAlpha() * fade, style.lineWidth());
+        return EspRenderMath.fadeStyle(style, fade);
     }
 
     /** Renders billboarded entity names and optional range information. */
@@ -140,8 +137,7 @@ public final class EntityRenderStage implements WorldRenderBridge.WorldRenderSta
     }
 
     private static int fadeAlpha(int argb, float fade) {
-        int alpha = Math.round(((argb >>> 24) & 0xFF) * fade);
-        return (argb & 0x00FFFFFF) | (alpha << 24);
+        return EspRenderMath.fadeAlpha(argb, fade);
     }
 
     /** Renders a compact vertical health bar beside living entity bounds. */
