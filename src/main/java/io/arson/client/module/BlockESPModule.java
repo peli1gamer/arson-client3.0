@@ -5,7 +5,7 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 
-/** Configurable ore/valuable block visualization. Scanning is cached by BlockRenderStage. */
+/** Configurable valuable and environmental block visualization. Scanning is cached by BlockRenderStage. */
 public final class BlockESPModule extends VisualModule {
     private final BooleanSetting diamond = setting(new BooleanSetting("diamond", "Diamond", true));
     private final BooleanSetting emerald = setting(new BooleanSetting("emerald", "Emerald", true));
