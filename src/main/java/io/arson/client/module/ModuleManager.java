@@ -4,6 +4,7 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -29,7 +30,53 @@ public final class ModuleManager {
     public int enabledCount(){int count=0;for(Module module:modules.values())if(module.enabled())count++;return count;} public void tick(Minecraft client){for(Module module:new ArrayList<>(modules.values())){try{module.tick(client);}catch(RuntimeException exception){System.err.println("[Arson] Module tick failed: "+module.id());exception.printStackTrace();}}}
     public enum DisplayMode{COMPACT,DETAILED} public enum RenderMode{STANDARD,HIGH_CONTRAST,MINIMAL}
     private static final class ClientInfoModule extends Module{private ClientInfoModule(){super("client-info","Client Info",Category.MISC,"Shows client/version metadata used by the local HUD.");setting(new BooleanSetting("show-version","Show Version",true));}}
-    private static final class SprintModule extends Module{private final BooleanSetting forwardOnly=setting(new BooleanSetting("forward-only","Forward Only",true));private SprintModule(){super("sprint","Sprint",Category.MOVEMENT,"Local sprint state helper; it only affects the local player's sprint flag while enabled.");}@Override protected void onTick(Minecraft client){if(client.player==null)return;if(forwardOnly.enabled()&&!client.options.keyUp.isDown())return;client.player.setSprinting(true);}}
+    private static final class SprintModule extends Module {
+        private final BooleanSetting forwardOnly = setting(new BooleanSetting("forward-only", "Forward Only", true));
+        private Player controlledPlayer;
+        private boolean previousSprinting;
+        private boolean ownsSprint;
+
+        private SprintModule() {
+            super("sprint", "Sprint", Category.MOVEMENT,
+                    "Local sprint state helper; it only affects the local player's sprint flag while enabled.");
+        }
+
+        @Override
+        protected void onTick(Minecraft client) {
+            if (client.player == null) {
+                releaseSprint();
+                return;
+            }
+            if (controlledPlayer != client.player) {
+                releaseSprint();
+                controlledPlayer = client.player;
+                previousSprinting = controlledPlayer.isSprinting();
+            }
+
+            boolean shouldSprint = !forwardOnly.enabled() || client.options.keyUp.isDown();
+            if (shouldSprint && !controlledPlayer.isSprinting()) {
+                controlledPlayer.setSprinting(true);
+                ownsSprint = true;
+            } else if (!shouldSprint && ownsSprint) {
+                controlledPlayer.setSprinting(previousSprinting);
+                ownsSprint = false;
+            }
+        }
+
+        @Override
+        protected void onDisable() {
+            releaseSprint();
+        }
+
+        private void releaseSprint() {
+            if (controlledPlayer != null && ownsSprint) {
+                controlledPlayer.setSprinting(previousSprinting);
+            }
+            controlledPlayer = null;
+            previousSprinting = false;
+            ownsSprint = false;
+        }
+    }
     private static final class PerformanceModule extends Module{private final DoubleSetting tickBudget=setting(new DoubleSetting("tick-budget","Logic Budget",1.0,0.1,5.0,0.1));private PerformanceModule(){super("performance","Performance",Category.MISC,"Exposes a local logic-budget preference for diagnostics and presentation integrations.");}public double tickBudget(){return tickBudget.get();}}
     private static final class CombatStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private final DoubleSetting threshold=setting(new DoubleSetting("ready-threshold","Ready Threshold",0.90,0.0,1.0,0.05));private boolean ready;private CombatStatusModule(){super("combat-status","Combat Status",Category.COMBAT,"Reports local attack-cooldown readiness without issuing attacks.");mode.description("Choose the amount of local combat state shown by integrations.");threshold.description("Attack cooldown ratio considered ready.");}@Override protected void onTick(Minecraft client){ready=client.player!=null&&client.player.getAttackStrengthScale(0.0f)>=threshold.get();}public boolean ready(){return ready;}public DisplayMode mode(){return mode.get();}}
     private static final class PlayerStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private int hunger;private float health;private PlayerStatusModule(){super("player-status","Player Status",Category.PLAYER,"Tracks local health and hunger for HUD presentation.");mode.description("Choose compact or detailed local player telemetry.");}@Override protected void onTick(Minecraft client){if(client.player==null){hunger=0;health=0;return;}hunger=client.player.getFoodData().getFoodLevel();health=client.player.getHealth();}public int hunger(){return hunger;}public float health(){return health;}public DisplayMode mode(){return mode.get();}}
