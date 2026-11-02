@@ -25,16 +25,20 @@ public final class AutoTotemModule extends Module {
         boolean emergency = client.player.getHealth() <= healthThreshold.get();
         if (!always.enabled() && !emergency) return;
 
-        int source = findTotem(client);
-        if (source < 0) return;
+        int inventorySlot = findTotem(client);
+        int menuSlot = PlayerInventorySlotMapper.menuSlotId(inventorySlot);
+        if (menuSlot < 0) return;
 
-        // Inventory click slot 40 is the player's offhand slot in the player container.
-        client.gameMode.handleInventoryMouseClick(client.player.inventoryMenu.containerId, source, 40, ClickType.SWAP, client.player);
+        // SWAP button 40 targets the offhand; the clicked slot must be a menu slot id.
+        client.gameMode.handleInventoryMouseClick(client.player.inventoryMenu.containerId,
+                menuSlot, 40, ClickType.SWAP, client.player);
     }
 
     private int findTotem(Minecraft client) {
         if (includeHotbar.enabled()) {
+            int selectedSlot = client.player.getInventory().getSelectedSlot();
             for (int i = 0; i < 9; i++) {
+                if (preserveHeld.enabled() && i == selectedSlot) continue;
                 if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return i;
             }
         }
