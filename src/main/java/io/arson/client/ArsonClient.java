@@ -12,6 +12,7 @@ import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
 import io.arson.client.module.ItemESPModule;
+import io.arson.client.module.HoleESPModule;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.notification.NotificationCenter;
@@ -27,6 +28,8 @@ import io.arson.client.render.EntityRenderStage;
 import io.arson.client.render.EntityScanner;
 import io.arson.client.render.EntityTracerStage;
 import io.arson.client.render.HudRenderer;
+import io.arson.client.render.HoleRenderStage;
+import io.arson.client.render.HoleScanner;
 import io.arson.client.render.ItemRenderStage;
 import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
@@ -79,6 +82,7 @@ public final class ArsonClient implements ClientModInitializer {
         StorageOverlay storageOverlay = new StorageOverlay(new StorageRenderProfile());
         StorageScanner storageScanner = new StorageScanner();
         BlockScanner blockScanner = new BlockScanner();
+        HoleScanner holeScanner = new HoleScanner();
         worldRenderBridge.register(new StorageRenderStage(client, storageOverlay, storageScanner,
                 (ContainerESPModule) moduleManager.get("container-esp")));
         EntityScanner entityScanner = new EntityScanner();
@@ -88,17 +92,21 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
         worldRenderBridge.register(new BlockRenderStage(client, blockScanner,
                 (BlockESPModule) moduleManager.get("block-esp")));
+        worldRenderBridge.register(new HoleRenderStage(client, holeScanner,
+                (HoleESPModule) moduleManager.get("hole-esp")));
 
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (world == client.level) {
                 blockScanner.requestRefresh();
                 storageScanner.requestRefresh();
+                holeScanner.requestRefresh();
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             if (world == client.level) {
                 blockScanner.requestRefresh();
                 storageScanner.requestRefresh();
+                holeScanner.requestRefresh();
             }
         });
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
