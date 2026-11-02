@@ -37,7 +37,7 @@ public final class ConfigManager {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
-        save(client, modules); return true;
+        return saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules);
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
@@ -64,6 +64,7 @@ public final class ConfigManager {
             if (readVersion(root) > CONFIG_VERSION) return false;
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
             migrateLegacyLayout(root, moduleRoot, modules);
+            if (!validateModuleData(moduleRoot, modules)) return false;
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
@@ -84,6 +85,33 @@ public final class ConfigManager {
             }
             return true;
         } catch (Exception ignored) { return false; }
+    }
+
+    private static boolean validateModuleData(JsonObject moduleRoot, ModuleManager modules) {
+        try {
+            for (Module module : modules.all()) {
+                JsonElement rawModule = moduleRoot.get(module.id());
+                if (rawModule == null || !rawModule.isJsonObject()) continue;
+                JsonObject data = rawModule.getAsJsonObject();
+                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) data.get("enabled").getAsBoolean();
+                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) data.get("favorite").getAsBoolean();
+                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) data.get("keyCode").getAsInt();
+                JsonElement rawSettings = data.get("settings");
+                if (rawSettings == null || !rawSettings.isJsonObject()) continue;
+                JsonObject settings = rawSettings.getAsJsonObject();
+                for (Setting<?> setting : module.settings()) {
+                    JsonElement value = settings.get(setting.id());
+                    if (value == null || !value.isJsonPrimitive()) continue;
+                    if (setting instanceof BooleanSetting) value.getAsBoolean();
+                    else if (setting instanceof DoubleSetting) value.getAsDouble();
+                    else if (setting instanceof ColorSetting) value.getAsInt();
+                    else if (setting instanceof StringSetting || setting instanceof EnumSetting<?>) value.getAsString();
+                }
+            }
+            return true;
+        } catch (RuntimeException invalidValue) {
+            return false;
+        }
     }
 
     /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
