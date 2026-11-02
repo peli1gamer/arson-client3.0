@@ -52,11 +52,12 @@ class BlockScanCursorTest {
         long expectedTotal = 129L * 129L * 129L;
         long processed = 0L;
         int frames = 0;
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
 
         while (cursor.hasNext()) {
             int frameBudget = 0;
             while (cursor.hasNext() && frameBudget < BlockScanner.MAX_BLOCKS_PER_FRAME) {
-                cursor.setPosition(new BlockPos.MutableBlockPos());
+                cursor.setPosition(mutable);
                 cursor.advance();
                 frameBudget++;
             }
