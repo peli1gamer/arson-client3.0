@@ -28,6 +28,7 @@ public final class StorageScanner {
     private static final long CACHE_REFRESH_TICKS = 20L;
 
     private Object cachedLevel;
+    private Object cachedPlayer;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
     private int cachedChunkZ = Integer.MIN_VALUE;
@@ -36,6 +37,7 @@ public final class StorageScanner {
 
     public void invalidate() {
         cachedLevel = null;
+        cachedPlayer = null;
         cachedTick = Long.MIN_VALUE;
         cachedChunkX = Integer.MIN_VALUE;
         cachedChunkZ = Integer.MIN_VALUE;
@@ -55,11 +57,12 @@ public final class StorageScanner {
         long gameTime = client.level.getGameTime();
 
         boolean worldChanged = cachedLevel != client.level;
+        boolean playerChanged = cachedPlayer != client.player;
         boolean chunkChanged = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean radiusChanged = cachedRadius != radius;
         boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
 
-        if (worldChanged || chunkChanged || radiusChanged || refreshDue) {
+        if (worldChanged || playerChanged || chunkChanged || radiusChanged || refreshDue) {
             cachedTargets = scanLoadedStorage(client, radius);
             cachedLevel = client.level;
             cachedTick = gameTime;
