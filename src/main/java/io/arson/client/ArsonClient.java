@@ -128,16 +128,17 @@ public final class ArsonClient implements ClientModInitializer {
     }
 
     private void processModuleKeybinds(Minecraft client) {
-        if (client.getWindow() == null || client.screen != null) return;
+        if (client.getWindow() == null) return;
         long window = client.getWindow().handle();
+        boolean guiOpen = client.screen != null;
         for (Module module : moduleManager.all()) {
             int keyCode = module.keyCode();
             if (keyCode <= 0) continue;
             boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
-            if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
-                module.toggle();
-                NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
-            }
+            boolean pressed = consumeModuleKeyPress(moduleKeyStates, module, down);
+            if (guiOpen || !pressed) continue;
+            module.toggle();
+            NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
         }
     }
     public ModuleManager modules() { return moduleManager; }
