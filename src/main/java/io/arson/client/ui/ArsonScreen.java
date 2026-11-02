@@ -49,6 +49,7 @@ public final class ArsonScreen extends Screen {
 
     @Override protected void init() {
         syncPreferences();
+        categoryFocus = categoriesIndex(category);
         geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
         rebuild();
     }
@@ -263,9 +264,18 @@ public final class ArsonScreen extends Screen {
     }
     private int maxDetailScroll(){
         if(selected==null)return 0;
-        int lines=3+(selected.description().isBlank()?0:2);
-        for(Setting<?> setting:selected.settings()) if(setting.visible()) lines++;
-        return Math.max(0,lines*26-Math.max(24,geometry.detail().height()-12));
+        int contentHeight=3*26+(selected.description().isBlank()?0:40);
+        String previousGroup=null;
+        for(Setting<?> setting:selected.settings()){
+            if(!setting.visible())continue;
+            SettingGroup group=setting.group();
+            if(group!=null&&!group.id().equals(previousGroup)){
+                previousGroup=group.id();
+                contentHeight+=24;
+            }
+            contentHeight+=26;
+        }
+        return Math.max(0,contentHeight-Math.max(24,geometry.detail().height()-12));
     }
 
     private void addFooter(Rects r,String profileValue) {
