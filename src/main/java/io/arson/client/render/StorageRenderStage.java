@@ -12,8 +12,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.network.chat.Component;
-import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import io.arson.client.render.RenderLineRenderer;
@@ -129,12 +127,11 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                 matrices.translate(x, y, z);
                 matrices.mulPose(camera.orientation);
                 matrices.scale(-0.025f * scale, -0.025f * scale, 0.025f * scale);
-                int width = font.width(text);
-                Matrix4f pose = matrices.last().pose();
-                font.drawInBatch(Component.literal(text), -width / 2.0f, 0,
-                        fadeColor(module.labelColor(), fade), false, pose, consumers,
-                        Font.DisplayMode.NORMAL,
-                        module.labelBackground() ? module.labelBackgroundColor() : 0, 0xF000F0);
+                int backgroundColor = module.labelBackground()
+                        ? fadeColor(module.labelBackgroundColor(), fade) : 0;
+                BillboardLabelRenderer.draw(font, matrices, consumers, text,
+                        fadeColor(module.labelColor(), fade), backgroundColor,
+                        module.labelPadding(), 0xF000F0);
             } finally {
                 matrices.popPose();
             }
