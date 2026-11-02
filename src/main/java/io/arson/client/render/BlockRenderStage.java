@@ -17,6 +17,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
     private final BlockESPModule module;
     private List<BlockTarget> cachedTargets = List.of();
     private long lastScanTick = Long.MIN_VALUE;
+    private Object cachedLevel;
     private int lastVisibleCount;
 
     public BlockRenderStage(Minecraft client, BlockScanner scanner, BlockESPModule module) {
@@ -29,14 +30,16 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
     public void render(WorldRenderContext context) {
         if (!module.enabled() || client.level == null || client.player == null) {
             cachedTargets = List.of();
+            cachedLevel = null;
             lastScanTick = Long.MIN_VALUE;
             lastVisibleCount = 0;
             return;
         }
 
         long gameTime = client.level.getGameTime();
-        if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
+        if (cachedLevel != client.level || gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, module);
+            cachedLevel = client.level;
             lastScanTick = gameTime;
         }
 
