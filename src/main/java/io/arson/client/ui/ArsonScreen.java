@@ -378,6 +378,11 @@ public final class ArsonScreen extends Screen {
             g.drawString(font,selected.name(),r.detail().x()+8,r.detail().y()-12,accentColor());
         }
         super.render(g,mouseX,mouseY,delta);
+        for(ModuleCard card:moduleCards){
+            ClickGuiLayoutModel.Rect bounds=card.bounds();
+            if(card.module().enabled())g.fill(bounds.x(),bounds.y(),bounds.x()+3,bounds.bottom(),accentColor());
+            if(card.module()==selected)g.renderOutline(bounds.x(),bounds.y(),bounds.width(),bounds.height(),accentColor());
+        }
     }
 
     private static void rounded(GuiGraphics g,int x,int y,int w,int h,int color){
