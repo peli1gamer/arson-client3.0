@@ -47,6 +47,12 @@ class ConfigMigrationTest {
         legacy.add("watermark", watermark);
         root.add("hudLayout", legacy);
 
+        JsonObject moduleRoot = new JsonObject();
+        JsonObject layoutModule = new JsonObject();
+        layoutModule.addProperty("settings", "malformed legacy value");
+        moduleRoot.add("hud-layout", layoutModule);
+        root.add("modules", moduleRoot);
+
         var path = Files.createTempFile("arson-v3-legacy-", ".json");
         try {
             Files.writeString(path, root.toString());
