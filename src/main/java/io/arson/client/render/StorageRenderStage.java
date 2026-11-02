@@ -55,7 +55,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                     case SHULKER -> module.shulkerStyle();
                     case ENDER_CHEST -> module.enderChestStyle();
                     case OTHER -> module.otherStorageStyle();
-                });
+                }, target -> StorageScanner.isTargetLoaded(client, target));
 
         if (module.distanceFade() && !boxes.isEmpty()) {
             List<RenderBox> faded = new ArrayList<>(boxes.size());
@@ -89,7 +89,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         float scale = module.labelScale();
 
         for (StorageOverlay.StorageTarget target : targets) {
-            if (!isVisibleType(target.type())) continue;
+            if (!StorageScanner.isTargetLoaded(client, target) || !isVisibleType(target.type())) continue;
             double dx = target.x() + target.width() * 0.5 - client.player.getX();
             double dy = target.y() + target.height() * 0.5 - client.player.getY();
             double dz = target.z() + target.depth() * 0.5 - client.player.getZ();
