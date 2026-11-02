@@ -10,7 +10,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.network.chat.Component;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import java.util.ArrayList;
@@ -103,13 +102,11 @@ public final class ItemRenderStage implements WorldRenderBridge.WorldRenderStage
                 float scale = module.labelScale();
                 matrices.scale(-0.025f * scale, -0.025f * scale, 0.025f * scale);
 
-                int width = font.width(label);
                 int textColor = EspRenderMath.fadeAlpha(module.labelColor(), fade);
                 int backgroundColor = module.labelBackground()
                         ? EspRenderMath.fadeAlpha(module.labelBackgroundColor(), fade) : 0;
-                font.drawInBatch(Component.literal(label), -width / 2.0f, 0,
-                        textColor, false, matrices.last().pose(), consumers,
-                        Font.DisplayMode.NORMAL, backgroundColor, 0xF000F0);
+                BillboardLabelRenderer.draw(font, matrices, consumers, label,
+                        textColor, backgroundColor, module.labelPadding(), 0xF000F0);
             } finally {
                 matrices.popPose();
             }
