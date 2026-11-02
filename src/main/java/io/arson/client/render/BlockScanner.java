@@ -72,7 +72,7 @@ public final class BlockScanner {
             int x = mutable.getX(), y = mutable.getY(), z = mutable.getZ();
             workingTargets.add(new BlockTarget(x, y, z, x + 1.0, y + 1.0, z + 1.0, style));
         }
-        if (!cursor.hasNext()) {
+        if (!cursor.hasNext() && workingTargets != null) {
             cachedTargets = workingTargets.isEmpty() ? List.of() : List.copyOf(workingTargets);
             workingTargets = null;
             lastCompletedTick = gameTime;
