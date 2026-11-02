@@ -66,7 +66,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                 double dx = box.centerX() - camera.x;
                 double dy = box.centerY() - camera.y;
                 double dz = box.centerZ() - camera.z;
-                float fade = fadeForDistance(Math.sqrt(dx * dx + dy * dy + dz * dz), module.range());
+                float fade = EspRenderMath.distanceFade(Math.sqrt(dx * dx + dy * dy + dz * dz), module.range(), module.fadeStart());
                 if (fade > 0.0f) faded.add(withFade(box, fade));
             }
             boxes = faded;
@@ -110,7 +110,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (distance > module.range()) continue;
 
-            float fade = module.distanceFade() ? fadeForDistance(distance, module.range()) : 1.0f;
+            float fade = module.distanceFade() ? EspRenderMath.distanceFade(distance, module.range(), module.fadeStart()) : 1.0f;
             if (fade <= 0.0f) continue;
 
             String text = labelText(target.type(), distance);
@@ -165,22 +165,13 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
         profile.enabled(StorageType.OTHER, module.showOtherStorage());
     }
 
-    private static float fadeForDistance(double distance, double range) {
-        double normalized = Math.max(0.0, Math.min(1.0, distance / Math.max(1.0, range)));
-        return (float) Math.max(0.0, Math.min(1.0,
-                1.0 - Math.max(0.0, normalized - 0.45) / 0.55));
-    }
-
     private static int fadeColor(int argb, float fade) {
-        int alpha = Math.round(((argb >>> 24) & 255) * fade);
-        return (argb & 0x00FFFFFF) | (alpha << 24);
+        return EspRenderMath.fadeAlpha(argb, fade);
     }
 
     private static RenderBox withFade(RenderBox box, float fade) {
-        RenderStyle style = box.style();
         return new RenderBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ(),
-                new RenderStyle(style.color(), style.fill(), style.outline(),
-                        style.fillAlpha() * fade, style.outlineAlpha() * fade, style.lineWidth()));
+                EspRenderMath.fadeStyle(box.style(), fade));
     }
 
     public int lastVisibleCount() { return lastVisibleCount; }
