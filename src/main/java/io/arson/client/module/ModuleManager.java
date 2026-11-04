@@ -53,7 +53,9 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
 
     public Collection<Module> organized(Module.Category category) {
         ArrayList<Module> result = new ArrayList<>();
-        for (Module module : arsonModules()) if (module.category() == category) result.add(module);
+        for (meteordevelopment.meteorclient.systems.modules.Module module : getGroup(meteorCategory(category))) {
+            if (module instanceof Module arsonModule) result.add(arsonModule);
+        }
         sort(result);
         return result;
     }
@@ -70,14 +72,14 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
     }
 
     public int categoryCount(Module.Category category) {
-        int count = 0;
-        for (Module module : arsonModules()) if (module.category() == category) count++;
-        return count;
+        return getGroup(meteorCategory(category)).size();
     }
 
     public int enabledCount(Module.Category category) {
         int count = 0;
-        for (Module module : arsonModules()) if (module.category() == category && module.enabled()) count++;
+        for (meteordevelopment.meteorclient.systems.modules.Module module : getGroup(meteorCategory(category))) {
+            if (module.isActive()) count++;
+        }
         return count;
     }
 
@@ -95,6 +97,17 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
 
     public void tick(MinecraftClient client) {
         for (Module module : arsonModules()) module.tick(client);
+    }
+
+    private static meteordevelopment.meteorclient.systems.modules.Category meteorCategory(Module.Category category) {
+        return switch (category) {
+            case COMBAT -> meteordevelopment.meteorclient.systems.modules.Categories.Combat;
+            case MOVEMENT -> meteordevelopment.meteorclient.systems.modules.Categories.Movement;
+            case RENDER -> meteordevelopment.meteorclient.systems.modules.Categories.Render;
+            case PLAYER -> meteordevelopment.meteorclient.systems.modules.Categories.Player;
+            case WORLD -> meteordevelopment.meteorclient.systems.modules.Categories.World;
+            case MISC -> meteordevelopment.meteorclient.systems.modules.Categories.Misc;
+        };
     }
 
     private static void sort(ArrayList<Module> modules) {
