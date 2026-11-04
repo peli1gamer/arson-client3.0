@@ -24,7 +24,7 @@ public final class SettingWidgetFactory {
     private SettingWidgetFactory() { }
 
     public static ClickableWidget createRow(Setting<?> setting, int x, int y, int width, int height,
-                                            Runnable changed, Consumer<Setting<?>> edit) {
+                                            Runnable changed, Runnable persist, Consumer<Setting<?>> edit) {
         if (setting instanceof BooleanSetting bool) {
             return ButtonWidget.builder(label(setting.name(), bool.enabled() ? "ON" : "OFF"), button -> {
                 bool.set(!bool.enabled());
@@ -33,7 +33,7 @@ public final class SettingWidgetFactory {
         }
 
         if (setting instanceof DoubleSetting number) {
-            return new DoubleSettingSlider(x, y, width, height, number, changed);
+            return new DoubleSettingSlider(x, y, width, height, number, persist);
         }
 
         if (setting instanceof EnumSetting<?> enumeration) {
