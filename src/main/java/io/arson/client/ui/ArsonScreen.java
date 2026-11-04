@@ -280,16 +280,18 @@ public final class ArsonScreen extends Screen {
         if (columns() == 6) return Math.max(100, height - 104);
         return Math.max(72, (height - 142) / 2);
     }
+    private int windowOffsetIndex(int index) { return width < 520 ? activeCategory.ordinal() : index; }
     private int windowX(int index) {
         int cols = columns();
         int column = index % cols;
         int base = width < 520 ? 12 : Math.max(12, (width - (cols * windowWidth() + (cols - 1) * 8)) / 2);
-        return base + column * (windowWidth() + 8) + windowOffsetX[index];
+        return base + column * (windowWidth() + 8) + windowOffsetX[windowOffsetIndex(index)];
     }
     private int windowY(int index) {
-        if (width < 520) return 66 + windowOffsetY[index];
-        if (columns() == 6) return 48 + windowOffsetY[index];
-        return 48 + (index / columns()) * (windowHeight() + 8) + windowOffsetY[index];
+        int offsetIndex = windowOffsetIndex(index);
+        if (width < 520) return 66 + windowOffsetY[offsetIndex];
+        if (columns() == 6) return 48 + windowOffsetY[offsetIndex];
+        return 48 + (index / columns()) * (windowHeight() + 8) + windowOffsetY[offsetIndex];
     }
 
     private int settingsWidth() { return Math.min(300, Math.max(230, width / 3)); }
