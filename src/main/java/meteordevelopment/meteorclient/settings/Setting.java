@@ -8,6 +8,7 @@
 package meteordevelopment.meteorclient.settings;
 
 import java.util.Objects;
+import net.minecraft.nbt.NbtCompound;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -97,6 +98,36 @@ public abstract class Setting<T> {
             }
         }
         return result.toString();
+    }
+
+    public NbtCompound toTag() {
+        NbtCompound tag = new NbtCompound();
+        Object current = value;
+        if (current instanceof Boolean bool) tag.putBoolean("value", bool);
+        else if (current instanceof Integer integer) tag.putInt("value", integer);
+        else if (current instanceof Long number) tag.putLong("value", number);
+        else if (current instanceof Float number) tag.putFloat("value", number);
+        else if (current instanceof Double number) tag.putDouble("value", number);
+        else if (current instanceof String string) tag.putString("value", string);
+        else if (current instanceof Enum<?> enumeration) tag.putString("value", enumeration.name());
+        return tag;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Setting<T> fromTag(NbtCompound tag) {
+        if (!tag.contains("value")) return this;
+        Object fallback = defaultValue;
+        if (fallback instanceof Boolean bool) set((T) Boolean.valueOf(tag.getBoolean("value", bool)));
+        else if (fallback instanceof Integer number) set((T) Integer.valueOf(tag.getInt("value", number)));
+        else if (fallback instanceof Long number) set((T) Long.valueOf(tag.getLong("value", number)));
+        else if (fallback instanceof Float number) set((T) Float.valueOf(tag.getFloat("value", number)));
+        else if (fallback instanceof Double number) set((T) Double.valueOf(tag.getDouble("value", number)));
+        else if (fallback instanceof String string) set((T) tag.getString("value", string));
+        else if (fallback instanceof Enum enumeration) {
+            try { set((T) Enum.valueOf(enumeration.getDeclaringClass(), tag.getString("value", enumeration.name()))); }
+            catch (IllegalArgumentException ignored) { }
+        }
+        return this;
     }
 
     public abstract static class SettingBuilder<B, V, S> {
