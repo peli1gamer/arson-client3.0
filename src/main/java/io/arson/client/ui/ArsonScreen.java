@@ -166,7 +166,8 @@ public final class ArsonScreen extends Screen {
         for (Module.Category category : Module.Category.values()) {
             int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
             Module.Category chosen = category;
-            addRenderableWidget(Button.builder(Component.literal(category.displayName().substring(0, 1)), b -> {
+            String[] labels = {"CMB", "MOV", "REN", "PLY", "WRL", "MSC"};
+            addRenderableWidget(Button.builder(Component.literal(labels[category.ordinal()]), b -> {
                 activeCategory = chosen;
                 rebuildWidgets();
             }).bounds(x, y, tabWidth - 2, 18).build());
@@ -267,6 +268,7 @@ public final class ArsonScreen extends Screen {
 
     private int windowCount() { return width < 520 ? 1 : Module.Category.values().length; }
     private int windowWidth() {
+        if (width < 520) return Math.max(120, width - 24);
         int cols = columns();
         int gaps = (cols - 1) * 8;
         return Math.max(100, Math.min(190, (width - 24 - gaps) / cols));
@@ -319,7 +321,7 @@ public final class ArsonScreen extends Screen {
         g.drawString(font, "CLIENT", 14, 22, 0xFF7F8998);
         int enabled = ArsonClient.getInstance().modules().enabledCount();
         g.drawString(font, enabled + " ACTIVE", 14, 42, 0xFF9AA5B5);
-        g.drawString(font, "RIGHT CLICK MODULE FOR SETTINGS", Math.max(12, width / 2 - 104), 23, 0xFF727D8C);
+        if (width >= 760) g.drawString(font, "RIGHT CLICK = SETTINGS", width - 390, 23, 0xFF727D8C);
     }
 
     private void drawNarrowTabs(GuiGraphics g) {
@@ -329,7 +331,9 @@ public final class ArsonScreen extends Screen {
             boolean active = category == activeCategory;
             int color = active ? 0xFF26364A : 0xD8171B23;
             g.fill(x, 42, x + tabWidth - 2, 61, color);
-            g.drawString(font, category.displayName().substring(0, 1), x + tabWidth / 2 - 3, 48,
+            String[] labels = {"CMB", "MOV", "REN", "PLY", "WRL", "MSC"};
+            String label = labels[category.ordinal()];
+            g.drawString(font, label, x + (tabWidth - font.width(label)) / 2, 48,
                     active ? accentColor() : 0xFFADB6C3);
             x += tabWidth;
         }
@@ -473,7 +477,12 @@ public final class ArsonScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (super.mouseClicked(event, doubleClick)) return true;
+        if (super.mouseClicked(event, doubleClick)) {
+            searchFocused = search != null && search.isFocused();
+            return true;
+        }
+        searchFocused = false;
+        if (search != null) search.setFocused(false);
         if (event.button() == 0 && selected != null && inSettingsClose(event.x(), event.y())) {
             selected = null;
             editingString = null;
@@ -481,6 +490,8 @@ public final class ArsonScreen extends Screen {
             rebuildWidgets();
             return true;
         }
+        if (selected != null && event.x() >= settingsX() && event.x() <= settingsX() + settingsWidth()
+                && event.y() >= settingsY() && event.y() <= settingsY() + settingsHeight()) return true;
         if (width < 520 && event.button() == 0 && event.y() >= 42 && event.y() <= 61) {
             int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
             int index = Math.max(0, Math.min(Module.Category.values().length - 1, (int) ((event.x() - 12) / tabWidth)));
