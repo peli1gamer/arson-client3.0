@@ -35,6 +35,7 @@ import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
+import meteordevelopment.meteorclient.MeteorClient;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -63,6 +64,8 @@ public final class ArsonClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         instance = this;
+        MinecraftClient client = MinecraftClient.getInstance();
+        MeteorClient.initialize(client);
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
@@ -72,7 +75,6 @@ public final class ArsonClient implements ClientModInitializer {
         HudElementRegistry.addLast(Identifier.of(MOD_ID, "array_list"), ArrayListRenderer::render);
         HudElementRegistry.addLast(Identifier.of(MOD_ID, "combat_info"), CombatInfoRenderer::render);
 
-        MinecraftClient client = MinecraftClient.getInstance();
         featureContext = new FeatureContext();
         contextAdapter = new FabricFeatureContextAdapter(client);
         contextAdapter.initialize(featureContext);
