@@ -99,7 +99,7 @@ public final class ArsonScreen extends Screen {
     private void refreshWidgets() {
         String searchValue = search == null ? "" : search.getText();
         String profileValue = profile == null ? "" : profile.getText();
-        String editValue = valueEditor == null ? "" : valueEditor.getText();
+        String editValue = valueEditor == null ? null : valueEditor.getText();
         clearChildren();
         search = null;
         profile = null;
