@@ -18,6 +18,7 @@ public abstract class Module {
     public final String name;
     public final String title;
     public final String description;
+    public final Settings settings = new Settings();
 
     private boolean active;
 
