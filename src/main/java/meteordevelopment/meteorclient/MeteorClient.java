@@ -8,6 +8,7 @@ package meteordevelopment.meteorclient;
 
 import io.arson.client.module.Module;
 import meteordevelopment.orbit.EventBus;
+import meteordevelopment.orbit.IEventBus;
 import net.minecraft.client.MinecraftClient;
 
 import java.lang.invoke.MethodHandles;
@@ -16,7 +17,7 @@ import java.io.File;
 public final class MeteorClient {
     public static final String MOD_ID = "arson";
     public static final File FOLDER = new File("config/arson-v3");
-    public static final EventBus EVENT_BUS = new EventBus();
+    public static final IEventBus EVENT_BUS = new EventBus();
     public static MinecraftClient mc;
 
     private MeteorClient() {
