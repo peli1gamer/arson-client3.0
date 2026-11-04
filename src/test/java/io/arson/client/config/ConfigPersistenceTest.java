@@ -2,6 +2,7 @@ package io.arson.client.config;
 
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
+import io.arson.client.settings.IntSetting;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -10,6 +11,11 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigPersistenceTest {
+    private static final class IntegerTestModule extends Module {
+        final IntSetting count = setting(new IntSetting("count", "Count", 4, 0, 20, 2));
+        IntegerTestModule() { super("integer-test", "Integer Test", Category.MISC); }
+    }
+
     @Test
     void profileNameSanitizationIsDeterministicAndPathSafe() {
         assertEquals("Combat_01test", ConfigManager.sanitizeProfileName("Combat_01/test"));
@@ -25,6 +31,9 @@ class ConfigPersistenceTest {
 
         ModuleManager source = new ModuleManager();
         source.registerDefaults();
+        IntegerTestModule sourceInteger = new IntegerTestModule();
+        source.register(sourceInteger);
+        sourceInteger.count.set(14);
         Module sprint = source.get("sprint");
         assertNotNull(sprint);
         sprint.setEnabled(true);
@@ -33,17 +42,23 @@ class ConfigPersistenceTest {
 
         ModuleManager loaded = new ModuleManager();
         loaded.registerDefaults();
+        IntegerTestModule loadedInteger = new IntegerTestModule();
+        loaded.register(loadedInteger);
         assertFalse(loaded.get("sprint").enabled());
         assertTrue(ConfigManager.loadFromPath(profile, loaded));
         assertTrue(loaded.get("sprint").enabled());
         assertEquals(65, loaded.get("sprint").keyCode());
+        assertEquals(14, loadedInteger.count.get());
 
         ConfigManager.saveToPath(live, loaded);
         ModuleManager restarted = new ModuleManager();
         restarted.registerDefaults();
+        IntegerTestModule restartedInteger = new IntegerTestModule();
+        restarted.register(restartedInteger);
         assertTrue(ConfigManager.loadFromPath(live, restarted));
         assertTrue(restarted.get("sprint").enabled());
         assertEquals(65, restarted.get("sprint").keyCode());
+        assertEquals(14, restartedInteger.count.get());
     }
 
     @Test
