@@ -6,13 +6,20 @@ import io.arson.client.settings.EnumSetting;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Locale;
 import net.minecraft.client.MinecraftClient;
 
-public final class ModuleManager {
-    private final Map<String, Module> modules=new LinkedHashMap<>();
-    public void register(Module module){if(modules.putIfAbsent(module.id(),module)!=null)throw new IllegalArgumentException("Duplicate module: "+module.id());}
+/** Arson's Meteor Modules registry adapter and default module catalogue. */
+public final class ModuleManager extends meteordevelopment.meteorclient.systems.modules.Modules {
+    @Override
+    protected String key(Module module) {
+        return module.id();
+    }
+
+    public void register(Module module) {
+        add(module);
+    }
+
     public void registerDefaults(){
         register(new ClientInfoModule());register(new SprintModule());register(new PerformanceModule());
         register(new ContainerESPModule());register(new EntityESPModule());register(new ItemESPModule());register(new EntityInfoModule());register(new EntityTracerModule());register(new BlockESPModule());register(new ChunkFinderModule());
@@ -20,13 +27,62 @@ public final class ModuleManager {
         register(new CombatStatusModule());register(new PlayerStatusModule());register(new MovementStatusModule());register(new RenderProfileModule());register(new WorldStatusModule());register(new StorageStatusModule());register(new UtilityStatusModule());register(new ClickGuiPreferencesModule());
         register(GameStateModule.create());register(ScreenInfoModule.create());
     }
-    public Module get(String id){return modules.get(id);} public Collection<Module> all(){return new ArrayList<>(modules.values());}
-    public Collection<Module> organized(Module.Category category){ArrayList<Module> result=new ArrayList<>();for(Module module:modules.values())if(module.category()==category)result.add(module);result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
-    public Collection<Module> search(String query){ArrayList<Module> result=new ArrayList<>();String q=query==null?"":query.trim().toLowerCase(java.util.Locale.ROOT);for(Module module:modules.values()){String haystack=(module.name()+" "+module.id()+" "+module.description()).toLowerCase(java.util.Locale.ROOT);if(q.isEmpty()||haystack.contains(q))result.add(module);}result.sort(Comparator.comparing(Module::favorite).reversed().thenComparing(Comparator.comparing(Module::enabled).reversed()).thenComparing(Module::name,String.CASE_INSENSITIVE_ORDER));return result;}
-    public int categoryCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category)count++;return count;}
-    public int enabledCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category&&module.enabled())count++;return count;}
-    public int favoriteCount(){int count=0;for(Module module:modules.values())if(module.favorite())count++;return count;}
-    public int enabledCount(){int count=0;for(Module module:modules.values())if(module.enabled())count++;return count;} public void tick(MinecraftClient client){for(Module module:modules.values())module.tick(client);}
+
+    public Module get(String id) { return super.get(id); }
+    public Collection<Module> all() { return getAll(); }
+
+    public Collection<Module> organized(Module.Category category) {
+        ArrayList<Module> result = new ArrayList<>();
+        for (Module module : getAll()) if (module.category() == category) result.add(module);
+        sort(result);
+        return result;
+    }
+
+    public Collection<Module> search(String query) {
+        ArrayList<Module> result = new ArrayList<>();
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        for (Module module : getAll()) {
+            String haystack = (module.name() + " " + module.id() + " " + module.description()).toLowerCase(Locale.ROOT);
+            if (q.isEmpty() || haystack.contains(q)) result.add(module);
+        }
+        sort(result);
+        return result;
+    }
+
+    public int categoryCount(Module.Category category) {
+        int count = 0;
+        for (Module module : getAll()) if (module.category() == category) count++;
+        return count;
+    }
+
+    public int enabledCount(Module.Category category) {
+        int count = 0;
+        for (Module module : getAll()) if (module.category() == category && module.enabled()) count++;
+        return count;
+    }
+
+    public int favoriteCount() {
+        int count = 0;
+        for (Module module : getAll()) if (module.favorite()) count++;
+        return count;
+    }
+
+    public int enabledCount() {
+        int count = 0;
+        for (Module module : getAll()) if (module.enabled()) count++;
+        return count;
+    }
+
+    public void tick(MinecraftClient client) {
+        for (Module module : getAll()) module.tick(client);
+    }
+
+    private static void sort(ArrayList<Module> modules) {
+        modules.sort(Comparator.comparing(Module::favorite).reversed()
+            .thenComparing(Comparator.comparing(Module::enabled).reversed())
+            .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+    }
+
     public enum DisplayMode{COMPACT,DETAILED} public enum RenderMode{STANDARD,HIGH_CONTRAST,MINIMAL}
     private static final class ClientInfoModule extends Module{private ClientInfoModule(){super("client-info","Client Info",Category.MISC,"Shows client/version metadata used by the local HUD.");setting(new BooleanSetting("show-version","Show Version",true));}}
     private static final class SprintModule extends Module{private final BooleanSetting forwardOnly=setting(new BooleanSetting("forward-only","Forward Only",true));private SprintModule(){super("sprint","Sprint",Category.MOVEMENT,"Local sprint state helper; it only affects the local player's sprint flag while enabled.");}@Override protected void onTick(MinecraftClient client){if(client.player==null)return;if(forwardOnly.enabled()&&!client.options.forwardKey.isPressed())return;client.player.setSprinting(true);}}
@@ -39,3 +95,4 @@ public final class ModuleManager {
     private static final class StorageStatusModule extends Module{private final BooleanSetting showScreenState=setting(new BooleanSetting("show-screen-state","Show Screen State",true));private boolean containerOpen;private StorageStatusModule(){super("storage-status","Storage Status",Category.MISC,"Reports whether a local container screen is currently open.");showScreenState.description("Track whether a local container screen is open.");}@Override protected void onTick(MinecraftClient client){containerOpen=showScreenState.enabled()&&client.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?>;}public boolean containerOpen(){return containerOpen;}}
     private static final class UtilityStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private UtilityStatusModule(){super("utility-status","Utility Status",Category.MISC,"Local utility telemetry for compact HUD presentation.");}public DisplayMode mode(){return mode.get();}}
 }
+
