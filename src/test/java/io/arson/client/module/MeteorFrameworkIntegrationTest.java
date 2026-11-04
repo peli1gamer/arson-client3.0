@@ -11,12 +11,18 @@ import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.orbit.EventHandler;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MeteorFrameworkIntegrationTest {
     private enum Mode { FIRST, SECOND }
+
+    @BeforeEach
+    void initializeMeteorEventBus() {
+        MeteorClient.initialize(null);
+    }
 
     private static final class Pulse { }
 
