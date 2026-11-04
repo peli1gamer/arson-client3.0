@@ -51,8 +51,12 @@ public final class Systems {
     }
 
     public static <T extends System<?>> T get(Class<T> type) {
-        System<?> system = systems.get(type);
-        return system == null ? null : type.cast(system);
+        System<?> exact = systems.get(type);
+        if (exact != null) return type.cast(exact);
+        for (System<?> system : systems.values()) {
+            if (type.isInstance(system)) return type.cast(system);
+        }
+        return null;
     }
 
     public static List<System<?>> all() {
