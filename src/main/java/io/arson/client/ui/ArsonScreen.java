@@ -381,9 +381,9 @@ public final class ArsonScreen extends Screen {
         int x = windowX(index), y = windowY(index), w = windowWidth(), h = windowHeight();
         int headerHeight = windowHeaderHeight();
         g.fill(x, y, x + w, y + h, panelColor());
-        g.fill(x, y, x + w, y + headerHeight, 0xFF1B202A);
+        g.fill(x, y, x + w, y + headerHeight, headerColor());
         g.fill(x, y, x + 3, y + headerHeight, CATEGORY_COLORS[category.ordinal()]);
-        g.drawStrokedRectangle(x, y, w, h, 0xFF303946);
+        g.drawStrokedRectangle(x, y, w, h, borderColor());
         String title = category.displayName().toUpperCase(Locale.ROOT);
         g.drawTextWithShadow(textRenderer, title, x + 9, y + 8, 0xFFE5EAF1);
         int enabled = (int) ArsonClient.getInstance().modules().organized(category).stream().filter(Module::enabled).count();
@@ -402,8 +402,8 @@ public final class ArsonScreen extends Screen {
             Module module = modules.get(i);
             int ry = rowY + shown * rowHeight;
             boolean hovered = mouseX >= x + 3 && mouseX < x + w - 3 && mouseY >= ry && mouseY < ry + rowHeight;
-            if (module == selected) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, 0xFF27384D);
-            else if (hovered) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, 0xFF202833);
+            if (module == selected) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, selectedColor());
+            else if (hovered) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, hoverColor());
             g.drawTextWithShadow(textRenderer, module.enabled() ? "●" : "○", x + 8, ry + 5,
                     module.enabled() ? accentColor() : 0xFF657181);
             String name = module.name();
@@ -422,9 +422,9 @@ public final class ArsonScreen extends Screen {
     private void drawSettingsPanel(DrawContext g, int mouseX, int mouseY) {
         int x = settingsX(), y = settingsY(), w = settingsWidth(), h = settingsHeight();
         g.fill(x, y, x + w, y + h, 0xF00E1219);
-        g.fill(x, y, x + w, y + 30, 0xFF202834);
+        g.fill(x, y, x + w, y + 30, headerColor());
         g.fill(x, y, x + 3, y + 30, accentColor());
-        g.drawStrokedRectangle(x, y, w, h, 0xFF3A4655);
+        g.drawStrokedRectangle(x, y, w, h, borderColor());
         g.drawTextWithShadow(textRenderer, selected.name(), x + 10, y + 10, 0xFFFFFFFF);
         g.drawTextWithShadow(textRenderer, "×", x + w - 14, y + 10, 0xFF9AA5B5);
         for (SettingGroupHeader header : settingGroupHeaders) {
@@ -455,6 +455,38 @@ public final class ArsonScreen extends Screen {
             case MIDNIGHT -> 0xE510141C;
             case GRAPHITE -> 0xE5171B22;
             case CONTRAST -> 0xEE08090B;
+        };
+    }
+
+    private int headerColor() {
+        return switch (theme) {
+            case MIDNIGHT -> 0xFF1B202A;
+            case GRAPHITE -> 0xFF292F38;
+            case CONTRAST -> 0xFF000000;
+        };
+    }
+
+    private int borderColor() {
+        return switch (theme) {
+            case MIDNIGHT -> 0xFF303946;
+            case GRAPHITE -> 0xFF596575;
+            case CONTRAST -> 0xFFFFFFFF;
+        };
+    }
+
+    private int selectedColor() {
+        return switch (theme) {
+            case MIDNIGHT -> 0xFF27384D;
+            case GRAPHITE -> 0xFF3A4654;
+            case CONTRAST -> 0xFF303030;
+        };
+    }
+
+    private int hoverColor() {
+        return switch (theme) {
+            case MIDNIGHT -> 0xFF202833;
+            case GRAPHITE -> 0xFF343B45;
+            case CONTRAST -> 0xFF202020;
         };
     }
 
