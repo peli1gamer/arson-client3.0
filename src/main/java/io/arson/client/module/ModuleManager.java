@@ -20,6 +20,11 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
         add(module);
     }
 
+    @Override
+    public void init() {
+        registerDefaults();
+    }
+
     public void registerDefaults(){
         register(new ClientInfoModule());register(new SprintModule());register(new PerformanceModule());
         register(new ContainerESPModule());register(new EntityESPModule());register(new ItemESPModule());register(new EntityInfoModule());register(new EntityTracerModule());register(new BlockESPModule());register(new ChunkFinderModule());
