@@ -8,6 +8,7 @@
 package meteordevelopment.meteorclient.utils.misc;
 
 import java.util.Objects;
+import net.minecraft.nbt.NbtCompound;
 import org.lwjgl.glfw.GLFW;
 
 public final class Keybind {
@@ -102,6 +103,19 @@ public final class Keybind {
         if ((modifiers & GLFW.GLFW_MOD_ALT) != 0) label.append("Alt + ");
         if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) label.append("Shift + ");
         return label.append(GLFW.glfwGetKeyName(value, 0) == null ? "Key " + value : GLFW.glfwGetKeyName(value, 0)).toString();
+    }
+
+    public NbtCompound toTag() {
+        NbtCompound tag = new NbtCompound();
+        tag.putBoolean("isKey", key);
+        tag.putInt("value", value);
+        tag.putInt("modifiers", modifiers);
+        return tag;
+    }
+
+    public Keybind fromTag(NbtCompound tag) {
+        set(tag.getBoolean("isKey", true), tag.getInt("value", GLFW.GLFW_KEY_UNKNOWN), tag.getInt("modifiers", 0));
+        return this;
     }
 
     @Override public boolean equals(Object object) {
