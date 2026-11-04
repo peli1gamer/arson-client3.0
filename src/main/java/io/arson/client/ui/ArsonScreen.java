@@ -123,6 +123,23 @@ public final class ArsonScreen extends Screen {
         }).dimensions(width - (width < 520 ? 60 : 270), headerY, 48, 22).build());
 
         if (width >= 520) {
+            addDrawableChild(ButtonWidget.builder(Text.literal(preferences() != null && preferences().compactMode() ? "Compact" : "Normal"), b -> {
+                ClickGuiPreferencesModule p = preferences();
+                if (p != null) p.setCompactMode(!p.compactMode());
+                saveConfig();
+                refreshWidgets();
+            }).dimensions(width - 386, headerY, 54, 22).build());
+
+            addDrawableChild(ButtonWidget.builder(Text.literal(String.format(Locale.ROOT, "%.1fx", panelScale())), b -> {
+                ClickGuiPreferencesModule p = preferences();
+                if (p != null) {
+                    double next = Math.round((p.panelScale() + 0.1) * 100.0) / 100.0;
+                    p.setPanelScale(next > 1.2 ? 0.8 : next);
+                }
+                saveConfig();
+                refreshWidgets();
+            }).dimensions(width - 328, headerY, 48, 22).build());
+
             addDrawableChild(ButtonWidget.builder(Text.literal("Theme"), b -> {
                 ClickGuiPreferencesModule.Theme[] themes = ClickGuiPreferencesModule.Theme.values();
                 theme = themes[(theme.ordinal() + 1) % themes.length];
@@ -270,6 +287,16 @@ public final class ArsonScreen extends Screen {
         return modules;
     }
 
+    private double panelScale() {
+        ClickGuiPreferencesModule p = preferences();
+        double scale = p == null ? 1.0 : p.panelScale();
+        if (p != null && p.compactMode()) scale = Math.min(scale, 0.85);
+        return Math.max(0.75, Math.min(1.2, scale));
+    }
+
+    private int moduleRowHeight() { return Math.max(14, (int) Math.round(18 * panelScale())); }
+    private int windowHeaderHeight() { return Math.max(20, (int) Math.round(23 * panelScale())); }
+
     private int columns() {
         if (width < 520) return 1;
         return width < 760 ? 3 : 6;
@@ -280,12 +307,12 @@ public final class ArsonScreen extends Screen {
         if (width < 520) return Math.max(120, width - 24);
         int cols = columns();
         int gaps = (cols - 1) * 8;
-        return Math.max(100, Math.min(190, (width - 24 - gaps) / cols));
+        return Math.max(100, (int) Math.round(Math.min(190, (width - 24 - gaps) / cols) * panelScale()));
     }
     private int windowHeight() {
-        if (width < 520) return Math.max(90, height - 112);
-        if (columns() == 6) return Math.max(100, height - 104);
-        return Math.max(72, (height - 142) / 2);
+        if (width < 520) return Math.max(90, (int) Math.round((height - 112) * panelScale()));
+        if (columns() == 6) return Math.max(100, (int) Math.round((height - 104) * panelScale()));
+        return Math.max(72, (int) Math.round(((height - 142) / 2.0) * panelScale()));
     }
     private int windowOffsetIndex(int index) { return width < 520 ? activeCategory.ordinal() : index; }
     private int windowX(int index) {
@@ -352,7 +379,7 @@ public final class ArsonScreen extends Screen {
 
     private void drawCategoryWindow(DrawContext g, int index, Module.Category category, int mouseX, int mouseY) {
         int x = windowX(index), y = windowY(index), w = windowWidth(), h = windowHeight();
-        int headerHeight = 23;
+        int headerHeight = windowHeaderHeight();
         g.fill(x, y, x + w, y + h, panelColor());
         g.fill(x, y, x + w, y + headerHeight, 0xFF1B202A);
         g.fill(x, y, x + 3, y + headerHeight, CATEGORY_COLORS[category.ordinal()]);
@@ -367,7 +394,7 @@ public final class ArsonScreen extends Screen {
 
         List<Module> modules = visibleModules(category);
         int rowY = y + headerHeight + 3;
-        int rowHeight = 18;
+        int rowHeight = moduleRowHeight();
         int maxRows = Math.max(0, (h - headerHeight - 7) / rowHeight);
         int start = Math.min(windowScroll[category.ordinal()], Math.max(0, modules.size() - maxRows));
         int shown = 0;
@@ -526,7 +553,7 @@ public final class ArsonScreen extends Screen {
             Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
             int x = windowX(i), y = windowY(i), w = windowWidth(), h = windowHeight();
             if (event.x() < x || event.x() >= x + w || event.y() < y || event.y() >= y + h) continue;
-            if (event.y() < y + 23) {
+            if (event.y() < y + windowHeaderHeight()) {
                 if (event.button() == 0) {
                     if (event.x() >= x + w - 20) collapsed[category.ordinal()] = !collapsed[category.ordinal()];
                     else {
@@ -538,9 +565,9 @@ public final class ArsonScreen extends Screen {
                 }
             } else if (!collapsed[category.ordinal()]) {
                 List<Module> modules = visibleModules(category);
-                int rowHeight = 18;
-                int row = (int) ((event.y() - (y + 26)) / rowHeight);
-                int maxRows = Math.max(0, (h - 30) / rowHeight);
+                int rowHeight = moduleRowHeight();
+                int row = (int) ((event.y() - (y + windowHeaderHeight() + 3)) / rowHeight);
+                int maxRows = Math.max(0, (h - windowHeaderHeight() - 7) / rowHeight);
                 int index = windowScroll[category.ordinal()] + row;
                 if (row >= 0 && row < maxRows && index >= 0 && index < modules.size()) {
                     Module module = modules.get(index);
