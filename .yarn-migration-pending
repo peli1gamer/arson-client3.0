@@ -4,3 +4,5 @@ The migration workflow removes this file after converting main and test sources.
 Migration workflow registered; execute this request now.
 
 Retry after workflow runner correction.
+
+Retry with optional test-source handling.
