@@ -189,7 +189,7 @@ public final class ArsonScreen extends Screen {
                     saveConfig();
                     refreshWidgets();
                 }).dimensions(x + 80, y, 86, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal(bindingModule == selected ? "Press a key" : "Bind"),
+        addDrawableChild(ButtonWidget.builder(Text.literal(bindingModule == selected ? "Press key / mouse" : selected.keybind().isSet() ? "Bind: " + selected.keybind() : "Bind"),
                 b -> {
                     bindingModule = selected;
                     refreshWidgets();
@@ -481,6 +481,14 @@ public final class ArsonScreen extends Screen {
 
     @Override
     public boolean mouseClicked(Click event, boolean doubleClick) {
+        if (bindingModule != null) {
+            int button = event.button();
+            if (bindingModule.keybind().canBindTo(false, button, 0)) {
+                bindingModule.keybind().set(false, button, 0);
+                finishKeybindCapture();
+            }
+            return true;
+        }
         if (super.mouseClicked(event, doubleClick)) {
             searchFocused = search != null && search.isFocused();
             return true;
@@ -604,11 +612,11 @@ public final class ArsonScreen extends Screen {
                 refreshWidgets();
                 return true;
             }
-            bindingModule.setKeyCode(key);
-            NotificationCenter.push(bindingModule.name(), "Keybind updated");
-            bindingModule = null;
-            saveConfig();
-            refreshWidgets();
+            int modifiers = currentModifiers();
+            if (bindingModule.keybind().canBindTo(true, key, modifiers)) {
+                bindingModule.keybind().set(true, key, modifiers);
+                finishKeybindCapture();
+            }
             return true;
         }
         if (key == GLFW.GLFW_KEY_ESCAPE) {
@@ -630,6 +638,29 @@ public final class ArsonScreen extends Screen {
             refreshWidgets();
         }
         return handled;
+    }
+
+    private int currentModifiers() {
+        if (client == null) return 0;
+        long window = client.getWindow().getHandle();
+        int modifiers = 0;
+        if (isKeyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL)) modifiers |= GLFW.GLFW_MOD_CONTROL;
+        if (isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT)) modifiers |= GLFW.GLFW_MOD_SHIFT;
+        if (isKeyDown(window, GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT)) modifiers |= GLFW.GLFW_MOD_ALT;
+        if (isKeyDown(window, GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER)) modifiers |= GLFW.GLFW_MOD_SUPER;
+        return modifiers;
+    }
+
+    private static boolean isKeyDown(long window, int left, int right) {
+        return GLFW.glfwGetKey(window, left) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(window, right) == GLFW.GLFW_PRESS;
+    }
+
+    private void finishKeybindCapture() {
+        NotificationCenter.push(bindingModule.name(), "Keybind updated: " + bindingModule.keybind());
+        bindingModule = null;
+        saveConfig();
+        refreshWidgets();
     }
 
     @Override
