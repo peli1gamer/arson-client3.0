@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 /** Small metadata/grouping primitive for richer ClickGUI presentation without changing setting storage. */
-public final class SettingGroup {
+public final class SettingGroup extends meteordevelopment.meteorclient.settings.SettingGroup {
     private final String id;
     private final String name;
     private final String description;
@@ -14,8 +14,8 @@ public final class SettingGroup {
     private BooleanSupplier visibility = () -> true;
 
     public SettingGroup(String id, String name, String description) {
+        super(name, true);
         this.id = Objects.requireNonNull(id);
-        this.name = Objects.requireNonNull(name);
         this.description = description == null ? "" : description;
     }
 
@@ -25,5 +25,10 @@ public final class SettingGroup {
     public SettingGroup visibleWhen(BooleanSupplier predicate) { visibility = Objects.requireNonNull(predicate); return this; }
     public boolean visible() { return visibility.getAsBoolean(); }
     public List<Setting<?>> settings() { return List.copyOf(settings); }
-    public void add(Setting<?> setting) { if (!settings.contains(setting)) settings.add(setting); }
+    public void add(Setting<?> setting) {
+        if (!settings.contains(setting)) {
+            settings.add(setting);
+            super.add(setting);
+        }
+    }
 }
