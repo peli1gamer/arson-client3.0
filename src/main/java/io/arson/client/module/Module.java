@@ -78,7 +78,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
 
     protected final <T extends Setting<?>> T setting(SettingGroup group, T setting) {
         if (!settingGroups.contains(group)) throw new IllegalArgumentException("Setting group does not belong to module " + id);
-        settings.add(setting);
+        arsonSettings.add(setting);
         setting.group(group);
         return setting;
     }
