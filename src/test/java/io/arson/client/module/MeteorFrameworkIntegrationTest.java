@@ -5,12 +5,30 @@ import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.EnumSetting;
 import meteordevelopment.meteorclient.settings.IntSetting;
 import meteordevelopment.meteorclient.systems.Systems;
+import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.orbit.EventHandler;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MeteorFrameworkIntegrationTest {
     private enum Mode { FIRST, SECOND }
+
+    private static final class Pulse { }
+
+    private static final class EventModule extends Module {
+        private final AtomicInteger events = new AtomicInteger();
+
+        private EventModule() {
+            super("event-test", "Event Test", Category.MISC);
+        }
+
+        @EventHandler
+        private void onPulse(Pulse event) {
+            events.incrementAndGet();
+        }
+    }
 
     @Test
     void typedMeteorSettingBuildersValidateValues() {
@@ -57,6 +75,20 @@ class MeteorFrameworkIntegrationTest {
         assertInstanceOf(meteordevelopment.meteorclient.systems.modules.Module.class, aimAssist);
         assertSame(aimAssist.defaultGroup(), aimAssist.settings.getGroup("General"));
         assertNotNull(aimAssist.meteorCategory());
+    }
+
+    @Test
+    void moduleActivationSubscribesAndDeactivationUnsubscribesOrbitHandlers() {
+        MeteorClient.initialize(null);
+        EventModule module = new EventModule();
+        module.enable();
+
+        MeteorClient.EVENT_BUS.post(new Pulse());
+        assertEquals(1, module.events.get());
+
+        module.disable();
+        MeteorClient.EVENT_BUS.post(new Pulse());
+        assertEquals(1, module.events.get());
     }
 
     @Test
