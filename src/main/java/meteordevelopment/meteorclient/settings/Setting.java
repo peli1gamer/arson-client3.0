@@ -63,6 +63,9 @@ public abstract class Setting<T> {
         if (onChanged != null) onChanged.accept(value);
     }
 
+    public void onActivated() {
+    }
+
     public boolean isVisible() {
         return visible == null || visible.getAsBoolean();
     }
