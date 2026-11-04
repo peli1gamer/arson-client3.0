@@ -70,7 +70,13 @@ public final class ConfigManager {
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
                 if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
-                if (data.has("keybind") && data.get("keybind").isJsonObject()) {\n                    JsonObject bind = data.getAsJsonObject("keybind");\n                    boolean isKey = !bind.has("isKey") || bind.get("isKey").getAsBoolean();\n                    int value = bind.has("value") ? bind.get("value").getAsInt() : GLFW.GLFW_KEY_UNKNOWN;\n                    int modifiers = bind.has("modifiers") ? bind.get("modifiers").getAsInt() : 0;\n                    module.setKeybind(isKey ? Keybind.fromKeys(value, modifiers) : Keybind.fromButton(value));\n                } else if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
+                if (data.has("keybind") && data.get("keybind").isJsonObject()) {
+                    JsonObject bind = data.getAsJsonObject("keybind");
+                    boolean isKey = !bind.has("isKey") || bind.get("isKey").getAsBoolean();
+                    int value = bind.has("value") ? bind.get("value").getAsInt() : GLFW.GLFW_KEY_UNKNOWN;
+                    int modifiers = bind.has("modifiers") ? bind.get("modifiers").getAsInt() : 0;
+                    module.setKeybind(isKey ? Keybind.fromKeys(value, modifiers) : Keybind.fromButton(value));
+                } else if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
                     JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
