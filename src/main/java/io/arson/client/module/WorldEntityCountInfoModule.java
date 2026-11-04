@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Live local-world entity counts for HUD and diagnostics. */
 public final class WorldEntityCountInfoModule extends Module {
@@ -14,17 +14,17 @@ public final class WorldEntityCountInfoModule extends Module {
                 "Reports live client-side entity counts currently available in the local world.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null) {
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null) {
             total = players = living = items = 0;
             return;
         }
         total = 0; players = 0; living = 0; items = 0;
-        for (var entity : client.level.entitiesForRendering()) {
+        for (var entity : client.world.getEntities()) {
             total++;
-            if (entity instanceof net.minecraft.world.entity.player.Player) players++;
-            if (entity instanceof net.minecraft.world.entity.LivingEntity) living++;
-            if (entity instanceof net.minecraft.world.entity.item.ItemEntity) items++;
+            if (entity instanceof net.minecraft.entity.player.PlayerEntity) players++;
+            if (entity instanceof net.minecraft.entity.LivingEntity) living++;
+            if (entity instanceof net.minecraft.entity.ItemEntity) items++;
         }
     }
 

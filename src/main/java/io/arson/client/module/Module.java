@@ -2,11 +2,10 @@ package io.arson.client.module;
 
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
-import net.minecraft.client.Minecraft;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.client.MinecraftClient;
 
 /**
  * Meteor-compatible module lifecycle and setting-group foundation.
@@ -71,7 +70,7 @@ public abstract class Module {
         chatFeedback = true;
     }
 
-    public final void tick(Minecraft client) {
+    public final void tick(MinecraftClient client) {
         if (enabled) onTick(client);
     }
 
@@ -100,7 +99,7 @@ public abstract class Module {
     /** Legacy Arson hooks remain supported by the Meteor-style lifecycle aliases. */
     protected void onEnable() {}
     protected void onDisable() {}
-    protected void onTick(Minecraft client) {}
+    protected void onTick(MinecraftClient client) {}
     public void onActivate() { onEnable(); }
     public void onDeactivate() { onDisable(); }
 

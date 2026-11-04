@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live shared-spawn position and local horizontal distance to spawn. */
 public final class WorldSpawnInfoModule extends Module {
@@ -14,13 +14,13 @@ public final class WorldSpawnInfoModule extends Module {
                 "Reports live shared-spawn coordinates and the local player's horizontal distance from spawn.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null || client.player == null) {
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null || client.player == null) {
             spawnX = spawnY = spawnZ = 0;
             distance = 0;
             return;
         }
-        var spawn = client.level.getRespawnData().pos();
+        var spawn = client.world.getSpawnPoint().getPos();
         spawnX = spawn.getX();
         spawnY = spawn.getY();
         spawnZ = spawn.getZ();

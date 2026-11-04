@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live client display and camera presentation state for HUD integrations. */
 public final class RenderDisplayInfoModule extends Module {
@@ -15,11 +15,11 @@ public final class RenderDisplayInfoModule extends Module {
                 "Tracks live FOV, GUI scale, view bobbing, VSync, and fullscreen state for visual integrations; it never changes display settings.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        fov = client.options.fov().get();
-        guiScale = client.options.guiScale().get();
-        bobbing = client.options.bobView().get();
-        vsync = client.options.enableVsync().get();
+    @Override protected void onTick(MinecraftClient client) {
+        fov = client.options.getFov().getValue();
+        guiScale = client.options.getGuiScale().getValue();
+        bobbing = client.options.getBobView().getValue();
+        vsync = client.options.getEnableVsync().getValue();
         fullscreen = client.getWindow() != null && client.getWindow().isFullscreen();
     }
 

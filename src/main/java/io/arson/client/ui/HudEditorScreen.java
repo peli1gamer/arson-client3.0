@@ -9,12 +9,6 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.Setting;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -22,6 +16,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.text.Text;
 
 /** HUD editor with a Meteor-inspired canvas, element navigator and properties panel. */
 public final class HudEditorScreen extends Screen {
@@ -37,7 +37,7 @@ public final class HudEditorScreen extends Screen {
     private double offsetX, offsetY;
 
     public HudEditorScreen(Screen parent) {
-        super(Component.literal("HUD Editor"));
+        super(Text.literal("HUD Editor"));
         this.parent = parent;
     }
 
@@ -53,59 +53,59 @@ public final class HudEditorScreen extends Screen {
         for (int i = 0; i < ELEMENTS.length; i++) {
             String element = ELEMENTS[i];
             int rowY = leftY + i * 25;
-            addRenderableWidget(Button.builder(Component.literal((selection.contains(element) ? "◆ " : "◇ ")
+            addDrawableChild(ButtonWidget.builder(Text.literal((selection.contains(element) ? "◆ " : "◇ ")
                             + title(element) + (visible(element) ? "  ON" : "  OFF")),
                     b -> { selection.select(element, false); rebuild(); })
-                    .bounds(leftX, rowY, leftW, 21).build());
+                    .dimensions(leftX, rowY, leftW, 21).build());
         }
 
         int rightX = rightX(), rightW = rightWidth(), y = 58;
-        addRenderableWidget(Button.builder(Component.literal("Visibility  " + (allVisible() ? "ON" : "OFF")),
+        addDrawableChild(ButtonWidget.builder(Text.literal("Visibility  " + (allVisible() ? "ON" : "OFF")),
                 b -> { toggleVisible(); repairLayout(); save(); rebuild(); })
-                .bounds(rightX, y, rightW, 21).build());
+                .dimensions(rightX, y, rightW, 21).build());
         y += 25;
         int half = (rightW - 4) / 2;
-        addRenderableWidget(Button.builder(Component.literal("Scale −"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Scale −"), b -> {
             adjustScale(-0.05); repairLayout(); save(); rebuild();
-        }).bounds(rightX, y, half, 21).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale +"), b -> {
+        }).dimensions(rightX, y, half, 21).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Scale +"), b -> {
             adjustScale(0.05); repairLayout(); save(); rebuild();
-        }).bounds(rightX + half + 4, y, half, 21).build());
+        }).dimensions(rightX + half + 4, y, half, 21).build());
         y += 25;
-        addRenderableWidget(Button.builder(Component.literal("Alignment"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Alignment"), b -> {
             cycleAlignment(); save(); rebuild();
-        }).bounds(rightX, y, half, 21).build());
-        addRenderableWidget(Button.builder(Component.literal("Anchor"), b -> {
+        }).dimensions(rightX, y, half, 21).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Anchor"), b -> {
             anchorSelected(); repairLayout(); save(); rebuild();
-        }).bounds(rightX + half + 4, y, half, 21).build());
+        }).dimensions(rightX + half + 4, y, half, 21).build());
         y += 25;
-        addRenderableWidget(Button.builder(Component.literal("Background"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Background"), b -> {
             toggleBackground(); save(); rebuild();
-        }).bounds(rightX, y, rightW, 21).build());
+        }).dimensions(rightX, y, rightW, 21).build());
         y += 25;
-        addRenderableWidget(Button.builder(Component.literal("Copy"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Copy"), b -> {
             copySelected(); rebuild();
-        }).bounds(rightX, y, half, 21).build());
-        addRenderableWidget(Button.builder(Component.literal("Paste"), b -> {
+        }).dimensions(rightX, y, half, 21).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Paste"), b -> {
             pasteSelected(); repairLayout(); save(); rebuild();
-        }).bounds(rightX + half + 4, y, half, 21).build());
+        }).dimensions(rightX + half + 4, y, half, 21).build());
         y += 25;
-        addRenderableWidget(Button.builder(Component.literal("Duplicate"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Duplicate"), b -> {
             duplicateSelected(); repairLayout(); save(); rebuild();
-        }).bounds(rightX, y, half, 21).build());
-        addRenderableWidget(Button.builder(Component.literal("Reset"), b -> {
+        }).dimensions(rightX, y, half, 21).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Reset"), b -> {
             resetSelected(); repairLayout(); save(); rebuild();
-        }).bounds(rightX + half + 4, y, half, 21).build());
+        }).dimensions(rightX + half + 4, y, half, 21).build());
         y += 25;
-        addRenderableWidget(Button.builder(Component.literal("Select All"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Select All"), b -> {
             selection.replace(List.of(ELEMENTS)); rebuild();
-        }).bounds(rightX, y, half, 21).build());
-        addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
+        }).dimensions(rightX, y, half, 21).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Clear"), b -> {
             selection.clear(); rebuild();
-        }).bounds(rightX + half + 4, y, half, 21).build());
+        }).dimensions(rightX + half + 4, y, half, 21).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
-                .bounds(width - 78, height - 30, 66, 21).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), b -> close())
+                .dimensions(width - 78, height - 30, 66, 21).build());
     }
 
     private int rightWidth() { return width < 520 ? 120 : Math.max(142, Math.min(180, width / 4)); }
@@ -116,7 +116,7 @@ public final class HudEditorScreen extends Screen {
     private int canvasBottom() { return height - 12; }
 
     private void rebuild() {
-        clearWidgets();
+        clearChildren();
         init();
     }
 
@@ -185,7 +185,7 @@ public final class HudEditorScreen extends Screen {
     }
 
     private void save() {
-        if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
+        if (client != null) ConfigManager.save(client, ArsonClient.getInstance().modules());
     }
 
     /** Returns screen-space coordinates, matching the global HUD scale used by HudRenderer. */
@@ -313,12 +313,12 @@ public final class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    public boolean mouseClicked(Click event, boolean doubleClick) {
         if (super.mouseClicked(event, doubleClick)) return true;
         if (event.button() == 0) {
             for (String element : ELEMENTS) {
                 if (!hit(element, event.x(), event.y())) continue;
-                selection.select(element, event.hasShiftDown());
+                selection.select(element, event.hasShift());
                 dragAnchor = element;
                 double[] p = position(element);
                 offsetX = event.x() - p[0];
@@ -332,7 +332,7 @@ public final class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+    public boolean mouseDragged(Click event, double dragX, double dragY) {
         if (dragging && event.button() == 0 && dragAnchor != null) {
             double x = event.x() - offsetX;
             double y = event.y() - offsetY;
@@ -349,7 +349,7 @@ public final class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(Click event) {
         if (event.button() == 0 && dragging) {
             dragging = false;
             dragAnchor = null;
@@ -362,20 +362,20 @@ public final class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(KeyInput event) {
         if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
-            onClose();
+            close();
             return true;
         }
-        if (event.key() == GLFW.GLFW_KEY_C && event.hasControlDown()) {
+        if (event.key() == GLFW.GLFW_KEY_C && event.hasCtrl()) {
             copySelected();
             return true;
         }
-        if (event.key() == GLFW.GLFW_KEY_V && event.hasControlDown()) {
+        if (event.key() == GLFW.GLFW_KEY_V && event.hasCtrl()) {
             pasteSelected(); repairLayout(); save(); rebuild();
             return true;
         }
-        if (event.key() == GLFW.GLFW_KEY_D && event.hasControlDown()) {
+        if (event.key() == GLFW.GLFW_KEY_D && event.hasCtrl()) {
             duplicateSelected(); repairLayout(); save(); rebuild();
             return true;
         }
@@ -383,30 +383,30 @@ public final class HudEditorScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, width, height, 0xA6000000);
         graphics.fill(0, 0, width, 30, 0xF010131A);
-        graphics.drawString(font, "HUD EDITOR", 14, 10, 0xFFFFFFFF);
+        graphics.drawTextWithShadow(textRenderer, "HUD EDITOR", 14, 10, 0xFFFFFFFF);
         String help = width < 520 ? "Drag • Shift group • Ctrl+C/V/D" : "Drag elements  •  Shift-click to group  •  Ctrl+C / Ctrl+V / Ctrl+D";
-        graphics.drawString(font, help, width < 520 ? 116 : 178, 10, 0xFF8995A4);
+        graphics.drawTextWithShadow(textRenderer, help, width < 520 ? 116 : 178, 10, 0xFF8995A4);
 
         int leftX = width < 520 ? 8 : 12;
         int leftW = width < 520 ? 96 : 154;
         graphics.fill(leftX, 34, leftX + leftW, height - 12, 0xE510141C);
-        graphics.renderOutline(leftX, 34, leftW, height - 46, 0xFF35404E);
-        graphics.drawString(font, "ELEMENTS", leftX + 10, 43, 0xFFB9C4D2);
+        graphics.drawStrokedRectangle(leftX, 34, leftW, height - 46, 0xFF35404E);
+        graphics.drawTextWithShadow(textRenderer, "ELEMENTS", leftX + 10, 43, 0xFFB9C4D2);
 
         int rightX = rightX(), rightW = rightWidth();
         graphics.fill(rightX, 34, rightX + rightW, height - 12, 0xE510141C);
-        graphics.renderOutline(rightX, 34, rightW, height - 46, 0xFF35404E);
-        graphics.drawString(font, "PROPERTIES", rightX + 10, 43, 0xFFB9C4D2);
-        graphics.drawString(font, selection.size() + " selected", rightX + 10, 78, 0xFF8793A2);
+        graphics.drawStrokedRectangle(rightX, 34, rightW, height - 46, 0xFF35404E);
+        graphics.drawTextWithShadow(textRenderer, "PROPERTIES", rightX + 10, 43, 0xFFB9C4D2);
+        graphics.drawTextWithShadow(textRenderer, selection.size() + " selected", rightX + 10, 78, 0xFF8793A2);
 
         int canvasX = canvasLeft(), canvasR = canvasRight();
         graphics.fill(canvasX, canvasTop(), canvasR, canvasBottom(), 0x1EFFFFFF);
         for (int x = canvasX; x < canvasR; x += 32) graphics.fill(x, canvasTop(), x + 1, canvasBottom(), 0x1FFFFFFF);
         for (int y = canvasTop(); y < canvasBottom(); y += 32) graphics.fill(canvasX, y, canvasR, y + 1, 0x1FFFFFFF);
-        graphics.renderOutline(canvasX, canvasTop(), Math.max(1, canvasR - canvasX),
+        graphics.drawStrokedRectangle(canvasX, canvasTop(), Math.max(1, canvasR - canvasX),
                 Math.max(1, canvasBottom() - canvasTop()), 0x553B4654);
 
         for (String element : ELEMENTS) {
@@ -419,8 +419,8 @@ public final class HudEditorScreen extends Screen {
             boolean selected = selection.contains(element);
             int color = selected ? 0xFF55A7FF : 0x887B8796;
             if (selected) graphics.fill(x - 3, y - 3, x + boxW + 3, y + boxH + 3, 0x2255A7FF);
-            graphics.renderOutline(x - 3, y - 3, Math.max(8, boxW + 6), Math.max(8, boxH + 6), color);
-            graphics.drawString(font, title(element), x + 3, y + 3, selected ? 0xFFFFFFFF : 0xFFB7C1CE);
+            graphics.drawStrokedRectangle(x - 3, y - 3, Math.max(8, boxW + 6), Math.max(8, boxH + 6), color);
+            graphics.drawTextWithShadow(textRenderer, title(element), x + 3, y + 3, selected ? 0xFFFFFFFF : 0xFFB7C1CE);
         }
         super.render(graphics, mouseX, mouseY, delta);
     }
@@ -435,9 +435,9 @@ public final class HudEditorScreen extends Screen {
     }
 
     @Override
-    public void onClose() {
+    public void close() {
         save();
-        minecraft.setScreen(parent);
+        client.setScreen(parent);
     }
 
     private record Snapshot(String source, boolean visible, double x, double y, double scale,

@@ -1,14 +1,13 @@
 package io.arson.client.render;
 
 import io.arson.client.module.BlockESPModule;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.BlockPos;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
@@ -21,15 +20,15 @@ public final class BlockScanner {
     private int cachedConfigHash;
     private List<BlockTarget> cachedTargets = List.of();
 
-    public List<BlockTarget> scan(Minecraft client, BlockESPModule module) {
-        if (client.level == null || client.player == null || !module.enabled()) return List.of();
+    public List<BlockTarget> scan(MinecraftClient client, BlockESPModule module) {
+        if (client.world == null || client.player == null || !module.enabled()) return List.of();
 
-        long gameTime = client.level.getGameTime();
-        int chunkX = client.player.blockPosition().getX() >> 4;
-        int chunkZ = client.player.blockPosition().getZ() >> 4;
+        long gameTime = client.world.getTime();
+        int chunkX = client.player.getBlockPos().getX() >> 4;
+        int chunkZ = client.player.getBlockPos().getZ() >> 4;
         int configHash = configHash(module);
 
-        boolean worldChanged = cachedLevel != client.level;
+        boolean worldChanged = cachedLevel != client.world;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
         boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
@@ -40,7 +39,7 @@ public final class BlockScanner {
 
         List<BlockTarget> result = scanWorld(client, module);
         cachedTargets = List.copyOf(result);
-        cachedLevel = client.level;
+        cachedLevel = client.world;
         cachedTick = gameTime;
         cachedChunkX = chunkX;
         cachedChunkZ = chunkZ;
@@ -48,21 +47,21 @@ public final class BlockScanner {
         return cachedTargets;
     }
 
-    private static List<BlockTarget> scanWorld(Minecraft client, BlockESPModule module) {
+    private static List<BlockTarget> scanWorld(MinecraftClient client, BlockESPModule module) {
         double playerX = client.player.getX();
         double playerY = client.player.getY();
         double playerZ = client.player.getZ();
         double range = Math.max(1.0, module.range());
         double rangeSquared = range * range;
         int radius = Math.max(1, Math.min(64, (int) Math.ceil(range)));
-        BlockPos center = client.player.blockPosition();
-        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        BlockPos center = client.player.getBlockPos();
+        BlockPos.Mutable mutable = new BlockPos.Mutable();
         List<BlockTarget> result = new ArrayList<>();
 
         int minX = center.getX() - radius;
         int maxX = center.getX() + radius;
-        int minY = Math.max(client.level.getMinY(), center.getY() - radius);
-        int maxY = Math.min(client.level.getMaxY(), center.getY() + radius);
+        int minY = Math.max(client.world.getBottomY(), center.getY() - radius);
+        int maxY = Math.min(client.world.getTopYInclusive(), center.getY() + radius);
         int minZ = center.getZ() - radius;
         int maxZ = center.getZ() + radius;
 
@@ -82,7 +81,7 @@ public final class BlockScanner {
                     if (distanceSquared > rangeSquared) continue;
 
                     mutable.set(x, y, z);
-                    BlockState state = client.level.getBlockState(mutable);
+                    BlockState state = client.world.getBlockState(mutable);
                     RenderStyleMatch match = match(state.getBlock(), module);
                     if (match == null) continue;
 

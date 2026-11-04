@@ -2,22 +2,21 @@ package io.arson.client.render;
 
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageType;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import net.minecraft.world.level.block.entity.DispenserBlockEntity;
-import net.minecraft.world.level.block.entity.DropperBlockEntity;
-import net.minecraft.world.level.block.entity.HopperBlockEntity;
-import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
-import net.minecraft.world.level.chunk.LevelChunk;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.DispenserBlockEntity;
+import net.minecraft.block.entity.DropperBlockEntity;
+import net.minecraft.block.entity.HopperBlockEntity;
+import net.minecraft.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.chunk.WorldChunk;
 
 /** Cached storage discovery. Positions are reused while range filtering stays dynamic. */
 public final class StorageScanner {
@@ -30,25 +29,25 @@ public final class StorageScanner {
     private int cachedRadius = Integer.MIN_VALUE;
     private List<StorageOverlay.StorageTarget> cachedTargets = List.of();
 
-    public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range) {
-        if (client.level == null || client.player == null) {
+    public List<StorageOverlay.StorageTarget> scan(MinecraftClient client, double range) {
+        if (client.world == null || client.player == null) {
             return List.of();
         }
 
         double clampedRange = Math.max(1.0, Math.min(256.0, range));
         int radius = (int) Math.ceil(clampedRange / 16.0);
-        int chunkX = client.player.blockPosition().getX() >> 4;
-        int chunkZ = client.player.blockPosition().getZ() >> 4;
-        long gameTime = client.level.getGameTime();
+        int chunkX = client.player.getBlockPos().getX() >> 4;
+        int chunkZ = client.player.getBlockPos().getZ() >> 4;
+        long gameTime = client.world.getTime();
 
-        boolean worldChanged = cachedLevel != client.level;
+        boolean worldChanged = cachedLevel != client.world;
         boolean chunkChanged = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean radiusChanged = cachedRadius != radius;
         boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
 
         if (worldChanged || chunkChanged || radiusChanged || refreshDue) {
             cachedTargets = scanLoadedStorage(client, radius);
-            cachedLevel = client.level;
+            cachedLevel = client.world;
             cachedTick = gameTime;
             cachedChunkX = chunkX;
             cachedChunkZ = chunkZ;
@@ -72,17 +71,17 @@ public final class StorageScanner {
         return visible.isEmpty() ? List.of() : List.copyOf(visible);
     }
 
-    private static List<StorageOverlay.StorageTarget> scanLoadedStorage(Minecraft client, int chunkRadius) {
-        int centerChunkX = client.player.blockPosition().getX() >> 4;
-        int centerChunkZ = client.player.blockPosition().getZ() >> 4;
+    private static List<StorageOverlay.StorageTarget> scanLoadedStorage(MinecraftClient client, int chunkRadius) {
+        int centerChunkX = client.player.getBlockPos().getX() >> 4;
+        int centerChunkZ = client.player.getBlockPos().getZ() >> 4;
         List<StorageOverlay.StorageTarget> targets = new ArrayList<>();
         Set<BlockPos> emittedChestPositions = new HashSet<>();
 
         for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
             for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
-                if (!client.level.hasChunk(chunkX, chunkZ)) continue;
+                if (!client.world.isChunkLoaded(chunkX, chunkZ)) continue;
 
-                LevelChunk chunk = client.level.getChunkSource().getChunkNow(chunkX, chunkZ);
+                WorldChunk chunk = client.world.getChunkManager().getWorldChunk(chunkX, chunkZ);
                 if (chunk == null) continue;
 
                 for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
@@ -104,7 +103,7 @@ public final class StorageScanner {
         return targets.isEmpty() ? List.of() : List.copyOf(targets);
     }
 
-    private static StorageOverlay.StorageTarget buildChestTarget(Minecraft client, BlockPos pos,
+    private static StorageOverlay.StorageTarget buildChestTarget(MinecraftClient client, BlockPos pos,
                                                                   Set<BlockPos> emittedPositions) {
         BlockPos east = pos.east();
         BlockPos south = pos.south();
@@ -135,8 +134,8 @@ public final class StorageScanner {
                 StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
     }
 
-    private static boolean isChest(Minecraft client, BlockPos pos) {
-        BlockEntity entity = client.level.getBlockEntity(pos);
+    private static boolean isChest(MinecraftClient client, BlockPos pos) {
+        BlockEntity entity = client.world.getBlockEntity(pos);
         return entity instanceof ChestBlockEntity;
     }
 
@@ -144,8 +143,8 @@ public final class StorageScanner {
         if (entity == null) return null;
         if (entity instanceof ChestBlockEntity) return StorageType.CHEST;
         if (entity instanceof ShulkerBoxBlockEntity) return StorageType.SHULKER;
-        if (entity.getBlockState().is(Blocks.BARREL)) return StorageType.BARREL;
-        if (entity.getBlockState().is(Blocks.ENDER_CHEST)) return StorageType.ENDER_CHEST;
+        if (entity.getCachedState().isOf(Blocks.BARREL)) return StorageType.BARREL;
+        if (entity.getCachedState().isOf(Blocks.ENDER_CHEST)) return StorageType.ENDER_CHEST;
         if (entity instanceof HopperBlockEntity
                 || entity instanceof DispenserBlockEntity
                 || entity instanceof DropperBlockEntity) return StorageType.OTHER;

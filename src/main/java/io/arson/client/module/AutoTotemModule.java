@@ -2,9 +2,9 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.item.Items;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.item.Items;
+import net.minecraft.screen.slot.SlotActionType;
 
 /** Automatically keeps a totem in the offhand when configured conditions are met. */
 public final class AutoTotemModule extends Module {
@@ -18,9 +18,9 @@ public final class AutoTotemModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
-        if (client.player == null || client.gameMode == null || client.screen != null) return;
-        if (client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING)) return;
+    protected void onTick(MinecraftClient client) {
+        if (client.player == null || client.interactionManager == null || client.currentScreen != null) return;
+        if (client.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING)) return;
 
         boolean emergency = client.player.getHealth() <= healthThreshold.get();
         if (!always.enabled() && !emergency) return;
@@ -29,18 +29,18 @@ public final class AutoTotemModule extends Module {
         if (source < 0) return;
 
         // Inventory click slot 40 is the player's offhand slot in the player container.
-        client.gameMode.handleInventoryMouseClick(client.player.inventoryMenu.containerId, source, 40, ClickType.SWAP, client.player);
+        client.interactionManager.clickSlot(client.player.playerScreenHandler.syncId, source, 40, SlotActionType.SWAP, client.player);
     }
 
-    private int findTotem(Minecraft client) {
+    private int findTotem(MinecraftClient client) {
         if (includeHotbar.enabled()) {
             for (int i = 0; i < 9; i++) {
-                if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return i;
+                if (client.player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) return i;
             }
         }
 
         for (int i = 9; i < 36; i++) {
-            if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return i;
+            if (client.player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) return i;
         }
         return -1;
     }

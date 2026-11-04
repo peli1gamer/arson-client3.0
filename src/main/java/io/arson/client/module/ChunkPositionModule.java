@@ -1,7 +1,7 @@
 package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Exposes chunk/region coordinates derived from the local player's position. */
 public final class ChunkPositionModule extends Module {
@@ -16,10 +16,10 @@ public final class ChunkPositionModule extends Module {
                 "Tracks the local chunk and region coordinates for navigation and HUD integrations.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) return;
-        chunkX = client.player.blockPosition().getX() >> 4;
-        chunkZ = client.player.blockPosition().getZ() >> 4;
+        chunkX = client.player.getBlockPos().getX() >> 4;
+        chunkZ = client.player.getBlockPos().getZ() >> 4;
         regionX = chunkX >> 5;
         regionZ = chunkZ >> 5;
     }

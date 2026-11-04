@@ -2,14 +2,13 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.text.Text;
 
 /** Tracks server entity-status totem pops per player for the current session. */
 public final class TotemPopCounterModule extends Module {
@@ -32,11 +31,11 @@ public final class TotemPopCounterModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
-        if (client.level == null) return;
+    protected void onTick(MinecraftClient client) {
+        if (client.world == null) return;
         double seconds = resetAfterSeconds.get();
         if (seconds <= 0.0) return;
-        long now = client.level.getGameTime();
+        long now = client.world.getTime();
         long timeout = (long) Math.ceil(seconds * 20.0);
         lastPopTick.entrySet().removeIf(entry -> now - entry.getValue() > timeout);
         pops.keySet().removeIf(uuid -> !lastPopTick.containsKey(uuid));
@@ -44,31 +43,31 @@ public final class TotemPopCounterModule extends Module {
 
     /** Called by the client packet mixin when vanilla receives entity-status 35. */
     public void onTotemPop(Entity entity) {
-        if (!enabled() || !(entity instanceof Player player)) return;
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.level == null) return;
+        if (!enabled() || !(entity instanceof PlayerEntity player)) return;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null) return;
         if (player == client.player && !self.enabled()) return;
         if (player != client.player && !players.enabled()) return;
 
-        UUID uuid = player.getUUID();
+        UUID uuid = player.getUuid();
         int count = pops.getOrDefault(uuid, 0) + 1;
         pops.put(uuid, count);
-        lastPopTick.put(uuid, client.level.getGameTime());
+        lastPopTick.put(uuid, client.world.getTime());
 
         if (chat.enabled()) {
             String name = player.getName().getString();
             String message = name + " popped " + count + " totem" + (count == 1 ? "" : "s");
-            client.player.displayClientMessage(Component.literal(message), false);
+            client.player.sendMessage(Text.literal(message), false);
         }
     }
 
-    public int getPops(Player player) {
-        return player == null ? 0 : pops.getOrDefault(player.getUUID(), 0);
+    public int getPops(PlayerEntity player) {
+        return player == null ? 0 : pops.getOrDefault(player.getUuid(), 0);
     }
 
-    public void reset(Player player) {
+    public void reset(PlayerEntity player) {
         if (player == null) return;
-        UUID uuid = player.getUUID();
+        UUID uuid = player.getUuid();
         pops.remove(uuid);
         lastPopTick.remove(uuid);
     }

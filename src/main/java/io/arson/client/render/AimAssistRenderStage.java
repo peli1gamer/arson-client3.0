@@ -8,31 +8,30 @@ import io.arson.client.module.AimAssistModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.LivingEntity;
-
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.LivingEntity;
 import java.util.List;
 
 /** Highlights the entity currently selected by Aim Assist. */
 @Environment(EnvType.CLIENT)
 public final class AimAssistRenderStage implements WorldRenderBridge.WorldRenderStage {
-    private final Minecraft client;
+    private final MinecraftClient client;
     private final AimAssistModule module;
 
-    public AimAssistRenderStage(Minecraft client, AimAssistModule module) {
+    public AimAssistRenderStage(MinecraftClient client, AimAssistModule module) {
         this.client = client;
         this.module = module;
     }
 
     @Override
     public void render(WorldRenderContext context) {
-        if (!module.enabled() || !module.highlightTarget() || client.player == null || client.level == null) return;
+        if (!module.enabled() || !module.highlightTarget() || client.player == null || client.world == null) return;
 
         LivingEntity target = module.target();
         if (target == null || !target.isAlive() || target.isRemoved()) return;
 
         double expand = module.highlightExpand();
-        var box = target.getBoundingBox().inflate(expand);
+        var box = target.getBoundingBox().expand(expand);
         RenderStyle style = new RenderStyle(
                 color(module.highlightColor()),
                 module.highlightFill(),

@@ -4,7 +4,7 @@ import io.arson.client.context.FeatureContext;
 import io.arson.client.platform.FeatureContextAdapter;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -20,7 +20,7 @@ public final class WorldRenderBridge {
 
     public WorldRenderBridge() { this(new FeatureContext(), null); }
     public WorldRenderBridge(FeatureContext featureContext, FeatureContextAdapter contextAdapter) {
-        this(featureContext, contextAdapter, () -> Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true));
+        this(featureContext, contextAdapter, () -> MinecraftClient.getInstance().getRenderTickCounter().getTickProgress(true));
     }
     WorldRenderBridge(FeatureContext featureContext, FeatureContextAdapter contextAdapter, Supplier<Float> partialTickSource) {
         this.featureContext = featureContext;

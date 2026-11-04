@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live local movement state for HUD and addon presentation. */
 public final class PlayerMovementInfoModule extends Module {
@@ -16,20 +16,20 @@ public final class PlayerMovementInfoModule extends Module {
                 "Tracks live local velocity, fall distance, ground state, sprinting, and sneaking for HUD integrations; it never changes movement.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) {
             horizontalSpeed = verticalSpeed = fallDistance = 0;
             onGround = sprinting = sneaking = false;
             return;
         }
         var player = client.player;
-        var velocity = player.getDeltaMovement();
+        var velocity = player.getVelocity();
         horizontalSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
         verticalSpeed = velocity.y;
         fallDistance = player.fallDistance;
-        onGround = player.onGround();
+        onGround = player.isOnGround();
         sprinting = player.isSprinting();
-        sneaking = player.isCrouching();
+        sneaking = player.isInSneakingPose();
     }
 
     public double horizontalSpeed() { return horizontalSpeed; }

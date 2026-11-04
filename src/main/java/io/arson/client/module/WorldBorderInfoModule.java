@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live world-border geometry and local distance information. */
 public final class WorldBorderInfoModule extends Module {
@@ -14,12 +14,12 @@ public final class WorldBorderInfoModule extends Module {
                 "Reports live world-border center, diameter, and the local player's nearest horizontal border distance.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null || client.player == null) {
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null || client.player == null) {
             centerX = centerZ = diameter = distanceToEdge = 0;
             return;
         }
-        var border = client.level.getWorldBorder();
+        var border = client.world.getWorldBorder();
         centerX = border.getCenterX();
         centerZ = border.getCenterZ();
         diameter = border.getSize();

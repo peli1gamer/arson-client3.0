@@ -13,20 +13,20 @@ import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
 import io.arson.client.settings.StringSetting;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.text.Text;
 
 /**
  * Windowed, Meteor-inspired ClickGUI. Each module category has its own compact
@@ -42,9 +42,9 @@ public final class ArsonScreen extends Screen {
     private final int[] windowScroll = new int[Module.Category.values().length];
     private final boolean[] collapsed = new boolean[Module.Category.values().length];
 
-    private EditBox search;
-    private EditBox valueEditor;
-    private EditBox profile;
+    private TextFieldWidget search;
+    private TextFieldWidget valueEditor;
+    private TextFieldWidget profile;
     private StringSetting editingString;
     private ColorSetting editingColor;
     private Module selected;
@@ -61,7 +61,7 @@ public final class ArsonScreen extends Screen {
     private ClickGuiPreferencesModule.Theme theme = ClickGuiPreferencesModule.Theme.MIDNIGHT;
 
     public ArsonScreen(Screen parent) {
-        super(Component.literal("Arson Client V3"));
+        super(Text.literal("Arson Client V3"));
         this.parent = parent;
     }
 
@@ -97,69 +97,69 @@ public final class ArsonScreen extends Screen {
     }
 
     private void refreshWidgets() {
-        String searchValue = search == null ? "" : search.getValue();
-        String profileValue = profile == null ? "" : profile.getValue();
-        String editValue = valueEditor == null ? "" : valueEditor.getValue();
-        clearWidgets();
+        String searchValue = search == null ? "" : search.getText();
+        String profileValue = profile == null ? "" : profile.getText();
+        String editValue = valueEditor == null ? "" : valueEditor.getText();
+        clearChildren();
         search = null;
         profile = null;
         valueEditor = null;
 
         int headerY = 12;
         int searchWidth = width < 520 ? Math.max(80, width - 190) : Math.max(100, Math.min(230, width - 420));
-        search = new EditBox(font, 112, headerY, searchWidth, 22, Component.literal("Search modules"));
-        search.setHint(Component.literal("Search modules..."));
-        search.setValue(searchValue);
+        search = new TextFieldWidget(textRenderer, 112, headerY, searchWidth, 22, Text.literal("Search modules"));
+        search.setPlaceholder(Text.literal("Search modules..."));
+        search.setText(searchValue);
         search.setFocused(searchFocused);
-        addRenderableWidget(search);
+        addDrawableChild(search);
 
-        addRenderableWidget(Button.builder(Component.literal("HUD"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("HUD"), b -> {
             if (ArsonClient.getInstance().modules().get("hud") instanceof HudModule) {
-                minecraft.setScreen(new HudEditorScreen(this));
+                client.setScreen(new HudEditorScreen(this));
             }
-        }).bounds(width - (width < 520 ? 60 : 270), headerY, 48, 22).build());
+        }).dimensions(width - (width < 520 ? 60 : 270), headerY, 48, 22).build());
 
         if (width >= 520) {
-            addRenderableWidget(Button.builder(Component.literal("Theme"), b -> {
+            addDrawableChild(ButtonWidget.builder(Text.literal("Theme"), b -> {
                 ClickGuiPreferencesModule.Theme[] themes = ClickGuiPreferencesModule.Theme.values();
                 theme = themes[(theme.ordinal() + 1) % themes.length];
                 savePreferences();
                 refreshWidgets();
-            }).bounds(width - 216, headerY, 54, 22).build());
+            }).dimensions(width - 216, headerY, 54, 22).build());
 
-            addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
+            addDrawableChild(ButtonWidget.builder(Text.literal(favoritesOnly ? "★" : "☆"), b -> {
                 favoritesOnly = !favoritesOnly;
                 savePreferences();
                 refreshWidgets();
-            }).bounds(width - 156, headerY, 28, 22).build());
+            }).dimensions(width - 156, headerY, 28, 22).build());
 
-            addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "ON" : "ALL"), b -> {
+            addDrawableChild(ButtonWidget.builder(Text.literal(enabledOnly ? "ON" : "ALL"), b -> {
                 enabledOnly = !enabledOnly;
                 savePreferences();
                 refreshWidgets();
-            }).bounds(width - 124, headerY, 38, 22).build());
+            }).dimensions(width - 124, headerY, 38, 22).build());
 
-            addRenderableWidget(Button.builder(Component.literal(alphabetical ? "A-Z" : "Smart"), b -> {
+            addDrawableChild(ButtonWidget.builder(Text.literal(alphabetical ? "A-Z" : "Smart"), b -> {
                 alphabetical = !alphabetical;
                 savePreferences();
                 refreshWidgets();
-            }).bounds(width - 80, headerY, 48, 22).build());
+            }).dimensions(width - 80, headerY, 48, 22).build());
         }
 
         if (selected != null) addSettingsWidgets(editValue);
         if (width < 520) addNarrowCategoryTabs();
-        profile = new EditBox(font, 12, height - 28, 112, 18, Component.literal("Profile"));
-        profile.setHint(Component.literal("profile"));
-        profile.setValue(profileValue);
-        addRenderableWidget(profile);
-        addRenderableWidget(Button.builder(Component.literal("Load"), b -> loadProfile())
-                .bounds(130, height - 28, 40, 18).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveProfile())
-                .bounds(174, height - 28, 40, 18).build());
-        addRenderableWidget(Button.builder(Component.literal("Save Config"), b -> saveConfig())
-                .bounds(width - 112, height - 28, 72, 18).build());
-        addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
-                .bounds(width - 34, height - 28, 28, 18).build());
+        profile = new TextFieldWidget(textRenderer, 12, height - 28, 112, 18, Text.literal("Profile"));
+        profile.setPlaceholder(Text.literal("profile"));
+        profile.setText(profileValue);
+        addDrawableChild(profile);
+        addDrawableChild(ButtonWidget.builder(Text.literal("Load"), b -> loadProfile())
+                .dimensions(130, height - 28, 40, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Save"), b -> saveProfile())
+                .dimensions(174, height - 28, 40, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Save Config"), b -> saveConfig())
+                .dimensions(width - 112, height - 28, 72, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Close"), b -> close())
+                .dimensions(width - 34, height - 28, 28, 18).build());
     }
 
     private void addNarrowCategoryTabs() {
@@ -169,10 +169,10 @@ public final class ArsonScreen extends Screen {
             int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
             Module.Category chosen = category;
             String[] labels = {"CMB", "MOV", "REN", "PLY", "WRL", "MSC"};
-            addRenderableWidget(Button.builder(Component.literal(labels[category.ordinal()]), b -> {
+            addDrawableChild(ButtonWidget.builder(Text.literal(labels[category.ordinal()]), b -> {
                 activeCategory = chosen;
                 refreshWidgets();
-            }).bounds(x, y, tabWidth - 2, 18).build());
+            }).dimensions(x, y, tabWidth - 2, 18).build());
             x += tabWidth;
         }
     }
@@ -181,25 +181,25 @@ public final class ArsonScreen extends Screen {
         int x = settingsX() + 10;
         int y = settingsY() + 48;
         int w = settingsWidth() - 20;
-        addRenderableWidget(Button.builder(Component.literal(selected.enabled() ? "Disable" : "Enable"),
-                b -> toggleSelected()).bounds(x, y, 74, 20).build());
-        addRenderableWidget(Button.builder(Component.literal(selected.favorite() ? "★ Favorite" : "☆ Favorite"),
+        addDrawableChild(ButtonWidget.builder(Text.literal(selected.enabled() ? "Disable" : "Enable"),
+                b -> toggleSelected()).dimensions(x, y, 74, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal(selected.favorite() ? "★ Favorite" : "☆ Favorite"),
                 b -> {
                     selected.setFavorite(!selected.favorite());
                     saveConfig();
                     refreshWidgets();
-                }).bounds(x + 80, y, 86, 20).build());
-        addRenderableWidget(Button.builder(Component.literal(bindingModule == selected ? "Press a key" : "Bind"),
+                }).dimensions(x + 80, y, 86, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal(bindingModule == selected ? "Press a key" : "Bind"),
                 b -> {
                     bindingModule = selected;
                     refreshWidgets();
-                }).bounds(x + 172, y, Math.max(42, w - 172), 20).build());
+                }).dimensions(x + 172, y, Math.max(42, w - 172), 20).build());
         y += 26;
-        addRenderableWidget(Button.builder(Component.literal("Reset settings"), b -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Reset settings"), b -> {
             selected.resetSettings();
             saveConfig();
             refreshWidgets();
-        }).bounds(x, y, w, 20).build());
+        }).dimensions(x, y, w, 20).build());
         y += 25;
 
         int bottom = Math.min(height - 38, settingsY() + settingsHeight() - 8);
@@ -215,45 +215,45 @@ public final class ArsonScreen extends Screen {
                 lastGroup = setting.group().id();
             }
             if (setting instanceof BooleanSetting bs) {
-                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + (bs.enabled() ? "ON" : "OFF")),
+                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + (bs.enabled() ? "ON" : "OFF")),
                         b -> { bs.set(!bs.enabled()); saveConfig(); refreshWidgets(); })
-                        .bounds(x, y, w, 20).build());
+                        .dimensions(x, y, w, 20).build());
             } else if (setting instanceof DoubleSetting ds) {
-                addRenderableWidget(new DoubleSettingSlider(x, y, w, 20, ds, this::saveConfig));
+                addDrawableChild(new DoubleSettingSlider(x, y, w, 20, ds, this::saveConfig));
             } else if (setting instanceof EnumSetting<?> es) {
-                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + pretty(es.get())),
+                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + pretty(es.get())),
                         b -> { es.cycle(1); saveConfig(); refreshWidgets(); })
-                        .bounds(x, y, w, 20).build());
+                        .dimensions(x, y, w, 20).build());
             } else if (setting instanceof ColorSetting cs) {
-                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  #" + String.format(Locale.ROOT, "%08X", cs.get())),
+                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  #" + String.format(Locale.ROOT, "%08X", cs.get())),
                         b -> { editingColor = cs; editingString = null; refreshWidgets(); })
-                        .bounds(x, y, w, 20).build());
+                        .dimensions(x, y, w, 20).build());
             } else if (setting instanceof StringSetting ss) {
-                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + ss.get()),
+                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + ss.get()),
                         b -> { editingString = ss; editingColor = null; refreshWidgets(); })
-                        .bounds(x, y, w, 20).build());
+                        .dimensions(x, y, w, 20).build());
             } else {
-                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + String.valueOf(setting.get())),
-                        b -> {}).bounds(x, y, w, 20).build());
+                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + String.valueOf(setting.get())),
+                        b -> {}).dimensions(x, y, w, 20).build());
             }
             y += rowHeight;
         }
 
         if (editingString != null || editingColor != null) {
-            valueEditor = new EditBox(font, x, settingsY() + 28, Math.max(80, w - 56), 18,
-                    Component.literal(editingString != null ? editingString.name() : editingColor.name()));
+            valueEditor = new TextFieldWidget(textRenderer, x, settingsY() + 28, Math.max(80, w - 56), 18,
+                    Text.literal(editingString != null ? editingString.name() : editingColor.name()));
             valueEditor.setMaxLength(128);
-            valueEditor.setValue(editValue.isEmpty()
+            valueEditor.setText(editValue.isEmpty()
                     ? editingString != null ? editingString.get() : String.format(Locale.ROOT, "%08X", editingColor.get())
                     : editValue);
-            addRenderableWidget(valueEditor);
-            addRenderableWidget(Button.builder(Component.literal("Apply"), b -> applyEdit())
-                    .bounds(x + w - 50, settingsY() + 28, 50, 18).build());
+            addDrawableChild(valueEditor);
+            addDrawableChild(ButtonWidget.builder(Text.literal("Apply"), b -> applyEdit())
+                    .dimensions(x + w - 50, settingsY() + 28, 50, 18).build());
         }
     }
 
     private List<Module> visibleModules(Module.Category category) {
-        String query = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
+        String query = search == null ? "" : search.getText().trim().toLowerCase(Locale.ROOT);
         List<Module> modules = new ArrayList<>(ArsonClient.getInstance().modules().organized(category));
         modules.removeIf(module -> favoritesOnly && !module.favorite()
                 || enabledOnly && !module.enabled()
@@ -300,7 +300,7 @@ public final class ArsonScreen extends Screen {
     private int settingsY() { return 52; }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext g, int mouseX, int mouseY, float delta) {
         drawBackground(g);
         drawHeader(g);
         if (width < 520) drawNarrowTabs(g);
@@ -312,23 +312,23 @@ public final class ArsonScreen extends Screen {
         super.render(g, mouseX, mouseY, delta);
     }
 
-    private void drawBackground(GuiGraphics g) {
+    private void drawBackground(DrawContext g) {
         g.fill(0, 0, width, height, 0xB8000000);
         g.fill(0, 0, width, 38, 0xF0101218);
         g.fill(0, height - 36, width, height, 0xE90C0E13);
         g.fill(0, 37, width, 39, accentColor());
     }
 
-    private void drawHeader(GuiGraphics g) {
-        g.drawString(font, "ARSON", 14, 9, 0xFFFFFFFF);
-        g.drawString(font, "V3", 57, 9, accentColor());
-        g.drawString(font, "CLIENT", 14, 22, 0xFF7F8998);
+    private void drawHeader(DrawContext g) {
+        g.drawTextWithShadow(textRenderer, "ARSON", 14, 9, 0xFFFFFFFF);
+        g.drawTextWithShadow(textRenderer, "V3", 57, 9, accentColor());
+        g.drawTextWithShadow(textRenderer, "CLIENT", 14, 22, 0xFF7F8998);
         int enabled = ArsonClient.getInstance().modules().enabledCount();
-        if (width >= 520) g.drawString(font, enabled + " ACTIVE", 14, 42, 0xFF9AA5B5);
-        if (width >= 760) g.drawString(font, "RIGHT CLICK = SETTINGS", 360, 23, 0xFF727D8C);
+        if (width >= 520) g.drawTextWithShadow(textRenderer, enabled + " ACTIVE", 14, 42, 0xFF9AA5B5);
+        if (width >= 760) g.drawTextWithShadow(textRenderer, "RIGHT CLICK = SETTINGS", 360, 23, 0xFF727D8C);
     }
 
-    private void drawNarrowTabs(GuiGraphics g) {
+    private void drawNarrowTabs(DrawContext g) {
         int x = 12;
         int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
         for (Module.Category category : Module.Category.values()) {
@@ -337,25 +337,25 @@ public final class ArsonScreen extends Screen {
             g.fill(x, 42, x + tabWidth - 2, 61, color);
             String[] labels = {"CMB", "MOV", "REN", "PLY", "WRL", "MSC"};
             String label = labels[category.ordinal()];
-            g.drawString(font, label, x + (tabWidth - font.width(label)) / 2, 48,
+            g.drawTextWithShadow(textRenderer, label, x + (tabWidth - textRenderer.getWidth(label)) / 2, 48,
                     active ? accentColor() : 0xFFADB6C3);
             x += tabWidth;
         }
     }
 
-    private void drawCategoryWindow(GuiGraphics g, int index, Module.Category category, int mouseX, int mouseY) {
+    private void drawCategoryWindow(DrawContext g, int index, Module.Category category, int mouseX, int mouseY) {
         int x = windowX(index), y = windowY(index), w = windowWidth(), h = windowHeight();
         int headerHeight = 23;
         g.fill(x, y, x + w, y + h, panelColor());
         g.fill(x, y, x + w, y + headerHeight, 0xFF1B202A);
         g.fill(x, y, x + 3, y + headerHeight, CATEGORY_COLORS[category.ordinal()]);
-        g.renderOutline(x, y, w, h, 0xFF303946);
+        g.drawStrokedRectangle(x, y, w, h, 0xFF303946);
         String title = category.displayName().toUpperCase(Locale.ROOT);
-        g.drawString(font, title, x + 9, y + 8, 0xFFE5EAF1);
+        g.drawTextWithShadow(textRenderer, title, x + 9, y + 8, 0xFFE5EAF1);
         int enabled = (int) ArsonClient.getInstance().modules().organized(category).stream().filter(Module::enabled).count();
         String count = enabled + "/" + ArsonClient.getInstance().modules().categoryCount(category);
-        g.drawString(font, count, x + w - font.width(count) - 16, y + 8, 0xFF8E9AAA);
-        g.drawString(font, collapsed[category.ordinal()] ? "+" : "−", x + w - 11, y + 8, 0xFFADB8C7);
+        g.drawTextWithShadow(textRenderer, count, x + w - textRenderer.getWidth(count) - 16, y + 8, 0xFF8E9AAA);
+        g.drawTextWithShadow(textRenderer, collapsed[category.ordinal()] ? "+" : "−", x + w - 11, y + 8, 0xFFADB8C7);
         if (collapsed[category.ordinal()]) return;
 
         List<Module> modules = visibleModules(category);
@@ -370,39 +370,39 @@ public final class ArsonScreen extends Screen {
             boolean hovered = mouseX >= x + 3 && mouseX < x + w - 3 && mouseY >= ry && mouseY < ry + rowHeight;
             if (module == selected) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, 0xFF27384D);
             else if (hovered) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, 0xFF202833);
-            g.drawString(font, module.enabled() ? "●" : "○", x + 8, ry + 5,
+            g.drawTextWithShadow(textRenderer, module.enabled() ? "●" : "○", x + 8, ry + 5,
                     module.enabled() ? accentColor() : 0xFF657181);
             String name = module.name();
-            while (name.length() > 3 && font.width(name) > w - 43) name = name.substring(0, name.length() - 1);
+            while (name.length() > 3 && textRenderer.getWidth(name) > w - 43) name = name.substring(0, name.length() - 1);
             if (name.length() != module.name().length()) name += "…";
-            g.drawString(font, name, x + 22, ry + 5, module.enabled() ? 0xFFE7EDF5 : 0xFFADB6C2);
-            if (module.favorite()) g.drawString(font, "★", x + w - 15, ry + 5, 0xFFE6C56F);
+            g.drawTextWithShadow(textRenderer, name, x + 22, ry + 5, module.enabled() ? 0xFFE7EDF5 : 0xFFADB6C2);
+            if (module.favorite()) g.drawTextWithShadow(textRenderer, "★", x + w - 15, ry + 5, 0xFFE6C56F);
         }
-        if (modules.isEmpty()) g.drawString(font, "No modules", x + 9, rowY + 4, 0xFF707B89);
+        if (modules.isEmpty()) g.drawTextWithShadow(textRenderer, "No modules", x + 9, rowY + 4, 0xFF707B89);
         else if (modules.size() > maxRows) {
             String page = (start + 1) + "-" + Math.min(modules.size(), start + maxRows) + "/" + modules.size();
-            g.drawString(font, page, x + w - font.width(page) - 6, y + h - 13, 0xFF697585);
+            g.drawTextWithShadow(textRenderer, page, x + w - textRenderer.getWidth(page) - 6, y + h - 13, 0xFF697585);
         }
     }
 
-    private void drawSettingsPanel(GuiGraphics g, int mouseX, int mouseY) {
+    private void drawSettingsPanel(DrawContext g, int mouseX, int mouseY) {
         int x = settingsX(), y = settingsY(), w = settingsWidth(), h = settingsHeight();
         g.fill(x, y, x + w, y + h, 0xF00E1219);
         g.fill(x, y, x + w, y + 30, 0xFF202834);
         g.fill(x, y, x + 3, y + 30, accentColor());
-        g.renderOutline(x, y, w, h, 0xFF3A4655);
-        g.drawString(font, selected.name(), x + 10, y + 10, 0xFFFFFFFF);
-        g.drawString(font, "×", x + w - 14, y + 10, 0xFF9AA5B5);
+        g.drawStrokedRectangle(x, y, w, h, 0xFF3A4655);
+        g.drawTextWithShadow(textRenderer, selected.name(), x + 10, y + 10, 0xFFFFFFFF);
+        g.drawTextWithShadow(textRenderer, "×", x + w - 14, y + 10, 0xFF9AA5B5);
         String description = selected.description();
         if (!description.isBlank()) {
             String clipped = description;
-            while (clipped.length() > 12 && font.width(clipped) > w - 20) clipped = clipped.substring(0, clipped.length() - 1);
+            while (clipped.length() > 12 && textRenderer.getWidth(clipped) > w - 20) clipped = clipped.substring(0, clipped.length() - 1);
             if (clipped.length() != description.length()) clipped += "…";
-            g.drawString(font, clipped, x + 10, y + 35, 0xFF8995A4);
+            g.drawTextWithShadow(textRenderer, clipped, x + 10, y + 35, 0xFF8995A4);
         }
-        g.drawString(font, selected.enabled() ? "ENABLED" : "DISABLED", x + 10, y + h - 14,
+        g.drawTextWithShadow(textRenderer, selected.enabled() ? "ENABLED" : "DISABLED", x + 10, y + h - 14,
                 selected.enabled() ? accentColor() : 0xFF77818F);
-        g.drawString(font, "SCROLL FOR SETTINGS", x + w - 126, y + h - 14, 0xFF697585);
+        g.drawTextWithShadow(textRenderer, "SCROLL FOR SETTINGS", x + w - 126, y + h - 14, 0xFF697585);
     }
 
     private int accentColor() {
@@ -430,10 +430,10 @@ public final class ArsonScreen extends Screen {
 
     private void applyEdit() {
         if (valueEditor == null) return;
-        if (editingString != null) editingString.set(valueEditor.getValue());
+        if (editingString != null) editingString.set(valueEditor.getText());
         else if (editingColor != null) {
             try {
-                String raw = valueEditor.getValue().trim().replace("#", "");
+                String raw = valueEditor.getText().trim().replace("#", "");
                 if (raw.length() == 6) raw = "FF" + raw;
                 if (raw.length() != 8) throw new NumberFormatException();
                 editingColor.set((int) Long.parseLong(raw, 16));
@@ -449,20 +449,20 @@ public final class ArsonScreen extends Screen {
     }
 
     private void saveConfig() {
-        if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
+        if (client != null) ConfigManager.save(client, ArsonClient.getInstance().modules());
     }
 
     private void saveProfile() {
-        if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
-        if (ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) {
-            NotificationCenter.push("Profile", "Saved " + profile.getValue());
+        if (client == null || profile == null || profile.getText().isBlank()) return;
+        if (ConfigManager.saveProfile(client, ArsonClient.getInstance().modules(), profile.getText())) {
+            NotificationCenter.push("Profile", "Saved " + profile.getText());
         } else NotificationCenter.push("Profile", "Invalid profile name");
     }
 
     private void loadProfile() {
-        if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
-        if (ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) {
-            NotificationCenter.push("Profile", "Loaded " + profile.getValue());
+        if (client == null || profile == null || profile.getText().isBlank()) return;
+        if (ConfigManager.loadProfile(client, ArsonClient.getInstance().modules(), profile.getText())) {
+            NotificationCenter.push("Profile", "Loaded " + profile.getText());
             refreshWidgets();
         } else NotificationCenter.push("Profile", "Profile not found or invalid");
     }
@@ -480,7 +480,7 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    public boolean mouseClicked(Click event, boolean doubleClick) {
         if (super.mouseClicked(event, doubleClick)) {
             searchFocused = search != null && search.isFocused();
             return true;
@@ -554,7 +554,7 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+    public boolean mouseDragged(Click event, double dragX, double dragY) {
         if (draggingWindow >= 0 && event.button() == 0) {
             int index = draggingWindow;
             int baseX = width < 520 ? 12 : Math.max(12, (width - (columns() * windowWidth() + (columns() - 1) * 8)) / 2)
@@ -568,7 +568,7 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(Click event) {
         if (event.button() == 0 && draggingWindow >= 0) {
             draggingWindow = -1;
             return true;
@@ -596,7 +596,7 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(KeyInput event) {
         int key = event.key();
         if (bindingModule != null) {
             if (key == GLFW.GLFW_KEY_ESCAPE) {
@@ -612,10 +612,10 @@ public final class ArsonScreen extends Screen {
             return true;
         }
         if (key == GLFW.GLFW_KEY_ESCAPE) {
-            onClose();
+            close();
             return true;
         }
-        if (event.hasControlDown() && key == GLFW.GLFW_KEY_K && search != null) {
+        if (event.hasCtrl() && key == GLFW.GLFW_KEY_K && search != null) {
             searchFocused = true;
             search.setFocused(true);
             return true;
@@ -633,7 +633,7 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
-    public boolean charTyped(CharacterEvent event) {
+    public boolean charTyped(CharInput event) {
         boolean handled = super.charTyped(event);
         if (handled && search != null && search.isFocused()) {
             searchFocused = true;
@@ -646,9 +646,9 @@ public final class ArsonScreen extends Screen {
     }
 
     @Override
-    public void onClose() {
+    public void close() {
         bindingModule = null;
         saveConfig();
-        minecraft.setScreen(parent);
+        client.setScreen(parent);
     }
 }

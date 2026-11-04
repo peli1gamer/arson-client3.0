@@ -3,12 +3,12 @@ package io.arson.client.module;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
-import net.minecraft.client.Minecraft;
 import io.arson.client.ui.NoOverlapLayout;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.client.MinecraftClient;
 
 /** Persistent, resize-aware HUD anchor constraints. Positions are stored as anchor-relative offsets. */
 public final class HudLayoutModule extends Module {
@@ -167,5 +167,5 @@ public final class HudLayoutModule extends Module {
     private int arrayListPreferredX=6,arrayListPreferredY=6;
     public void setArrayListPreferredPosition(int x,int y){arrayListPreferredX=x;arrayListPreferredY=y;}
 
-    @Override protected void onTick(Minecraft client) { /* layout is declarative; no per-tick work is required */ }
+    @Override protected void onTick(MinecraftClient client) { /* layout is declarative; no per-tick work is required */ }
 }

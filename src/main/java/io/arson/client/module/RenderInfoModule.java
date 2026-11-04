@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live client/render presentation state for HUDs and addon integrations. */
 public final class RenderInfoModule extends Module {
@@ -16,16 +16,16 @@ public final class RenderInfoModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
-        fps = client.getFps();
+    protected void onTick(MinecraftClient client) {
+        fps = client.getCurrentFps();
         if (client.getWindow() == null) {
             width = height = guiScale = 0;
             fullscreen = false;
             return;
         }
-        width = client.getWindow().getGuiScaledWidth();
-        height = client.getWindow().getGuiScaledHeight();
-        guiScale = client.options.guiScale().get();
+        width = client.getWindow().getScaledWidth();
+        height = client.getWindow().getScaledHeight();
+        guiScale = client.options.getGuiScale().getValue();
         fullscreen = client.getWindow().isFullscreen();
     }
 

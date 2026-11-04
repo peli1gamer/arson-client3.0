@@ -2,7 +2,7 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.EnumSetting;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Local-only telemetry for HUDs and command inspection; never changes gameplay state. */
 public final class GameStateModule extends Module {
@@ -13,9 +13,9 @@ public final class GameStateModule extends Module {
     private int localTick;
     private GameStateModule() { super("game-state", "Game State", Category.MISC, "Exposes local world time and client tick counters for HUDs and diagnostics."); }
     public static GameStateModule create() { return new GameStateModule(); }
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         localTick++;
-        dayTime = client.level == null ? 0L : client.level.getDayTime();
+        dayTime = client.world == null ? 0L : client.world.getTimeOfDay();
     }
     public Detail detail() { return detail.get(); }
     public boolean showTicks() { return showTicks.enabled(); }

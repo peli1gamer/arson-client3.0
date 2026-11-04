@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live GUI and framebuffer viewport dimensions for HUD and render integrations. */
 public final class RenderViewportInfoModule extends Module {
@@ -15,18 +15,18 @@ public final class RenderViewportInfoModule extends Module {
                 "Reports live GUI and framebuffer viewport dimensions plus whether a client screen is open.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         var window = client.getWindow();
         if (window == null) {
             guiWidth = guiHeight = windowWidth = windowHeight = 0;
-            screenOpen = client.screen != null;
+            screenOpen = client.currentScreen != null;
             return;
         }
-        guiWidth = Math.max(0, window.getGuiScaledWidth());
-        guiHeight = Math.max(0, window.getGuiScaledHeight());
-        windowWidth = Math.max(0, window.getWidth());
-        windowHeight = Math.max(0, window.getHeight());
-        screenOpen = client.screen != null;
+        guiWidth = Math.max(0, window.getScaledWidth());
+        guiHeight = Math.max(0, window.getScaledHeight());
+        windowWidth = Math.max(0, window.getFramebufferWidth());
+        windowHeight = Math.max(0, window.getFramebufferHeight());
+        screenOpen = client.currentScreen != null;
     }
 
     public int guiWidth() { return guiWidth; }

@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks the local player's active status-effect summary for HUD presentation. */
 public final class PlayerEffectsInfoModule extends Module {
@@ -13,12 +13,12 @@ public final class PlayerEffectsInfoModule extends Module {
                 "Tracks live local status-effect counts for HUD presentation without changing effects.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         effectCount = beneficialCount = harmfulCount = 0;
         if (client.player == null) return;
-        for (var effect : client.player.getActiveEffects()) {
+        for (var effect : client.player.getStatusEffects()) {
             effectCount++;
-            if (effect.getEffect().value().isBeneficial()) beneficialCount++;
+            if (effect.getEffectType().value().isBeneficial()) beneficialCount++;
             else harmfulCount++;
         }
     }

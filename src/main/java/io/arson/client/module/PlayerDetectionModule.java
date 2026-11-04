@@ -2,12 +2,11 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.player.Player;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.player.PlayerEntity;
 
 /** Maintains a lightweight nearby-player snapshot for HUD and utility integrations. */
 public final class PlayerDetectionModule extends Module {
@@ -21,13 +20,13 @@ public final class PlayerDetectionModule extends Module {
                 "Tracks nearby players for HUDs and visual integrations without altering player or world state.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         nearby.clear();
-        if (client.player == null || client.level == null) return;
+        if (client.player == null || client.world == null) return;
         double maxDistance = range.get() * range.get();
-        for (Player player : client.level.players()) {
+        for (PlayerEntity player : client.world.getPlayers()) {
             if (!includeSelf.enabled() && player == client.player) continue;
-            double distance = client.player.distanceToSqr(player);
+            double distance = client.player.squaredDistanceTo(player);
             if (distance <= maxDistance) nearby.add(new PlayerSnapshot(player.getName().getString(), Math.sqrt(distance), player.getHealth()));
         }
         if (sortByDistance.enabled()) nearby.sort(java.util.Comparator.comparingDouble(PlayerSnapshot::distance));

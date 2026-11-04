@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks the local player's live view rotation for HUD and addon integrations. */
 public final class PlayerRotationInfoModule extends Module {
@@ -13,14 +13,14 @@ public final class PlayerRotationInfoModule extends Module {
                 "Tracks live local yaw, pitch, and cardinal facing direction for HUD integrations; it never changes rotation.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) {
             yaw = pitch = 0;
             direction = "North";
             return;
         }
-        yaw = client.player.getYRot();
-        pitch = client.player.getXRot();
+        yaw = client.player.getYaw();
+        pitch = client.player.getPitch();
         direction = directionForYaw(yaw);
     }
 

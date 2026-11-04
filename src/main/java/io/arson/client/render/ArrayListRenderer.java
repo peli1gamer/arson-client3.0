@@ -3,16 +3,15 @@ package io.arson.client.render;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.module.Module;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderTickCounter;
 
 /** HUD renderer for the enabled-module array list. */
 public final class ArrayListRenderer {
@@ -21,9 +20,9 @@ public final class ArrayListRenderer {
 
     private ArrayListRenderer() {}
 
-    public static void render(GuiGraphics graphics, DeltaTracker tickCounter) {
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.level == null) return;
+    public static void render(DrawContext graphics, RenderTickCounter tickCounter) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null) return;
         ArrayListModule module = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
         if (module == null || !module.enabled()) return;
 
@@ -52,22 +51,22 @@ public final class ArrayListRenderer {
 
         all.removeIf(candidate -> ANIMATION.getOrDefault(candidate.id(), 0.0f) <= 0.01f);
         all.sort(Comparator
-                .comparingInt((Module value) -> client.font.width(label(value, module)))
+                .comparingInt((Module value) -> client.textRenderer.getWidth(label(value, module)))
                 .reversed()
                 .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
         if (all.size() > module.maxModules()) all = all.subList(0, module.maxModules());
-        int viewportW=client.getWindow().getGuiScaledWidth(), viewportH=client.getWindow().getGuiScaledHeight();
+        int viewportW=client.getWindow().getScaledWidth(), viewportH=client.getWindow().getScaledHeight();
         int maxVisible=Math.max(1,(int)Math.floor(Math.max(1,viewportH-12)/(double)Math.max(1,module.spacing())));
         if(all.size()>maxVisible) all=all.subList(0,maxVisible);
-        int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.font.width(label(candidate,module)));
+        int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.textRenderer.getWidth(label(candidate,module)));
         double renderScale=module.scale();
         if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/maxWidth);
         if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
         renderScale=Math.max(0.05,renderScale);
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
-        graphics.pose().scale((float)renderScale, (float)renderScale);
+        graphics.getMatrices().pushMatrix();
+        graphics.getMatrices().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
+        graphics.getMatrices().scale((float)renderScale, (float)renderScale);
 
         int line = module.spacing();
         int padding = module.padding();
@@ -75,7 +74,7 @@ public final class ArrayListRenderer {
             Module candidate = all.get(i);
             float progress = ANIMATION.getOrDefault(candidate.id(), 0.0f);
             String text = label(candidate, module);
-            int width = client.font.width(text);
+            int width = client.textRenderer.getWidth(text);
             int baseX = module.rightAlign() ? -width : 0;
             int slide = Math.round((1.0f - progress) * 12.0f);
             int x = module.rightAlign() ? baseX + slide : baseX - slide;
@@ -87,9 +86,9 @@ public final class ArrayListRenderer {
             }
 
             int color = module.categoryColors() ? module.colorFor(candidate.category()) : module.textColor();
-            graphics.drawString(client.font, text, x, top, applyAlpha(color, progress), module.shadow());
+            graphics.drawText(client.textRenderer, text, x, top, applyAlpha(color, progress), module.shadow());
         }
-        graphics.pose().popMatrix();
+        graphics.getMatrices().popMatrix();
 
         cleanupAnimationState(all);
     }

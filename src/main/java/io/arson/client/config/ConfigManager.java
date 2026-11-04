@@ -11,8 +11,6 @@ import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.StringSetting;
-import net.minecraft.client.Minecraft;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,27 +18,28 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.MinecraftClient;
 
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
     private static final int CONFIG_VERSION = 4;
     private ConfigManager() {}
-    public static void load(Minecraft client, ModuleManager modules) { loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static void save(Minecraft client, ModuleManager modules) { saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
+    public static void load(MinecraftClient client, ModuleManager modules) { loadFromPath(client.runDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    public static void save(MinecraftClient client, ModuleManager modules) { saveToPath(client.runDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    public static boolean saveProfile(MinecraftClient client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
-        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+        Path directory = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         return saveToPath(directory.resolve(safeName + ".json"), modules);
     }
-    public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
+    public static boolean loadProfile(MinecraftClient client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
-        Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
+        Path path = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
         save(client, modules); return true;
     }
-    public static List<String> listProfiles(Minecraft client) {
-        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+    public static List<String> listProfiles(MinecraftClient client) {
+        Path directory = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         if (!Files.isDirectory(directory)) return List.of();
         ArrayList<String> result = new ArrayList<>();
         try (var stream = Files.list(directory)) {
@@ -50,9 +49,9 @@ public final class ConfigManager {
         } catch (IOException ignored) {}
         return List.copyOf(result);
     }
-    public static boolean deleteProfile(Minecraft client, String profileName) {
+    public static boolean deleteProfile(MinecraftClient client, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
-        Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
+        Path path = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         try { return Files.deleteIfExists(path); } catch (IOException ignored) { return false; }
     }
     static boolean loadFromPath(Path path, ModuleManager modules) {

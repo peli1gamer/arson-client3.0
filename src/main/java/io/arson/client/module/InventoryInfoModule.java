@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Reports local inventory occupancy and selected-slot state for HUD integrations. */
 public final class InventoryInfoModule extends Module {
@@ -15,7 +15,7 @@ public final class InventoryInfoModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
+    protected void onTick(MinecraftClient client) {
         if (client.player == null) {
             occupied = 0;
             capacity = 0;
@@ -24,14 +24,14 @@ public final class InventoryInfoModule extends Module {
             return;
         }
         var inventory = client.player.getInventory();
-        capacity = inventory.getContainerSize();
+        capacity = inventory.size();
         occupied = 0;
         for (int i = 0; i < capacity; i++) {
-            if (!inventory.getItem(i).isEmpty()) occupied++;
+            if (!inventory.getStack(i).isEmpty()) occupied++;
         }
         selectedSlot = inventory.getSelectedSlot() + 1;
-        var stack = client.player.getMainHandItem();
-        selectedItem = stack.isEmpty() ? "Empty" : stack.getHoverName().getString();
+        var stack = client.player.getMainHandStack();
+        selectedItem = stack.isEmpty() ? "Empty" : stack.getName().getString();
     }
 
     public int occupied() { return occupied; }

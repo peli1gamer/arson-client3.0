@@ -39,12 +39,12 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,7 +53,7 @@ public final class ArsonClient implements ClientModInitializer {
     public static final String MOD_ID = "arson";
     private static ArsonClient instance;
     private ModuleManager moduleManager;
-    private KeyMapping openMenuKey;
+    private KeyBinding openMenuKey;
     private WorldRenderBridge worldRenderBridge;
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
@@ -65,14 +65,14 @@ public final class ArsonClient implements ClientModInitializer {
         instance = this;
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
-        KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
-        openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.arson.open_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
+        KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
+        openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arson.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         ArsonCommand.register();
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "array_list"), ArrayListRenderer::render);
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"), CombatInfoRenderer::render);
+        HudElementRegistry.addLast(Identifier.of(MOD_ID, "hud"), HudRenderer::render);
+        HudElementRegistry.addLast(Identifier.of(MOD_ID, "array_list"), ArrayListRenderer::render);
+        HudElementRegistry.addLast(Identifier.of(MOD_ID, "combat_info"), CombatInfoRenderer::render);
 
-        Minecraft client = Minecraft.getInstance();
+        MinecraftClient client = MinecraftClient.getInstance();
         featureContext = new FeatureContext();
         contextAdapter = new FabricFeatureContextAdapter(client);
         contextAdapter.initialize(featureContext);
@@ -92,8 +92,8 @@ public final class ArsonClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             contextAdapter.tick(featureContext);
-            while (openMenuKey.consumeClick()) {
-                Screen current = clientTick.screen;
+            while (openMenuKey.wasPressed()) {
+                Screen current = clientTick.currentScreen;
                 clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
                 NotificationCenter.push("Arson", current instanceof ArsonScreen ? "GUI closed" : "GUI opened");
             }
@@ -102,21 +102,21 @@ public final class ArsonClient implements ClientModInitializer {
             runRuntimeSmoke(clientTick);
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
+            if (clientTick.player != null && clientTick.world != null && clientTick.world.getTime() % 200 == 0) saveConfig();
         });
         ConfigManager.load(client, moduleManager);
-        if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
+        if (client.player != null) client.player.sendMessage(Text.literal("Arson V3 initialized"), true);
     }
 
-    public void saveConfig() { ConfigManager.save(Minecraft.getInstance(), moduleManager); }
+    public void saveConfig() { ConfigManager.save(MinecraftClient.getInstance(), moduleManager); }
 
-    private void runRuntimeSmoke(Minecraft client) {
+    private void runRuntimeSmoke(MinecraftClient client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
         if (limit <= 0) return;
         runtimeSmokeTick++;
-        if (runtimeSmokeTick == 20) client.setScreen(new ArsonScreen(client.screen));
+        if (runtimeSmokeTick == 20) client.setScreen(new ArsonScreen(client.currentScreen));
         if (runtimeSmokeTick == 50) client.setScreen(null);
-        if (runtimeSmokeTick >= limit) client.stop();
+        if (runtimeSmokeTick >= limit) client.scheduleStop();
     }
 
     static boolean consumeModuleKeyPress(Map<String, Boolean> keyStates, Module module, boolean down) {
@@ -126,9 +126,9 @@ public final class ArsonClient implements ClientModInitializer {
         return down && !wasDown;
     }
 
-    private void processModuleKeybinds(Minecraft client) {
-        if (client.getWindow() == null || client.screen != null) return;
-        long window = client.getWindow().handle();
+    private void processModuleKeybinds(MinecraftClient client) {
+        if (client.getWindow() == null || client.currentScreen != null) return;
+        long window = client.getWindow().getHandle();
         for (Module module : moduleManager.all()) {
             int keyCode = module.keyCode();
             if (keyCode <= 0) continue;

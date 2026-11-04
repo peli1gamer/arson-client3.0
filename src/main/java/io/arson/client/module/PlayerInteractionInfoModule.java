@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Live local interaction-target telemetry; it never performs an interaction. */
 public final class PlayerInteractionInfoModule extends Module {
@@ -12,11 +12,11 @@ public final class PlayerInteractionInfoModule extends Module {
                 "Reports the local crosshair entity target and distance without issuing interactions.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         target = "None";
         distance = 0;
-        if (client.player == null || client.crosshairPickEntity == null) return;
-        var entity = client.crosshairPickEntity;
+        if (client.player == null || client.targetedEntity == null) return;
+        var entity = client.targetedEntity;
         target = entity.getType().toString();
         distance = client.player.distanceTo(entity);
     }
