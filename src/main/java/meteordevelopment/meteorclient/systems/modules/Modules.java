@@ -93,6 +93,12 @@ public class Modules extends meteordevelopment.meteorclient.systems.System<Modul
         return modules.size();
     }
 
+    @Override
+    public void load(java.io.File folder) {
+        for (Module module : getAll()) module.settings.reset();
+        super.load(folder);
+    }
+
     public void sortModules() {
         for (List<Module> group : groups.values()) {
             group.sort(Comparator.comparing(module -> module.title, String.CASE_INSENSITIVE_ORDER));
