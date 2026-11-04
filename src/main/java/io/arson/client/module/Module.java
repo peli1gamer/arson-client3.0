@@ -16,7 +16,7 @@ import net.minecraft.client.MinecraftClient;
  * the activation aliases and grouped settings provide the compatibility surface
  * needed while Meteor-derived modules are ported.
  */
-public abstract class Module {
+public abstract class Module extends meteordevelopment.meteorclient.systems.modules.Module {
     private final String id;
     private final String name;
     private final Category category;
@@ -25,8 +25,6 @@ public abstract class Module {
     private final List<Setting<?>> settings = new ArrayList<>();
     private final List<SettingGroup> settingGroups = new ArrayList<>();
     private final SettingGroup defaultGroup = new SettingGroup("general", "General", "General module settings.");
-    private boolean enabled;
-    private boolean favorite;
     private int keyCode;
 
     /** Mirrors Meteor's option to keep a module active while the game is in menus. */
@@ -40,38 +38,12 @@ public abstract class Module {
     protected Module(String id, String name, Category category, String description) { this(id, name, category, description, 0); }
     protected Module(String id, String name, Category category, int defaultKeyCode) { this(id, name, category, "", defaultKeyCode); }
     protected Module(String id, String name, Category category, String description, int defaultKeyCode) {
+        super(meteorCategory(category), name, description);
         this.id = id;
-        this.name = name;
-        this.category = category;
-        this.meteorCategory = switch (category) {
-            case COMBAT -> Categories.Combat;
-            case MOVEMENT -> Categories.Movement;
-            case RENDER -> Categories.Render;
-            case PLAYER -> Categories.Player;
-            case WORLD -> Categories.World;
-            case MISC -> Categories.Misc;
-        };
-        this.description = description == null ? "" : description;
+        this.arsonCategory = category;
         this.keyCode = Math.max(0, defaultKeyCode);
         settingGroups.add(defaultGroup);
     }
-
-    public final void setEnabled(boolean enabled) {
-        if (this.enabled == enabled) return;
-        this.enabled = enabled;
-        if (enabled) {
-            MeteorClient.EVENT_BUS.subscribe(this);
-            onActivate();
-        } else {
-            MeteorClient.EVENT_BUS.unsubscribe(this);
-            onDeactivate();
-        }
-    }
-
-    public final void toggle() { setEnabled(!enabled); }
-    public final void enable() { setEnabled(true); }
-    public final void disable() { setEnabled(false); }
-    public final boolean isActive() { return enabled; }
 
     public final void resetSettings() {
         for (Setting<?> setting : settings) setting.reset();
@@ -116,16 +88,16 @@ public abstract class Module {
     protected void onEnable() {}
     protected void onDisable() {}
     protected void onTick(MinecraftClient client) {}
-    public void onActivate() { onEnable(); }
-    public void onDeactivate() { onDisable(); }
+    @Override public void onActivate() { onEnable(); }
+    @Override public void onDeactivate() { onDisable(); }
 
     public String id() { return id; }
     public String name() { return name; }
-    public Category category() { return category; }
-    public meteordevelopment.meteorclient.systems.modules.Category meteorCategory() { return meteorCategory; }
+    public Category category() { return arsonCategory; }
+    public meteordevelopment.meteorclient.systems.modules.Category meteorCategory() { return category; }
     public String description() { return description; }
-    public String help() { return description.isBlank() ? name + " [" + category.displayName() + "]" : name + " [" + category.displayName() + "]: " + description; }
-    public boolean enabled() { return enabled; }
+    public String help() { return description.isBlank() ? name + " [" + arsonCategory.displayName() + "]" : name + " [" + arsonCategory.displayName() + "]: " + description; }
+    public boolean enabled() { return isActive(); }
     public boolean favorite() { return favorite; }
     public void setFavorite(boolean favorite) { this.favorite = favorite; }
     public int keyCode() { return keyCode; }
@@ -135,7 +107,7 @@ public abstract class Module {
     public List<SettingGroup> settingGroups() { return Collections.unmodifiableList(settingGroups); }
     public SettingGroup defaultGroup() { return defaultGroup; }
 
-    public enum Category {
+    private static meteordevelopment.meteorclient.systems.modules.Category meteorCategory(Category category) {\n        return switch (category) {\n            case COMBAT -> Categories.Combat;\n            case MOVEMENT -> Categories.Movement;\n            case RENDER -> Categories.Render;\n            case PLAYER -> Categories.Player;\n            case WORLD -> Categories.World;\n            case MISC -> Categories.Misc;\n        };\n    }\n\n    public enum Category {
         COMBAT("Combat"), MOVEMENT("Movement"), RENDER("Render"), PLAYER("Player"), WORLD("World"), MISC("Misc");
         private final String displayName;
         Category(String displayName) { this.displayName = displayName; }
