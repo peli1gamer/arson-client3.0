@@ -2,7 +2,6 @@ package io.arson.client.module;
 
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
-import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,33 +9,31 @@ import java.util.List;
 import net.minecraft.client.MinecraftClient;
 
 /**
- * Meteor-compatible module lifecycle and setting-group foundation.
+ * Arson adapter over Meteor's module base.
  *
- * Arson keeps its existing Mojang-mapped Minecraft runtime and public accessors;
- * the activation aliases and grouped settings provide the compatibility surface
- * needed while Meteor-derived modules are ported.
+ * The upstream lifecycle and Orbit subscription are inherited; Arson-specific
+ * identifiers, settings, keybind storage and legacy hooks remain here.
  */
 public abstract class Module extends meteordevelopment.meteorclient.systems.modules.Module {
     private final String id;
-    private final String name;
-    private final Category category;
-    private final meteordevelopment.meteorclient.systems.modules.Category meteorCategory;
-    private final String description;
+    private final Category arsonCategory;
     private final List<Setting<?>> settings = new ArrayList<>();
     private final List<SettingGroup> settingGroups = new ArrayList<>();
     private final SettingGroup defaultGroup = new SettingGroup("general", "General", "General module settings.");
     private int keyCode;
 
-    /** Mirrors Meteor's option to keep a module active while the game is in menus. */
-    public boolean runInMainMenu;
-    /** Mirrors Meteor's module chat-feedback preference. */
-    public boolean chatFeedback = true;
-    /** Mirrors Meteor's keybind-release toggle option. */
-    public boolean toggleOnBindRelease;
+    protected Module(String id, String name, Category category) {
+        this(id, name, category, "");
+    }
 
-    protected Module(String id, String name, Category category) { this(id, name, category, ""); }
-    protected Module(String id, String name, Category category, String description) { this(id, name, category, description, 0); }
-    protected Module(String id, String name, Category category, int defaultKeyCode) { this(id, name, category, "", defaultKeyCode); }
+    protected Module(String id, String name, Category category, String description) {
+        this(id, name, category, description, 0);
+    }
+
+    protected Module(String id, String name, Category category, int defaultKeyCode) {
+        this(id, name, category, "", defaultKeyCode);
+    }
+
     protected Module(String id, String name, Category category, String description, int defaultKeyCode) {
         super(meteorCategory(category), name, description);
         this.id = id;
@@ -59,7 +56,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     }
 
     public final void tick(MinecraftClient client) {
-        if (enabled) onTick(client);
+        if (isActive()) onTick(client);
     }
 
     protected final <T extends Setting<?>> T setting(T setting) {
@@ -84,19 +81,35 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
         return setting;
     }
 
-    /** Legacy Arson hooks remain supported by the Meteor-style lifecycle aliases. */
-    protected void onEnable() {}
-    protected void onDisable() {}
-    protected void onTick(MinecraftClient client) {}
-    @Override public void onActivate() { onEnable(); }
-    @Override public void onDeactivate() { onDisable(); }
+    protected void onEnable() {
+    }
+
+    protected void onDisable() {
+    }
+
+    protected void onTick(MinecraftClient client) {
+    }
+
+    @Override
+    public void onActivate() {
+        onEnable();
+    }
+
+    @Override
+    public void onDeactivate() {
+        onDisable();
+    }
 
     public String id() { return id; }
     public String name() { return name; }
     public Category category() { return arsonCategory; }
     public meteordevelopment.meteorclient.systems.modules.Category meteorCategory() { return category; }
     public String description() { return description; }
-    public String help() { return description.isBlank() ? name + " [" + arsonCategory.displayName() + "]" : name + " [" + arsonCategory.displayName() + "]: " + description; }
+    public String help() {
+        return description.isBlank()
+            ? name + " [" + arsonCategory.displayName() + "]"
+            : name + " [" + arsonCategory.displayName() + "]: " + description;
+    }
     public boolean enabled() { return isActive(); }
     public boolean favorite() { return favorite; }
     public void setFavorite(boolean favorite) { this.favorite = favorite; }
@@ -107,10 +120,33 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     public List<SettingGroup> settingGroups() { return Collections.unmodifiableList(settingGroups); }
     public SettingGroup defaultGroup() { return defaultGroup; }
 
-    private static meteordevelopment.meteorclient.systems.modules.Category meteorCategory(Category category) {\n        return switch (category) {\n            case COMBAT -> Categories.Combat;\n            case MOVEMENT -> Categories.Movement;\n            case RENDER -> Categories.Render;\n            case PLAYER -> Categories.Player;\n            case WORLD -> Categories.World;\n            case MISC -> Categories.Misc;\n        };\n    }\n\n    public enum Category {
-        COMBAT("Combat"), MOVEMENT("Movement"), RENDER("Render"), PLAYER("Player"), WORLD("World"), MISC("Misc");
+    private static meteordevelopment.meteorclient.systems.modules.Category meteorCategory(Category category) {
+        return switch (category) {
+            case COMBAT -> Categories.Combat;
+            case MOVEMENT -> Categories.Movement;
+            case RENDER -> Categories.Render;
+            case PLAYER -> Categories.Player;
+            case WORLD -> Categories.World;
+            case MISC -> Categories.Misc;
+        };
+    }
+
+    public enum Category {
+        COMBAT("Combat"),
+        MOVEMENT("Movement"),
+        RENDER("Render"),
+        PLAYER("Player"),
+        WORLD("World"),
+        MISC("Misc");
+
         private final String displayName;
-        Category(String displayName) { this.displayName = displayName; }
-        public String displayName() { return displayName; }
+
+        Category(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String displayName() {
+            return displayName;
+        }
     }
 }
