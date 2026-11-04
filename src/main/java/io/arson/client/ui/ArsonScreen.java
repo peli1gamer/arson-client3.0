@@ -6,10 +6,7 @@ import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.HudModule;
 import io.arson.client.module.Module;
 import io.arson.client.notification.NotificationCenter;
-import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
-import io.arson.client.settings.DoubleSetting;
-import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
 import io.arson.client.settings.StringSetting;
@@ -238,38 +235,20 @@ public final class ArsonScreen extends Screen {
                 y += 11;
             }
             if (y + 20 > bottom) break;
-            if (setting instanceof BooleanSetting bs) {
-                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + (bs.enabled() ? "ON" : "OFF")),
-                        b -> { bs.set(!bs.enabled()); saveConfig(); refreshWidgets(); })
-                        .dimensions(x, y, w, 20).build());
-            } else if (setting instanceof DoubleSetting ds) {
-                addDrawableChild(new DoubleSettingSlider(x, y, w, 20, ds, this::saveConfig));
-            } else if (setting instanceof EnumSetting<?> es) {
-                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + pretty(es.get())),
-                        b -> { es.cycle(1); saveConfig(); refreshWidgets(); })
-                        .dimensions(x, y, w, 20).build());
-            } else if (setting instanceof ColorSetting cs) {
-                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  #" + String.format(Locale.ROOT, "%08X", cs.get())),
-                        b -> { editingColor = cs; editingString = null; refreshWidgets(); })
-                        .dimensions(x, y, w, 20).build());
-            } else if (setting instanceof StringSetting ss) {
-                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + ss.get()),
-                        b -> { editingString = ss; editingColor = null; refreshWidgets(); })
-                        .dimensions(x, y, w, 20).build());
-            } else {
-                addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + String.valueOf(setting.get())),
-                        b -> {}).dimensions(x, y, w, 20).build());
-            }
+            addDrawableChild(SettingWidgetFactory.createRow(setting, x, y, w, 20, () -> {
+                saveConfig();
+                refreshWidgets();
+            }, edited -> {
+                editingString = edited instanceof StringSetting string ? string : null;
+                editingColor = edited instanceof ColorSetting color ? color : null;
+                refreshWidgets();
+            }));
             y += rowHeight;
         }
 
         if (editingString != null || editingColor != null) {
-            valueEditor = new TextFieldWidget(textRenderer, x, settingsY() + 28, Math.max(80, w - 56), 18,
-                    Text.literal(editingString != null ? editingString.name() : editingColor.name()));
-            valueEditor.setMaxLength(128);
-            valueEditor.setText(editValue.isEmpty()
-                    ? editingString != null ? editingString.get() : String.format(Locale.ROOT, "%08X", editingColor.get())
-                    : editValue);
+            valueEditor = SettingWidgetFactory.createEditor(textRenderer, x, settingsY() + 28,
+                    Math.max(80, w - 56), 18, editingString, editingColor, editValue);
             addDrawableChild(valueEditor);
             addDrawableChild(ButtonWidget.builder(Text.literal("Apply"), b -> applyEdit())
                     .dimensions(x + w - 50, settingsY() + 28, 50, 18).build());
