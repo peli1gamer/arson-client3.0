@@ -34,9 +34,9 @@ public final class HudEditorScreen extends Screen {
         repairLayout();
         for(int i=0;i<ELEMENTS.length;i++){final String e=ELEMENTS[i];addRenderableWidget(Button.builder(Component.literal((selection.contains(e)?"> ":"")+e),b->{selection.select(e,false);rebuild();}).bounds(10+i*92,45,88,22).build());}
         int y=78;
-        addRenderableWidget(Button.builder(Component.literal("Visible: "+(allVisible()?"ON":"MIXED")),b->{toggleVisible();save();rebuild();}).bounds(10,y,120,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale -"),b->{adjustScale(-.05);save();rebuild();}).bounds(135,y,70,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Scale +"),b->{adjustScale(.05);save();rebuild();}).bounds(210,y,70,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Visible: "+(allVisible()?"ON":"MIXED")),b->{toggleVisible();repairLayout();save();rebuild();}).bounds(10,y,120,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Scale -"),b->{adjustScale(-.05);repairLayout();save();rebuild();}).bounds(135,y,70,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Scale +"),b->{adjustScale(.05);repairLayout();save();rebuild();}).bounds(210,y,70,22).build());
         addRenderableWidget(Button.builder(Component.literal("Align"),b->{cycleAlignment();save();rebuild();}).bounds(285,y,70,22).build());
         addRenderableWidget(Button.builder(Component.literal("Anchor"),b->{anchorSelected();save();rebuild();}).bounds(360,y,75,22).build());
         addRenderableWidget(Button.builder(Component.literal("Copy"),b->{copySelected();rebuild();}).bounds(440,y,60,22).build());
@@ -52,7 +52,7 @@ public final class HudEditorScreen extends Screen {
     private void repairLayout(){
         if(layout==null)return;
         if(arrayList!=null) layout.setArrayListPreferredPosition(arrayList.x(),arrayList.y());
-        if(layout.repairNoOverlap(width,height,hud.scale(),Math.max(90,Math.min(width/2,220)),Math.max(24,Math.min(height/2,320)),arrayList)) save();
+        if(layout.repairNoOverlap(width,height,hud.scale(),Math.max(90,Math.min(width/2,220)),Math.max(24,Math.min(height/2,320)),arrayList,hud)) save();
     }
     private boolean visible(String e){return "array-list".equals(e)?arrayList!=null&&arrayList.enabled():hud.elementVisible(e);}
     private boolean allVisible(){if(selection.size()==0)return false;for(String e:selection.elements())if(!visible(e))return false;return true;}
