@@ -12,6 +12,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 import meteordevelopment.meteorclient.systems.Systems;
 
 public class Modules extends meteordevelopment.meteorclient.systems.System<Modules> {
@@ -98,5 +101,29 @@ public class Modules extends meteordevelopment.meteorclient.systems.System<Modul
 
     public void disableAll() {
         for (Module module : getAll()) module.disable();
+    }
+
+    @Override
+    public NbtCompound toTag() {
+        NbtCompound tag = new NbtCompound();
+        NbtList list = new NbtList();
+        for (Module module : getAll()) {
+            NbtCompound moduleTag = module.toTag();
+            if (moduleTag != null) list.add(moduleTag);
+        }
+        tag.put("modules", list);
+        return tag;
+    }
+
+    @Override
+    public Modules fromTag(NbtCompound tag) {
+        disableAll();
+        NbtList list = tag.getListOrEmpty("modules");
+        for (NbtElement element : list) {
+            if (!(element instanceof NbtCompound moduleTag)) continue;
+            Module module = get(moduleTag.getString("name", ""));
+            if (module != null) module.fromTag(moduleTag);
+        }
+        return this;
     }
 }
