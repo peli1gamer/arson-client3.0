@@ -49,7 +49,7 @@ public final class HudEditorScreen extends Screen {
         if (hud == null) return;
         repairLayout();
 
-        int leftX = 12, leftY = 58, leftW = 154;
+        int leftX = width < 520 ? 8 : 12, leftY = 58, leftW = width < 520 ? 96 : 154;
         for (int i = 0; i < ELEMENTS.length; i++) {
             String element = ELEMENTS[i];
             int rowY = leftY + i * 25;
@@ -108,9 +108,9 @@ public final class HudEditorScreen extends Screen {
                 .bounds(width - 78, height - 30, 66, 21).build());
     }
 
-    private int rightWidth() { return Math.max(142, Math.min(180, width / 4)); }
-    private int rightX() { return width - rightWidth() - 12; }
-    private int canvasLeft() { return 178; }
+    private int rightWidth() { return width < 520 ? 120 : Math.max(142, Math.min(180, width / 4)); }
+    private int rightX() { return width - rightWidth() - (width < 520 ? 8 : 12); }
+    private int canvasLeft() { return width < 520 ? 112 : 178; }
     private int canvasRight() { return rightX() - 12; }
     private int canvasTop() { return 42; }
     private int canvasBottom() { return height - 12; }
@@ -387,12 +387,14 @@ public final class HudEditorScreen extends Screen {
         graphics.fill(0, 0, width, height, 0xA6000000);
         graphics.fill(0, 0, width, 30, 0xF010131A);
         graphics.drawString(font, "HUD EDITOR", 14, 10, 0xFFFFFFFF);
-        graphics.drawString(font, "Drag elements  •  Shift-click to group  •  Ctrl+C / Ctrl+V / Ctrl+D",
-                116, 10, 0xFF8995A4);
+        String help = width < 520 ? "Drag • Shift group • Ctrl+C/V/D" : "Drag elements  •  Shift-click to group  •  Ctrl+C / Ctrl+V / Ctrl+D";
+        graphics.drawString(font, help, width < 520 ? 116 : 178, 10, 0xFF8995A4);
 
-        graphics.fill(12, 34, 166, height - 12, 0xE510141C);
-        graphics.renderOutline(12, 34, 154, height - 46, 0xFF35404E);
-        graphics.drawString(font, "ELEMENTS", 22, 43, 0xFFB9C4D2);
+        int leftX = width < 520 ? 8 : 12;
+        int leftW = width < 520 ? 96 : 154;
+        graphics.fill(leftX, 34, leftX + leftW, height - 12, 0xE510141C);
+        graphics.renderOutline(leftX, 34, leftW, height - 46, 0xFF35404E);
+        graphics.drawString(font, "ELEMENTS", leftX + 10, 43, 0xFFB9C4D2);
 
         int rightX = rightX(), rightW = rightWidth();
         graphics.fill(rightX, 34, rightX + rightW, height - 12, 0xE510141C);
