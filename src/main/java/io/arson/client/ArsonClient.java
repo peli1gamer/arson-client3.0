@@ -36,6 +36,7 @@ import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.events.world.TickEvent;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -92,6 +93,8 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
         worldRenderBridge.attach();
 
+        ClientTickEvents.START_CLIENT_TICK.register(clientTick ->
+            MeteorClient.EVENT_BUS.post(TickEvent.Pre.get()));
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             contextAdapter.tick(featureContext);
             while (openMenuKey.wasPressed()) {
@@ -102,6 +105,7 @@ public final class ArsonClient implements ClientModInitializer {
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
             runRuntimeSmoke(clientTick);
+            MeteorClient.EVENT_BUS.post(TickEvent.Post.get());
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.world != null && clientTick.world.getTime() % 200 == 0) saveConfig();
