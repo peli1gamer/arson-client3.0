@@ -1,0 +1,2 @@
+This marker requests the one-time Loom migration from Mojang mappings to Yarn 1.21.11+build.3.
+The migration workflow removes this file after converting main and test sources.
