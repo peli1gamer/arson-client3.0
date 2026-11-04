@@ -13,10 +13,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Modules {
+public class Modules extends meteordevelopment.meteorclient.systems.System<Modules> {
     protected final Map<String, Module> modules = new LinkedHashMap<>();
     private final Map<Category, List<Module>> groups = new LinkedHashMap<>();
     private final List<Module> active = new ArrayList<>();
+
+    public Modules() {
+        super("modules");
+    }
 
     protected String key(Module module) {
         return module.name.toLowerCase(java.util.Locale.ROOT);
