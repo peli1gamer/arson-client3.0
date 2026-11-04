@@ -68,7 +68,7 @@ public final class ArsonScreen extends Screen {
     @Override
     protected void init() {
         syncPreferences();
-        rebuildWidgets();
+        refreshWidgets();
     }
 
     private void syncPreferences() {
@@ -96,7 +96,7 @@ public final class ArsonScreen extends Screen {
         saveConfig();
     }
 
-    private void rebuildWidgets() {
+    private void refreshWidgets() {
         String searchValue = search == null ? "" : search.getValue();
         String profileValue = profile == null ? "" : profile.getValue();
         String editValue = valueEditor == null ? "" : valueEditor.getValue();
@@ -124,25 +124,25 @@ public final class ArsonScreen extends Screen {
                 ClickGuiPreferencesModule.Theme[] themes = ClickGuiPreferencesModule.Theme.values();
                 theme = themes[(theme.ordinal() + 1) % themes.length];
                 savePreferences();
-                rebuildWidgets();
+                refreshWidgets();
             }).bounds(width - 216, headerY, 54, 22).build());
 
             addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
                 favoritesOnly = !favoritesOnly;
                 savePreferences();
-                rebuildWidgets();
+                refreshWidgets();
             }).bounds(width - 156, headerY, 28, 22).build());
 
             addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "ON" : "ALL"), b -> {
                 enabledOnly = !enabledOnly;
                 savePreferences();
-                rebuildWidgets();
+                refreshWidgets();
             }).bounds(width - 124, headerY, 38, 22).build());
 
             addRenderableWidget(Button.builder(Component.literal(alphabetical ? "A-Z" : "Smart"), b -> {
                 alphabetical = !alphabetical;
                 savePreferences();
-                rebuildWidgets();
+                refreshWidgets();
             }).bounds(width - 80, headerY, 48, 22).build());
         }
 
@@ -171,7 +171,7 @@ public final class ArsonScreen extends Screen {
             String[] labels = {"CMB", "MOV", "REN", "PLY", "WRL", "MSC"};
             addRenderableWidget(Button.builder(Component.literal(labels[category.ordinal()]), b -> {
                 activeCategory = chosen;
-                rebuildWidgets();
+                refreshWidgets();
             }).bounds(x, y, tabWidth - 2, 18).build());
             x += tabWidth;
         }
@@ -187,18 +187,18 @@ public final class ArsonScreen extends Screen {
                 b -> {
                     selected.setFavorite(!selected.favorite());
                     saveConfig();
-                    rebuildWidgets();
+                    refreshWidgets();
                 }).bounds(x + 80, y, 86, 20).build());
         addRenderableWidget(Button.builder(Component.literal(bindingModule == selected ? "Press a key" : "Bind"),
                 b -> {
                     bindingModule = selected;
-                    rebuildWidgets();
+                    refreshWidgets();
                 }).bounds(x + 172, y, Math.max(42, w - 172), 20).build());
         y += 26;
         addRenderableWidget(Button.builder(Component.literal("Reset settings"), b -> {
             selected.resetSettings();
             saveConfig();
-            rebuildWidgets();
+            refreshWidgets();
         }).bounds(x, y, w, 20).build());
         y += 25;
 
@@ -216,21 +216,21 @@ public final class ArsonScreen extends Screen {
             }
             if (setting instanceof BooleanSetting bs) {
                 addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + (bs.enabled() ? "ON" : "OFF")),
-                        b -> { bs.set(!bs.enabled()); saveConfig(); rebuildWidgets(); })
+                        b -> { bs.set(!bs.enabled()); saveConfig(); refreshWidgets(); })
                         .bounds(x, y, w, 20).build());
             } else if (setting instanceof DoubleSetting ds) {
                 addRenderableWidget(new DoubleSettingSlider(x, y, w, 20, ds, this::saveConfig));
             } else if (setting instanceof EnumSetting<?> es) {
                 addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + pretty(es.get())),
-                        b -> { es.cycle(1); saveConfig(); rebuildWidgets(); })
+                        b -> { es.cycle(1); saveConfig(); refreshWidgets(); })
                         .bounds(x, y, w, 20).build());
             } else if (setting instanceof ColorSetting cs) {
                 addRenderableWidget(Button.builder(Component.literal(setting.name() + "  #" + String.format(Locale.ROOT, "%08X", cs.get())),
-                        b -> { editingColor = cs; editingString = null; rebuildWidgets(); })
+                        b -> { editingColor = cs; editingString = null; refreshWidgets(); })
                         .bounds(x, y, w, 20).build());
             } else if (setting instanceof StringSetting ss) {
                 addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + ss.get()),
-                        b -> { editingString = ss; editingColor = null; rebuildWidgets(); })
+                        b -> { editingString = ss; editingColor = null; refreshWidgets(); })
                         .bounds(x, y, w, 20).build());
             } else {
                 addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + String.valueOf(setting.get())),
@@ -425,7 +425,7 @@ public final class ArsonScreen extends Screen {
         selected.toggle();
         NotificationCenter.push(selected.name(), selected.enabled() ? "Enabled" : "Disabled");
         saveConfig();
-        rebuildWidgets();
+        refreshWidgets();
     }
 
     private void applyEdit() {
@@ -445,7 +445,7 @@ public final class ArsonScreen extends Screen {
         editingString = null;
         editingColor = null;
         saveConfig();
-        rebuildWidgets();
+        refreshWidgets();
     }
 
     private void saveConfig() {
@@ -463,7 +463,7 @@ public final class ArsonScreen extends Screen {
         if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
         if (ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) {
             NotificationCenter.push("Profile", "Loaded " + profile.getValue());
-            rebuildWidgets();
+            refreshWidgets();
         } else NotificationCenter.push("Profile", "Profile not found or invalid");
     }
 
@@ -491,7 +491,7 @@ public final class ArsonScreen extends Screen {
             selected = null;
             editingString = null;
             editingColor = null;
-            rebuildWidgets();
+            refreshWidgets();
             return true;
         }
         if (selected != null && event.x() >= settingsX() && event.x() <= settingsX() + settingsWidth()
@@ -500,7 +500,7 @@ public final class ArsonScreen extends Screen {
             int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
             int index = Math.max(0, Math.min(Module.Category.values().length - 1, (int) ((event.x() - 12) / tabWidth)));
             activeCategory = Module.Category.values()[index];
-            rebuildWidgets();
+            refreshWidgets();
             return true;
         }
         for (int i = 0; i < windowCount(); i++) {
@@ -529,17 +529,17 @@ public final class ArsonScreen extends Screen {
                         module.toggle();
                         NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
                         saveConfig();
-                        rebuildWidgets();
+                        refreshWidgets();
                     } else if (event.button() == 1) {
                         selected = module;
                         settingsScroll = 0;
                         editingString = null;
                         editingColor = null;
-                        rebuildWidgets();
+                        refreshWidgets();
                     } else if (event.button() == 2) {
                         module.setFavorite(!module.favorite());
                         saveConfig();
-                        rebuildWidgets();
+                        refreshWidgets();
                     }
                     return true;
                 }
@@ -581,7 +581,7 @@ public final class ArsonScreen extends Screen {
         if (selected != null && mouseX >= settingsX() && mouseX <= settingsX() + settingsWidth()
                 && mouseY >= settingsY() && mouseY <= settingsY() + settingsHeight()) {
             settingsScroll = Math.max(0, settingsScroll + (vertical > 0 ? -1 : 1));
-            rebuildWidgets();
+            refreshWidgets();
             return true;
         }
         for (int i = 0; i < windowCount(); i++) {
@@ -601,14 +601,14 @@ public final class ArsonScreen extends Screen {
         if (bindingModule != null) {
             if (key == GLFW.GLFW_KEY_ESCAPE) {
                 bindingModule = null;
-                rebuildWidgets();
+                refreshWidgets();
                 return true;
             }
             bindingModule.setKeyCode(key);
             NotificationCenter.push(bindingModule.name(), "Keybind updated");
             bindingModule = null;
             saveConfig();
-            rebuildWidgets();
+            refreshWidgets();
             return true;
         }
         if (key == GLFW.GLFW_KEY_ESCAPE) {
@@ -632,7 +632,7 @@ public final class ArsonScreen extends Screen {
                 Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
                 windowScroll[category.ordinal()] = 0;
             }
-            rebuildWidgets();
+            refreshWidgets();
         }
         return handled;
     }
