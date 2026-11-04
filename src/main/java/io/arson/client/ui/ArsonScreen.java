@@ -635,20 +635,6 @@ public final class ArsonScreen extends Screen {
     @Override
     public boolean charTyped(CharacterEvent event) {
         boolean handled = super.charTyped(event);
-        if (search != null && search.isFocused()) {
-            searchFocused = true;
-            for (int i = 0; i < windowCount(); i++) {
-                Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
-                windowScroll[category.ordinal()] = 0;
-            }
-            refreshWidgets();
-        }
-        return handled;
-    }
-
-    @Override
-    public boolean charTyped(CharacterEvent event) {
-        boolean handled = super.charTyped(event);
         if (handled && search != null && search.isFocused()) {
             searchFocused = true;
             for (int i = 0; i < windowCount(); i++) {
