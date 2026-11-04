@@ -21,13 +21,9 @@ public final class MeteorClient {
 
     public static void initialize(MinecraftClient client) {
         mc = client;
-        try {
-            EVENT_BUS.registerLambdaFactory("io.arson.client", (lookupInMethod, klass) ->
-                (MethodHandles.Lookup) lookupInMethod.invoke(null, klass, MethodHandles.lookup()));
-            EVENT_BUS.registerLambdaFactory("meteordevelopment.meteorclient", (lookupInMethod, klass) ->
-                (MethodHandles.Lookup) lookupInMethod.invoke(null, klass, MethodHandles.lookup()));
-        } catch (IllegalAccessException exception) {
-            throw new IllegalStateException("Unable to initialize Meteor Orbit event dispatch", exception);
-        }
+        EVENT_BUS.registerLambdaFactory("io.arson.client", (lookupInMethod, klass) ->
+            (MethodHandles.Lookup) lookupInMethod.invoke(null, klass, MethodHandles.lookup()));
+        EVENT_BUS.registerLambdaFactory("meteordevelopment.meteorclient", (lookupInMethod, klass) ->
+            (MethodHandles.Lookup) lookupInMethod.invoke(null, klass, MethodHandles.lookup()));
     }
 }
