@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 
 public class SettingGroup implements Iterable<Setting<?>> {
     public final String name;
@@ -36,16 +38,32 @@ public class SettingGroup implements Iterable<Setting<?>> {
         return null;
     }
 
+    public boolean wasChanged() {
+        for (Setting<?> setting : settings) if (setting.wasChanged()) return true;
+        return false;
+    }
+
     public NbtCompound toTag() {
         NbtCompound tag = new NbtCompound();
-        for (Setting<?> setting : settings) tag.put(setting.name, setting.toTag());
+        tag.putString("name", name);
+        tag.putBoolean("sectionExpanded", sectionExpanded);
+        NbtList list = new NbtList();
+        for (Setting<?> setting : settings) {
+            if (setting.wasChanged()) list.add(setting.toTag());
+        }
+        if (!list.isEmpty()) tag.put("settings", list);
         return tag;
     }
 
-    public void fromTag(NbtCompound tag) {
-        for (Setting<?> setting : settings) {
-            if (tag.contains(setting.name)) setting.fromTag(tag.getCompoundOrEmpty(setting.name));
+    public SettingGroup fromTag(NbtCompound tag) {
+        sectionExpanded = tag.getBoolean("sectionExpanded", false);
+        NbtList list = tag.getListOrEmpty("settings");
+        for (NbtElement element : list) {
+            if (!(element instanceof NbtCompound settingTag)) continue;
+            Setting<?> setting = get(settingTag.getString("name", ""));
+            if (setting != null) setting.fromTag(settingTag);
         }
+        return this;
     }
 
     @Override
