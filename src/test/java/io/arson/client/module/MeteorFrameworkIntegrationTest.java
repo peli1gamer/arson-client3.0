@@ -4,6 +4,9 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.EnumSetting;
 import meteordevelopment.meteorclient.settings.IntSetting;
+import io.arson.client.settings.BooleanSetting;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
+import org.lwjgl.glfw.GLFW;
 import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.orbit.EventHandler;
@@ -19,9 +22,14 @@ class MeteorFrameworkIntegrationTest {
 
     private static final class EventModule extends Module {
         private final AtomicInteger events = new AtomicInteger();
+        private final BooleanSetting flag = setting(new BooleanSetting("flag", "Flag", true));
 
         private EventModule() {
-            super("event-test", "Event Test", Category.MISC);
+            this("event-test");
+        }
+
+        private EventModule(String id) {
+            super(id, "Event Test", Category.MISC);
         }
 
         @EventHandler
@@ -89,6 +97,24 @@ class MeteorFrameworkIntegrationTest {
         module.disable();
         MeteorClient.EVENT_BUS.post(new Pulse());
         assertEquals(1, module.events.get());
+    }
+
+    @Test
+    void moduleAndSettingsRoundTripThroughMeteorNbtFormat() {
+        EventModule source = new EventModule();
+        source.flag.set(false);
+        source.favorite = true;
+        source.keybind.set(Keybind.fromKeys(GLFW.GLFW_KEY_R, GLFW.GLFW_MOD_CONTROL));
+        source.enable();
+
+        var tag = source.toTag();
+        EventModule restored = new EventModule("event-test-restored");
+        restored.fromTag(tag);
+
+        assertFalse(restored.flag.get());
+        assertTrue(restored.favorite);
+        assertEquals(source.keybind, restored.keybind);
+        assertTrue(restored.isActive());
     }
 
     @Test
