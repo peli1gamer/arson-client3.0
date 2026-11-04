@@ -3,7 +3,7 @@ package io.arson.client;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.command.ArsonCommand;
-import io.arson.client.config.ConfigManager;
+import io.arson.client.config.ArsonConfigSystem;
 import io.arson.client.context.FeatureContext;
 import io.arson.client.module.AimAssistModule;
 import io.arson.client.module.BlockESPModule;
@@ -69,6 +69,7 @@ public final class ArsonClient implements ClientModInitializer {
         MinecraftClient client = MinecraftClient.getInstance();
         MeteorClient.initialize(client);
         moduleManager = Systems.add(new ModuleManager());
+        Systems.add(new ArsonConfigSystem(client, moduleManager));
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arson.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         ArsonCommand.register();
@@ -110,11 +111,10 @@ public final class ArsonClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             if (clientTick.player != null && clientTick.world != null && clientTick.world.getTime() % 200 == 0) saveConfig();
         });
-        ConfigManager.load(client, moduleManager);
         if (client.player != null) client.player.sendMessage(Text.literal("Arson V3 initialized"), true);
     }
 
-    public void saveConfig() { ConfigManager.save(MinecraftClient.getInstance(), moduleManager); }
+    public void saveConfig() { Systems.save(); }
 
     private void runRuntimeSmoke(MinecraftClient client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
