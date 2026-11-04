@@ -29,10 +29,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Migrate main sources from Mojang mappings to Yarn
-        run: ./gradlew migrateMappings --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
+        run: gradle migrateMappings --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
 
       - name: Migrate test sources from Mojang mappings to Yarn
-        run: ./gradlew migrateMappings --input "src/test/java" --output "src/test/java" --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
+        run: gradle migrateMappings --input "src/test/java" --output "src/test/java" --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
 
       - name: Switch Gradle configuration to Meteor's 1.21.11 toolchain
         shell: bash
