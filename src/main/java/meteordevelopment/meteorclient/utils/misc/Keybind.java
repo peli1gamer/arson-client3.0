@@ -74,16 +74,16 @@ public final class Keybind {
         if (!isSet()) return false;
         if (!key) return GLFW.glfwGetMouseButton(window, value) == GLFW.GLFW_PRESS;
         if (GLFW.glfwGetKey(window, value) != GLFW.GLFW_PRESS) return false;
-        return modifierPressed(GLFW.GLFW_MOD_CONTROL, GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL)
-            && modifierPressed(GLFW.GLFW_MOD_SUPER, GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER)
-            && modifierPressed(GLFW.GLFW_MOD_ALT, GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT)
-            && modifierPressed(GLFW.GLFW_MOD_SHIFT, GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return modifierPressed(window, GLFW.GLFW_MOD_CONTROL, GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL)
+            && modifierPressed(window, GLFW.GLFW_MOD_SUPER, GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER)
+            && modifierPressed(window, GLFW.GLFW_MOD_ALT, GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT)
+            && modifierPressed(window, GLFW.GLFW_MOD_SHIFT, GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
-    private boolean modifierPressed(int mask, int left, int right) {
+    private boolean modifierPressed(long window, int mask, int left, int right) {
         if ((modifiers & mask) == 0) return true;
-        return GLFW.glfwGetKey(GLFW.glfwGetCurrentContext(), left) == GLFW.GLFW_PRESS
-            || GLFW.glfwGetKey(GLFW.glfwGetCurrentContext(), right) == GLFW.GLFW_PRESS;
+        return GLFW.glfwGetKey(window, left) == GLFW.GLFW_PRESS
+            || GLFW.glfwGetKey(window, right) == GLFW.GLFW_PRESS;
     }
 
     private static boolean isModifierKey(int key) {
