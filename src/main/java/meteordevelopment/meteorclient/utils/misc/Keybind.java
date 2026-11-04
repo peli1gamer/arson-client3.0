@@ -75,14 +75,19 @@ public final class Keybind {
         if (!isSet()) return false;
         if (!key) return GLFW.glfwGetMouseButton(window, value) == GLFW.GLFW_PRESS;
         if (GLFW.glfwGetKey(window, value) != GLFW.GLFW_PRESS) return false;
-        return modifierPressed(window, GLFW.GLFW_MOD_CONTROL, GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL)
-            && modifierPressed(window, GLFW.GLFW_MOD_SUPER, GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER)
-            && modifierPressed(window, GLFW.GLFW_MOD_ALT, GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT)
-            && modifierPressed(window, GLFW.GLFW_MOD_SHIFT, GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return pressedModifiers(window) == modifiers;
     }
 
-    private boolean modifierPressed(long window, int mask, int left, int right) {
-        if ((modifiers & mask) == 0) return true;
+    private static int pressedModifiers(long window) {
+        int pressed = 0;
+        if (isPressed(window, GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL)) pressed |= GLFW.GLFW_MOD_CONTROL;
+        if (isPressed(window, GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER)) pressed |= GLFW.GLFW_MOD_SUPER;
+        if (isPressed(window, GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT)) pressed |= GLFW.GLFW_MOD_ALT;
+        if (isPressed(window, GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT)) pressed |= GLFW.GLFW_MOD_SHIFT;
+        return pressed;
+    }
+
+    private static boolean isPressed(long window, int left, int right) {
         return GLFW.glfwGetKey(window, left) == GLFW.GLFW_PRESS
             || GLFW.glfwGetKey(window, right) == GLFW.GLFW_PRESS;
     }
