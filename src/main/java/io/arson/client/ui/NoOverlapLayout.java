@@ -61,27 +61,43 @@ public final class NoOverlapLayout {
     }
 
     private static Rect findCandidate(Rect preferred,int w,int h,int left,int top,int right,int bottom,int gap,List<Rect> occupied){
-        List<Rect> candidates=new ArrayList<>();
-        candidates.add(new Rect(preferred.x(),clamp(preferred.bottom()+gap,top,bottom-h),w,h));
-        candidates.add(new Rect(clamp(preferred.right()+gap,left,right-w),preferred.y(),w,h));
-        candidates.add(new Rect(left,top,w,h));
-        int maxY=Math.max(top,bottom-h),maxX=Math.max(left,right-w);
-        for(int y=top;y<=maxY;y+=gap){
-            for(int x=left;x<=maxX;x+=gap){
-                candidates.add(new Rect(x,y,w,h));
-            }
+        int maxX=Math.max(left,right-w),maxY=Math.max(top,bottom-h);
+        List<Integer> xs=new ArrayList<>();
+        List<Integer> ys=new ArrayList<>();
+        addUnique(xs,clamp(preferred.x(),left,maxX));
+        addUnique(xs,left);
+        addUnique(xs,maxX);
+        addUnique(ys,clamp(preferred.y(),top,maxY));
+        addUnique(ys,top);
+        addUnique(ys,maxY);
+        // Candidate coordinates are derived from existing rectangle edges. This keeps
+        // placement bounded by the number of HUD elements instead of scanning every
+        // six-pixel point in the entire viewport on every render.
+        for(Rect rect:occupied){
+            addUnique(xs,clamp(rect.right()+gap,left,maxX));
+            addUnique(xs,clamp(rect.x()-w-gap,left,maxX));
+            addUnique(ys,clamp(rect.bottom()+gap,top,maxY));
+            addUnique(ys,clamp(rect.y()-h-gap,top,maxY));
         }
-        Rect best=null; long bestDistance=Long.MAX_VALUE;
-        for(Rect candidate:candidates){
-            if(conflicts(candidate,occupied)) continue;
-            long distance=Math.abs((long)candidate.x()-preferred.x())+Math.abs((long)candidate.y()-preferred.y());
-            if(distance<bestDistance || (distance==bestDistance && (best==null || candidate.y()<best.y() || candidate.y()==best.y()&&candidate.x()<best.x()))){
-                best=candidate;bestDistance=distance;
+        Rect best=null;
+        long bestDistance=Long.MAX_VALUE;
+        for(int y:ys){
+            for(int x:xs){
+                Rect candidate=new Rect(x,y,w,h);
+                if(conflicts(candidate,occupied)) continue;
+                long distance=Math.abs((long)x-preferred.x())+Math.abs((long)y-preferred.y());
+                if(distance<bestDistance || (distance==bestDistance && (best==null || y<best.y() || y==best.y()&&x<best.x()))){
+                    best=candidate;
+                    bestDistance=distance;
+                }
             }
         }
         return best;
     }
 
+    private static void addUnique(List<Integer> values,int value){
+        if(!values.contains(value)) values.add(value);
+    }
 
     private static Rect findCompactedCandidate(Rect preferred,int width,int height,int left,int top,int right,int bottom,int gap,List<Rect> occupied){
         double[] factors={0.85,0.70,0.55,0.40,0.25,0.15,0.08};
