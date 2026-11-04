@@ -9,6 +9,7 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
+import io.arson.client.settings.IntSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.StringSetting;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
@@ -82,6 +83,7 @@ public final class ConfigManager {
                     JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
                     try {
                         if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
+                        else if (setting instanceof IntSetting number) number.set(value.getAsInt());
                         else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
                         else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
                         else if (setting instanceof StringSetting text) text.set(value.getAsString());
