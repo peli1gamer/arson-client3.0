@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import meteordevelopment.meteorclient.systems.Systems;
 
 public class Modules extends meteordevelopment.meteorclient.systems.System<Modules> {
     protected final Map<String, Module> modules = new LinkedHashMap<>();
@@ -20,6 +21,22 @@ public class Modules extends meteordevelopment.meteorclient.systems.System<Modul
 
     public Modules() {
         super("modules");
+    }
+
+    public static Modules get() {
+        return Systems.get(Modules.class);
+    }
+
+    void addActive(Module module) {
+        synchronized (active) {
+            if (!active.contains(module)) active.add(module);
+        }
+    }
+
+    void removeActive(Module module) {
+        synchronized (active) {
+            active.remove(module);
+        }
     }
 
     protected String key(Module module) {
@@ -64,11 +81,9 @@ public class Modules extends meteordevelopment.meteorclient.systems.System<Modul
     }
 
     public List<Module> getActive() {
-        active.clear();
-        for (Module module : modules.values()) {
-            if (module.isActive()) active.add(module);
+        synchronized (active) {
+            return new ArrayList<>(active);
         }
-        return new ArrayList<>(active);
     }
 
     public int getCount() {
