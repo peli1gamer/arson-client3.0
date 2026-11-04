@@ -37,6 +37,7 @@ import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.world.TickEvent;
+import meteordevelopment.meteorclient.systems.Systems;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -69,6 +70,7 @@ public final class ArsonClient implements ClientModInitializer {
         MeteorClient.initialize(client);
         moduleManager = new ModuleManager();
         moduleManager.registerDefaults();
+        Systems.add(moduleManager);
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arson.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         ArsonCommand.register();
