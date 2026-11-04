@@ -5,12 +5,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
-/** Small metadata/grouping primitive for richer ClickGUI presentation without changing setting storage. */
+/** Arson metadata and visibility adapter over Meteor's setting group. */
 public final class SettingGroup extends meteordevelopment.meteorclient.settings.SettingGroup {
     private final String id;
-    private final String name;
     private final String description;
-    private final List<Setting<?>> settings = new ArrayList<>();
+    private final List<Setting<?>> arsonSettings = new ArrayList<>();
     private BooleanSupplier visibility = () -> true;
 
     public SettingGroup(String id, String name, String description) {
@@ -22,12 +21,16 @@ public final class SettingGroup extends meteordevelopment.meteorclient.settings.
     public String id() { return id; }
     public String name() { return name; }
     public String description() { return description; }
-    public SettingGroup visibleWhen(BooleanSupplier predicate) { visibility = Objects.requireNonNull(predicate); return this; }
+    public SettingGroup visibleWhen(BooleanSupplier predicate) {
+        visibility = Objects.requireNonNull(predicate);
+        return this;
+    }
     public boolean visible() { return visibility.getAsBoolean(); }
-    public List<Setting<?>> settings() { return List.copyOf(settings); }
+    public List<Setting<?>> settings() { return List.copyOf(arsonSettings); }
+
     public void add(Setting<?> setting) {
-        if (!settings.contains(setting)) {
-            settings.add(setting);
+        if (!arsonSettings.contains(setting)) {
+            arsonSettings.add(setting);
             super.add(setting);
         }
     }
