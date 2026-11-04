@@ -19,346 +19,613 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-/** Responsive, keyboard-navigable ClickGUI. Geometry is delegated to the pure layout model. */
+/**
+ * Windowed, Meteor-inspired ClickGUI. Each module category has its own compact
+ * panel; module activation is immediate and right-click opens its settings.
+ */
 public final class ArsonScreen extends Screen {
-    private enum Theme { MIDNIGHT, GRAPHITE, CONTRAST }
+    private static final int[] CATEGORY_COLORS = {
+            0xFFE46D73, 0xFF65B7E8, 0xFF9B83E8, 0xFF65C99A, 0xFFE0B35F, 0xFF9AA5B5
+    };
     private final Screen parent;
-    private Module.Category category = Module.Category.RENDER;
-    private Module selected;
-    private Module bindingModule;
-    private EditBox search, profile, editBox;
+    private final int[] windowOffsetX = new int[Module.Category.values().length];
+    private final int[] windowOffsetY = new int[Module.Category.values().length];
+    private final int[] windowScroll = new int[Module.Category.values().length];
+    private final boolean[] collapsed = new boolean[Module.Category.values().length];
+
+    private EditBox search;
+    private EditBox valueEditor;
+    private EditBox profile;
     private StringSetting editingString;
     private ColorSetting editingColor;
-    private final List<Button> moduleButtons = new ArrayList<>();
-    private ClickGuiLayoutModel.Geometry geometry;
-    private int scroll, detailScroll;
-    private boolean favoritesOnly, enabledOnly, alphabetical, compactMode;
-    private Theme theme = Theme.MIDNIGHT;
-    private ClickGuiLayoutModel.Focus focus = ClickGuiLayoutModel.Focus.MODULE;
-    private int categoryFocus, moduleFocus;
+    private Module selected;
+    private Module bindingModule;
+    private Module.Category activeCategory = Module.Category.RENDER;
+    private int draggingWindow = -1;
+    private double dragOffsetX;
+    private double dragOffsetY;
+    private int settingsScroll;
+    private boolean searchFocused;
+    private boolean favoritesOnly;
+    private boolean enabledOnly;
+    private boolean alphabetical;
+    private ClickGuiPreferencesModule.Theme theme = ClickGuiPreferencesModule.Theme.MIDNIGHT;
 
-    public ArsonScreen(Screen parent) { super(Component.literal("Arson Client V3")); this.parent = parent; }
+    public ArsonScreen(Screen parent) {
+        super(Component.literal("Arson Client V3"));
+        this.parent = parent;
+    }
 
-    @Override protected void init() {
+    @Override
+    protected void init() {
         syncPreferences();
-        categoryFocus = categoriesIndex(category);
-        geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
-        rebuild();
-    }
-
-    private double preferencesScale() {
-        ClickGuiPreferencesModule p = preferences();
-        return p == null ? 1.0 : p.panelScale();
-    }
-
-    private ClickGuiPreferencesModule preferences() {
-        Module m = ArsonClient.getInstance().modules().get("clickgui-preferences");
-        return m instanceof ClickGuiPreferencesModule p ? p : null;
+        rebuildWidgets();
     }
 
     private void syncPreferences() {
         ClickGuiPreferencesModule p = preferences();
         if (p == null) return;
-        theme = Theme.valueOf(p.theme().name());
+        theme = p.theme();
         alphabetical = p.alphabetical();
         favoritesOnly = p.favoritesOnly();
         enabledOnly = p.enabledOnly();
-        compactMode = p.compactMode();
+    }
+
+    private ClickGuiPreferencesModule preferences() {
+        Module module = ArsonClient.getInstance().modules().get("clickgui-preferences");
+        return module instanceof ClickGuiPreferencesModule p ? p : null;
     }
 
     private void savePreferences() {
         ClickGuiPreferencesModule p = preferences();
-        if (p == null) return;
-        p.setAlphabetical(alphabetical);
-        p.setFavoritesOnly(favoritesOnly);
-        p.setEnabledOnly(enabledOnly);
-        p.setCompactMode(compactMode);
-        while (!p.theme().name().equals(theme.name())) p.cycleTheme();
-        ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
+        if (p != null) {
+            p.setAlphabetical(alphabetical);
+            p.setFavoritesOnly(favoritesOnly);
+            p.setEnabledOnly(enabledOnly);
+            while (p.theme() != theme) p.cycleTheme();
+        }
+        saveConfig();
     }
 
-    private int accentColor() { return switch (theme) {
-        case MIDNIGHT -> 0xFF4C8DFF; case GRAPHITE -> 0xFF9BAEC4; case CONTRAST -> 0xFFFFFFFF; }; }
-    private int panelColor() { return switch (theme) {
-        case MIDNIGHT -> 0xE50C1017; case GRAPHITE -> 0xE5161A20; case CONTRAST -> 0xEE050505; }; }
-    private int headerColor() { return switch (theme) {
-        case MIDNIGHT -> 0xD919202B; case GRAPHITE -> 0xD921252C; case CONTRAST -> 0xEE101010; }; }
-    private int cardColor(boolean enabled, boolean selectedCard) {
-        if (selectedCard) return 0xE52A3A52;
-        if (enabled) return 0xD51D2A38;
-        return 0xC8141921;
-    }
-
-    private void rebuild() {
+    private void rebuildWidgets() {
         String searchValue = search == null ? "" : search.getValue();
         String profileValue = profile == null ? "" : profile.getValue();
+        String editValue = valueEditor == null ? "" : valueEditor.getValue();
         clearWidgets();
-        moduleButtons.clear();
+        search = null;
         profile = null;
-        editBox = null;
+        valueEditor = null;
 
-        List<Module> visible = visibleModules();
-        if (selected == null || !visible.contains(selected)) {
-            selected = visible.isEmpty() ? null : visible.get(Math.max(0, Math.min(moduleFocus, visible.size() - 1)));
-        }
-        moduleFocus = selected == null ? 0 : Math.max(0, visible.indexOf(selected));
-
-        Rects r = new Rects(geometry);
-        search = new EditBox(font, r.search().x(), r.search().y(), r.search().width(), r.search().height(), Component.literal("Search"));
-        search.setHint(Component.literal("Search modules...   Ctrl+K"));
+        int headerY = 12;
+        search = new EditBox(font, 112, headerY, Math.max(100, Math.min(230, width - 420)), 22,
+                Component.literal("Search modules"));
+        search.setHint(Component.literal("Search modules..."));
         search.setValue(searchValue);
-        search.setFocused(focus == ClickGuiLayoutModel.Focus.SEARCH);
+        search.setFocused(searchFocused);
         addRenderableWidget(search);
 
-        addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
-            favoritesOnly = false; enabledOnly = false; alphabetical = false;
-            search.setValue(""); scroll = 0; detailScroll = 0; savePreferences(); rebuild();
-        }).bounds(r.toolbar().x()+toolbarButtonX(0),r.toolbar().y(),toolbarButtonWidth(0),22).build());
-
-        addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
-            favoritesOnly = !favoritesOnly; scroll = 0; savePreferences(); rebuild();
-        }).bounds(r.toolbar().x()+toolbarButtonX(1),r.toolbar().y(),toolbarButtonWidth(1),22).build());
-
-        addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "●" : "○"), b -> {
-            enabledOnly = !enabledOnly; scroll = 0; savePreferences(); rebuild();
-        }).bounds(r.toolbar().x()+toolbarButtonX(2),r.toolbar().y(),toolbarButtonWidth(2),22).build());
-
-        addRenderableWidget(Button.builder(Component.literal(compactMode ? "Compact" : "Comfort"), b -> {
-            compactMode = !compactMode; savePreferences(); init();
-        }).bounds(r.toolbar().x()+toolbarButtonX(3),r.toolbar().y(),toolbarButtonWidth(3),22).build());
+        addRenderableWidget(Button.builder(Component.literal("HUD"), b -> {
+            if (ArsonClient.getInstance().modules().get("hud") instanceof HudModule) {
+                minecraft.setScreen(new HudEditorScreen(this));
+            }
+        }).bounds(width - 270, headerY, 48, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Theme"), b -> {
-            theme = Theme.values()[(theme.ordinal()+1)%Theme.values().length]; savePreferences(); rebuild();
-        }).bounds(r.toolbar().x()+toolbarButtonX(4),r.toolbar().y(),toolbarButtonWidth(4),22).build());
+            ClickGuiPreferencesModule.Theme[] themes = ClickGuiPreferencesModule.Theme.values();
+            theme = themes[(theme.ordinal() + 1) % themes.length];
+            savePreferences();
+            rebuildWidgets();
+        }).bounds(width - 216, headerY, 54, 22).build());
+
+        addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
+            favoritesOnly = !favoritesOnly;
+            savePreferences();
+            rebuildWidgets();
+        }).bounds(width - 156, headerY, 28, 22).build());
+
+        addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "ON" : "ALL"), b -> {
+            enabledOnly = !enabledOnly;
+            savePreferences();
+            rebuildWidgets();
+        }).bounds(width - 124, headerY, 38, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal(alphabetical ? "A-Z" : "Smart"), b -> {
-            alphabetical = !alphabetical; savePreferences(); rebuild();
-        }).bounds(r.toolbar().x()+toolbarButtonX(5),r.toolbar().y(),toolbarButtonWidth(5),22).build());
+            alphabetical = !alphabetical;
+            savePreferences();
+            rebuildWidgets();
+        }).bounds(width - 80, headerY, 48, 22).build());
 
-        addCategoryButtons(r);
-        addModuleCards(visible);
-        if (editingString != null || editingColor != null) addEditBox(r); else addDetailWidgets(r);
-        addFooter(r, profileValue);
+        if (selected != null) addSettingsWidgets(editValue);
+        if (width < 520) addNarrowCategoryTabs();
+        profile = new EditBox(font, 12, height - 28, 112, 18, Component.literal("Profile"));
+        profile.setHint(Component.literal("profile"));
+        profile.setValue(profileValue);
+        addRenderableWidget(profile);
+        addRenderableWidget(Button.builder(Component.literal("Load"), b -> loadProfile())
+                .bounds(130, height - 28, 40, 18).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveProfile())
+                .bounds(174, height - 28, 40, 18).build());
+        addRenderableWidget(Button.builder(Component.literal("Save Config"), b -> saveConfig())
+                .bounds(width - 112, height - 28, 72, 18).build());
+        addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
+                .bounds(width - 34, height - 28, 28, 18).build());
     }
 
-    private List<Module> visibleModules() {
-        String q = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
-        List<Module> result = new ArrayList<>();
-        for (Module m : ArsonClient.getInstance().modules().organized(category)) {
-            if (favoritesOnly && !m.favorite()) continue;
-            if (enabledOnly && !m.enabled()) continue;
-            String hay = (m.name()+" "+m.id()+" "+m.description()).toLowerCase(Locale.ROOT);
-            if (!q.isEmpty() && !hay.contains(q)) continue;
-            result.add(m);
-        }
-        if (alphabetical) result.sort(Comparator.comparing(Module::name, String.CASE_INSENSITIVE_ORDER));
-        return result;
-    }
-
-
-    private int toolbarButtonWidth(int index){
-        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){ int gap=2; int fitted=Math.max(15,(geometry.toolbar().width()-gap*5)/6); int desired=switch(index){case 0->32;case 1,2->22;case 3->42;case 4->30;default->30;}; return Math.min(desired,fitted); }
-        return switch(index){case 0->48;case 1,2->26;case 3->72;case 4->58;default->54;};
-    }
-    private int toolbarButtonX(int index){int x=0;int gap=geometry.mode()==ClickGuiLayoutModel.Mode.NARROW?2:4;for(int i=0;i<index;i++)x+=toolbarButtonWidth(i)+gap;return x;}
-    private void addCategoryButtons(Rects r) {
-        Module.Category[] categories = Module.Category.values();
-        for (int i=0;i<categories.length;i++) {
-            Module.Category c=categories[i];
-            int rowY=r.rail().y()+i*geometry.categoryRowHeight();
-            int rowH=Math.min(24, Math.max(1, geometry.categoryRowHeight()));
-            String label = geometry.mode()==ClickGuiLayoutModel.Mode.NARROW ? c.displayName().substring(0,1) : c.displayName();
-            Button b=Button.builder(Component.literal((i==categoryFocus?"> ":"  ")+label), x -> {
-                categoryFocus=categoriesIndex(c); category=c; moduleFocus=0; selected=null; scroll=0; detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
-            }).bounds(r.rail().x(),rowY,r.rail().width(),rowH).build();
-            addRenderableWidget(b);
+    private void addNarrowCategoryTabs() {
+        int x = 12;
+        int y = 40;
+        for (Module.Category category : Module.Category.values()) {
+            int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
+            Module.Category chosen = category;
+            addRenderableWidget(Button.builder(Component.literal(category.displayName().substring(0, 1)), b -> {
+                activeCategory = chosen;
+                rebuildWidgets();
+            }).bounds(x, y, tabWidth - 2, 18).build());
+            x += tabWidth;
         }
     }
 
-    private int categoriesIndex(Module.Category c) {
-        Module.Category[] cs=Module.Category.values();
-        for(int i=0;i<cs.length;i++) if(cs[i]==c) return i;
-        return 0;
-    }
+    private void addSettingsWidgets(String editValue) {
+        int x = settingsX() + 10;
+        int y = settingsY() + 48;
+        int w = settingsWidth() - 20;
+        addRenderableWidget(Button.builder(Component.literal(selected.enabled() ? "Disable" : "Enable"),
+                b -> toggleSelected()).bounds(x, y, 74, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(selected.favorite() ? "★ Favorite" : "☆ Favorite"),
+                b -> {
+                    selected.setFavorite(!selected.favorite());
+                    saveConfig();
+                    rebuildWidgets();
+                }).bounds(x + 80, y, 86, 20).build());
+        addRenderableWidget(Button.builder(Component.literal(bindingModule == selected ? "Press a key" : "Bind"),
+                b -> {
+                    bindingModule = selected;
+                    rebuildWidgets();
+                }).bounds(x + 172, y, Math.max(42, w - 172), 20).build());
+        y += 26;
+        addRenderableWidget(Button.builder(Component.literal("Reset settings"), b -> {
+            selected.resetSettings();
+            saveConfig();
+            rebuildWidgets();
+        }).bounds(x, y, w, 20).build());
+        y += 25;
 
-    private void addModuleCards(List<Module> visible) {
-        int maxCards = Math.max(1, Math.min(geometry.visibleRows(visible.size()), Math.max(1, geometry.moduleList().height() / (geometry.cardHeight()+geometry.cardGap()))) * geometry.columns());
-        int start = Math.min(scroll, Math.max(0, visible.size()-1));
-        int shown=0;
-        for(int i=start;i<visible.size() && shown<maxCards;i++,shown++){
-            Module m=visible.get(i);
-            int logical=i-start;
-            ClickGuiLayoutModel.Rect card=geometry.moduleCard(logical,Math.min(visible.size()-start,maxCards));
-            if(card.bottom()>geometry.detail().bottom() && geometry.columns()==1) continue;
-            Module chosen=m;
-            Button b=Button.builder(Component.literal((m.favorite()?"★ ":"  ")+(m.enabled()?"● ":"○ ")+m.name()), x -> {
-                selected=chosen; moduleFocus=visibleModules().indexOf(chosen); detailScroll=0; focus=ClickGuiLayoutModel.Focus.MODULE; rebuild();
-            }).bounds(card.x(),card.y(),card.width(),card.height()).build();
-            moduleButtons.add(b); addRenderableWidget(b);
-        }
-    }
-
-    private void addDetailWidgets(Rects r) {
-        if(selected==null) return;
-        int x=r.detail().x()+8, w=Math.max(60,r.detail().width()-16);
-        int top=r.detail().y()+6, bottom=r.detail().bottom()-6, y=top-detailScroll;
-        int controlH=22,gapY=26;
-        if(y+controlH>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal(selected.enabled()?"Disable":"Enable"),b->toggleSelected()).bounds(x,y,w,controlH).build());
-        y+=gapY;
-        int half=Math.max(45,(w-6)/2);
-        if(y+controlH>top-1&&y<bottom){
-            addRenderableWidget(Button.builder(Component.literal(selected.favorite()?"★ Favorite":"☆ Favorite"),b->{selected.setFavorite(!selected.favorite());saveConfig();rebuild();}).bounds(x,y,half,controlH).build());
-            if(x+half+6+half<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal(bindingModule==selected?"Press key":"Key: "+keyName(selected.keyCode())),b->{bindingModule=selected;focus=ClickGuiLayoutModel.Focus.ACTION;rebuild();}).bounds(x+half+6,y,half,controlH).build());
-        }
-        y+=gapY;
-        if(y+controlH>top-1&&y<bottom){
-            addRenderableWidget(Button.builder(Component.literal("Reset"),b->{selected.resetToDefaults();NotificationCenter.push(selected.name(),"Module reset");saveConfig();rebuild();}).bounds(x,y,half,controlH).build());
-            if(x+half+6+half<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal("Reset settings"),b->{selected.resetSettings();NotificationCenter.push(selected.name(),"Settings reset");saveConfig();rebuild();}).bounds(x+half+6,y,half,controlH).build());
-        }
-        y+=gapY+4;
-        if(!selected.description().isBlank()){
-            if(y+34>top-1&&y<bottom) addRenderableWidget(Button.builder(Component.literal(selected.description()),b->{}).bounds(x,y,w,34).build());
-            y+=40;
-        }
-        String groupId=null;
-        for(Setting<?> setting:selected.settings()){
-            if(!setting.visible()) continue;
-            SettingGroup group=setting.group();
-            if(group!=null&&!group.id().equals(groupId)){groupId=group.id();y+=4;}
-            int controlW=Math.max(45,w-32);
-            if(y+22>top-1&&y<bottom){
-                if(setting instanceof BooleanSetting bs)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+(bs.enabled()?"ON":"OFF")),b->{bs.set(!bs.enabled());saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
-                else if(setting instanceof DoubleSetting ds)
-                    addRenderableWidget(new DoubleSettingSlider(x,y,controlW,22,ds,this::saveConfig));
-                else if(setting instanceof EnumSetting<?> es)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+prettyEnum(es.get())),b->{es.cycle(1);saveConfig();rebuild();}).bounds(x,y,controlW,22).build());
-                else if(setting instanceof ColorSetting cs)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": #"+String.format(Locale.ROOT,"%08X",cs.get())),b->{editingColor=cs;editingString=null;rebuild();}).bounds(x,y,controlW,22).build());
-                else if(setting instanceof StringSetting ss)
-                    addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+ss.get()),b->{editingString=ss;editingColor=null;rebuild();}).bounds(x,y,controlW,22).build());
-                else addRenderableWidget(Button.builder(Component.literal(setting.name()+": "+String.valueOf(setting.get())),b->{}).bounds(x,y,controlW,22).build());
-                if(x+controlW+4+28<=r.detail().right()-6) addRenderableWidget(Button.builder(Component.literal("↺"),b->{setting.reset();saveConfig();rebuild();}).bounds(x+controlW+4,y,28,22).build());
+        int bottom = Math.min(height - 38, settingsY() + settingsHeight() - 8);
+        int rowHeight = 23;
+        List<Setting<?>> visible = selected.settings().stream().filter(Setting::visible).toList();
+        int maxRows = Math.max(0, (bottom - y) / rowHeight);
+        int start = Math.min(settingsScroll, Math.max(0, visible.size() - maxRows));
+        int shown = 0;
+        String lastGroup = null;
+        for (int i = start; i < visible.size() && shown < maxRows; i++, shown++) {
+            Setting<?> setting = visible.get(i);
+            if (setting.group() != null && !setting.group().id().equals(lastGroup)) {
+                lastGroup = setting.group().id();
             }
-            y+=26;
+            if (setting instanceof BooleanSetting bs) {
+                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + (bs.enabled() ? "ON" : "OFF")),
+                        b -> { bs.set(!bs.enabled()); saveConfig(); rebuildWidgets(); })
+                        .bounds(x, y, w, 20).build());
+            } else if (setting instanceof DoubleSetting ds) {
+                addRenderableWidget(new DoubleSettingSlider(x, y, w, 20, ds, this::saveConfig));
+            } else if (setting instanceof EnumSetting<?> es) {
+                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + pretty(es.get())),
+                        b -> { es.cycle(1); saveConfig(); rebuildWidgets(); })
+                        .bounds(x, y, w, 20).build());
+            } else if (setting instanceof ColorSetting cs) {
+                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  #" + String.format(Locale.ROOT, "%08X", cs.get())),
+                        b -> { editingColor = cs; editingString = null; rebuildWidgets(); })
+                        .bounds(x, y, w, 20).build());
+            } else if (setting instanceof StringSetting ss) {
+                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + ss.get()),
+                        b -> { editingString = ss; editingColor = null; rebuildWidgets(); })
+                        .bounds(x, y, w, 20).build());
+            } else {
+                addRenderableWidget(Button.builder(Component.literal(setting.name() + "  " + String.valueOf(setting.get())),
+                        b -> {}).bounds(x, y, w, 20).build());
+            }
+            y += rowHeight;
+        }
+
+        if (editingString != null || editingColor != null) {
+            valueEditor = new EditBox(font, x, settingsY() + 28, Math.max(80, w - 56), 18,
+                    Component.literal(editingString != null ? editingString.name() : editingColor.name()));
+            valueEditor.setMaxLength(128);
+            valueEditor.setValue(editValue.isEmpty()
+                    ? editingString != null ? editingString.get() : String.format(Locale.ROOT, "%08X", editingColor.get())
+                    : editValue);
+            addRenderableWidget(valueEditor);
+            addRenderableWidget(Button.builder(Component.literal("Apply"), b -> applyEdit())
+                    .bounds(x + w - 50, settingsY() + 28, 50, 18).build());
         }
     }
-    private int maxDetailScroll(){
-        if(selected==null)return 0;
-        int lines=3+(selected.description().isBlank()?0:2);
-        for(Setting<?> setting:selected.settings()) if(setting.visible()) lines++;
-        return Math.max(0,lines*26-Math.max(24,geometry.detail().height()-12));
+
+    private List<Module> visibleModules(Module.Category category) {
+        String query = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
+        List<Module> modules = new ArrayList<>(ArsonClient.getInstance().modules().organized(category));
+        modules.removeIf(module -> favoritesOnly && !module.favorite()
+                || enabledOnly && !module.enabled()
+                || !query.isEmpty() && !(module.name() + " " + module.id() + " " + module.description())
+                .toLowerCase(Locale.ROOT).contains(query));
+        if (alphabetical) modules.sort(Comparator.comparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+        return modules;
     }
 
-    private void addFooter(Rects r,String profileValue) {
-        if(geometry.mode()==ClickGuiLayoutModel.Mode.NARROW){
-            int y=r.footer().y()+3;
-            addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,42,20).build());
-            addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+46,y,42,20).build());
-            addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-46,y,46,20).build());
-            int row2=y+22, pw=Math.max(70,r.footer().width()-80);
-            profile=new EditBox(font,r.footer().x(),row2,pw,20,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
-            addRenderableWidget(Button.builder(Component.literal("L"),b->loadProfile()).bounds(r.footer().right()-74,row2,34,20).build());
-            addRenderableWidget(Button.builder(Component.literal("S"),b->saveProfile()).bounds(r.footer().right()-38,row2,34,20).build());
-            return;
+    private int columns() {
+        if (width < 520) return 1;
+        return width < 760 ? 3 : 6;
+    }
+
+    private int windowCount() { return width < 520 ? 1 : Module.Category.values().length; }
+    private int windowWidth() {
+        int cols = columns();
+        int gaps = (cols - 1) * 8;
+        return Math.max(100, Math.min(190, (width - 24 - gaps) / cols));
+    }
+    private int windowHeight() {
+        if (width < 520) return Math.max(90, height - 112);
+        if (columns() == 6) return Math.max(100, height - 104);
+        return Math.max(72, (height - 142) / 2);
+    }
+    private int windowX(int index) {
+        int cols = columns();
+        int column = index % cols;
+        int base = width < 520 ? 12 : Math.max(12, (width - (cols * windowWidth() + (cols - 1) * 8)) / 2);
+        return base + column * (windowWidth() + 8) + windowOffsetX[index];
+    }
+    private int windowY(int index) {
+        if (width < 520) return 66 + windowOffsetY[index];
+        if (columns() == 6) return 48 + windowOffsetY[index];
+        return 48 + (index / columns()) * (windowHeight() + 8) + windowOffsetY[index];
+    }
+
+    private int settingsWidth() { return Math.min(300, Math.max(230, width / 3)); }
+    private int settingsHeight() { return Math.max(120, Math.min(height - 92, 430)); }
+    private int settingsX() { return width - settingsWidth() - 14; }
+    private int settingsY() { return 52; }
+
+    @Override
+    public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
+        drawBackground(g);
+        drawHeader(g);
+        if (width < 520) drawNarrowTabs(g);
+        for (int i = 0; i < windowCount(); i++) {
+            Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
+            drawCategoryWindow(g, i, category, mouseX, mouseY);
         }
-        int y=r.footer().y()+6;
-        addRenderableWidget(Button.builder(Component.literal("HUD"),b->{if(ArsonClient.getInstance().modules().get("hud") instanceof HudModule) minecraft.setScreen(new HudEditorScreen(this));}).bounds(r.footer().x(),y,52,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveConfig()).bounds(r.footer().x()+58,y,52,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Close"),b->onClose()).bounds(r.footer().right()-58,y,58,22).build());
-        int pw=Math.min(110,Math.max(60,r.footer().width()-240));
-        profile=new EditBox(font,r.footer().right()-190,y,pw,22,Component.literal("Profile"));profile.setHint(Component.literal("profile"));profile.setValue(profileValue);addRenderableWidget(profile);
-        addRenderableWidget(Button.builder(Component.literal("Load"),b->loadProfile()).bounds(r.footer().right()-74,y,36,22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"),b->saveProfile()).bounds(r.footer().right()-38,y,36,22).build());
+        if (selected != null) drawSettingsPanel(g, mouseX, mouseY);
+        super.render(g, mouseX, mouseY, delta);
     }
 
-    private void addEditBox(Rects r) {
-        int y=r.detail().y()+6;
-        int w=Math.max(70,r.detail().width()-50);
-        editBox=new EditBox(font,r.detail().x()+8,y,w,22,Component.literal(editingString!=null?editingString.name():editingColor.name()));
-        editBox.setValue(editingString!=null?editingString.get():String.format(Locale.ROOT,"%08X",editingColor.get()));
-        editBox.setMaxLength(128);
-        addRenderableWidget(editBox);
-        addRenderableWidget(Button.builder(Component.literal("Apply"),b->applyEdit()).bounds(r.detail().right()-40,y,34,22).build());
-        addRenderableWidget(Button.builder(Component.literal("×"),b->{editingString=null;editingColor=null;rebuild();}).bounds(r.detail().right()-40,y+26,34,22).build());
+    private void drawBackground(GuiGraphics g) {
+        g.fill(0, 0, width, height, 0xB8000000);
+        g.fill(0, 0, width, 38, 0xF0101218);
+        g.fill(0, height - 36, width, height, 0xE90C0E13);
+        g.fill(0, 37, width, 39, accentColor());
     }
 
-    private void toggleSelected(){if(selected==null)return;selected.toggle();NotificationCenter.push(selected.name(),selected.enabled()?"Enabled":"Disabled");saveConfig();rebuild();}
-    private static String keyName(int key){if(key<=0)return"None";String n=GLFW.glfwGetKeyName(key,0);return n==null?"KEY "+key:n.toUpperCase(Locale.ROOT);}
-    private static String prettyEnum(Object v){if(v==null)return"None";String raw=v.toString().toLowerCase(Locale.ROOT),out="";for(String p:raw.split("_"))if(!p.isEmpty())out+=(out.isEmpty()?"":" ")+Character.toUpperCase(p.charAt(0))+p.substring(1);return out;}
-    private void applyEdit(){if(editBox!=null){if(editingString!=null)editingString.set(editBox.getValue());else if(editingColor!=null){try{String raw=editBox.getValue().trim().replace("#","");if(raw.length()==6)raw="FF"+raw;if(raw.length()!=8)throw new NumberFormatException();editingColor.set((int)Long.parseLong(raw,16));}catch(NumberFormatException ignored){NotificationCenter.push("Invalid color","Use RRGGBB or AARRGGBB");return;}}saveConfig();}editingString=null;editingColor=null;editBox=null;rebuild();}
-    private void saveConfig(){if(minecraft!=null)ConfigManager.save(minecraft,ArsonClient.getInstance().modules());}
-    private void saveProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.saveProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue()))NotificationCenter.push("Profile","Saved "+profile.getValue());else NotificationCenter.push("Profile","Invalid profile name");}
-    private void loadProfile(){if(minecraft==null||profile==null||profile.getValue().isBlank()){NotificationCenter.push("Profile","Enter a profile name");return;}if(ConfigManager.loadProfile(minecraft,ArsonClient.getInstance().modules(),profile.getValue())){NotificationCenter.push("Profile","Loaded "+profile.getValue());rebuild();}else NotificationCenter.push("Profile","Profile not found or invalid");}
+    private void drawHeader(GuiGraphics g) {
+        g.drawString(font, "ARSON", 14, 9, 0xFFFFFFFF);
+        g.drawString(font, "V3", 57, 9, accentColor());
+        g.drawString(font, "CLIENT", 14, 22, 0xFF7F8998);
+        int enabled = ArsonClient.getInstance().modules().enabledCount();
+        g.drawString(font, enabled + " ACTIVE", 14, 42, 0xFF9AA5B5);
+        g.drawString(font, "RIGHT CLICK MODULE FOR SETTINGS", Math.max(12, width / 2 - 104), 23, 0xFF727D8C);
+    }
 
-    @Override public boolean keyPressed(KeyEvent event){
-        int key=event.key();
-        if(bindingModule!=null){if(key==GLFW.GLFW_KEY_ESCAPE){bindingModule=null;rebuild();return true;}bindingModule.setKeyCode(key);NotificationCenter.push(bindingModule.name(),"Keybind set to "+keyName(key));bindingModule=null;saveConfig();rebuild();return true;}
-        if(key==GLFW.GLFW_KEY_ESCAPE){onClose();return true;}
-        if(event.hasControlDown()&&key==GLFW.GLFW_KEY_K){if(search!=null){search.setFocused(true);focus=ClickGuiLayoutModel.Focus.SEARCH;}return true;}
-        if(key==GLFW.GLFW_KEY_TAB){focus=nextFocus(event.hasShiftDown()?-1:1);applyFocus();return true;}
-        if(focus==ClickGuiLayoutModel.Focus.CATEGORY&&(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){categoryFocus=ClickGuiLayoutModel.moveFocus(focus,categoryFocus,key==GLFW.GLFW_KEY_UP?-1:1,Module.Category.values().length,visibleModules().size());category=Module.Category.values()[categoryFocus];selected=null;moduleFocus=0;detailScroll=0;rebuild();return true;}
-        if(focus==ClickGuiLayoutModel.Focus.MODULE&&(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT||key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN)){
-            int delta=(key==GLFW.GLFW_KEY_LEFT||key==GLFW.GLFW_KEY_RIGHT)?(key==GLFW.GLFW_KEY_LEFT?-1:1):(key==GLFW.GLFW_KEY_UP?-1:1);
-            if(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_DOWN) delta*=geometry.columns();
-            List<Module> visible=visibleModules();moduleFocus=ClickGuiLayoutModel.moveModule(moduleFocus,delta,visible.size(),geometry.columns());Module m=ClickGuiLayoutModel.safeGet(visible,moduleFocus);if(m!=null){selected=m;scroll=0;rebuild();}return true;
+    private void drawNarrowTabs(GuiGraphics g) {
+        int x = 12;
+        int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
+        for (Module.Category category : Module.Category.values()) {
+            boolean active = category == activeCategory;
+            int color = active ? 0xFF26364A : 0xD8171B23;
+            g.fill(x, 42, x + tabWidth - 2, 61, color);
+            g.drawString(font, category.displayName().substring(0, 1), x + tabWidth / 2 - 3, 48,
+                    active ? accentColor() : 0xFFADB6C3);
+            x += tabWidth;
         }
-        if(key==GLFW.GLFW_KEY_ENTER&&focus==ClickGuiLayoutModel.Focus.MODULE){toggleSelected();return true;}
+    }
+
+    private void drawCategoryWindow(GuiGraphics g, int index, Module.Category category, int mouseX, int mouseY) {
+        int x = windowX(index), y = windowY(index), w = windowWidth(), h = windowHeight();
+        int headerHeight = 23;
+        g.fill(x, y, x + w, y + h, panelColor());
+        g.fill(x, y, x + w, y + headerHeight, 0xFF1B202A);
+        g.fill(x, y, x + 3, y + headerHeight, CATEGORY_COLORS[category.ordinal()]);
+        g.renderOutline(x, y, w, h, 0xFF303946);
+        String title = category.displayName().toUpperCase(Locale.ROOT);
+        g.drawString(font, title, x + 9, y + 8, 0xFFE5EAF1);
+        int enabled = (int) ArsonClient.getInstance().modules().organized(category).stream().filter(Module::enabled).count();
+        String count = enabled + "/" + ArsonClient.getInstance().modules().categoryCount(category);
+        g.drawString(font, count, x + w - font.width(count) - 16, y + 8, 0xFF8E9AAA);
+        g.drawString(font, collapsed[category.ordinal()] ? "+" : "−", x + w - 11, y + 8, 0xFFADB8C7);
+        if (collapsed[category.ordinal()]) return;
+
+        List<Module> modules = visibleModules(category);
+        int rowY = y + headerHeight + 3;
+        int rowHeight = 18;
+        int maxRows = Math.max(0, (h - headerHeight - 7) / rowHeight);
+        int start = Math.min(windowScroll[category.ordinal()], Math.max(0, modules.size() - maxRows));
+        int shown = 0;
+        for (int i = start; i < modules.size() && shown < maxRows; i++, shown++) {
+            Module module = modules.get(i);
+            int ry = rowY + shown * rowHeight;
+            boolean hovered = mouseX >= x + 3 && mouseX < x + w - 3 && mouseY >= ry && mouseY < ry + rowHeight;
+            if (module == selected) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, 0xFF27384D);
+            else if (hovered) g.fill(x + 3, ry, x + w - 3, ry + rowHeight, 0xFF202833);
+            g.drawString(font, module.enabled() ? "●" : "○", x + 8, ry + 5,
+                    module.enabled() ? accentColor() : 0xFF657181);
+            String name = module.name();
+            while (name.length() > 3 && font.width(name) > w - 43) name = name.substring(0, name.length() - 1);
+            if (name.length() != module.name().length()) name += "…";
+            g.drawString(font, name, x + 22, ry + 5, module.enabled() ? 0xFFE7EDF5 : 0xFFADB6C2);
+            if (module.favorite()) g.drawString(font, "★", x + w - 15, ry + 5, 0xFFE6C56F);
+        }
+        if (modules.isEmpty()) g.drawString(font, "No modules", x + 9, rowY + 4, 0xFF707B89);
+        else if (modules.size() > maxRows) {
+            String page = (start + 1) + "-" + Math.min(modules.size(), start + maxRows) + "/" + modules.size();
+            g.drawString(font, page, x + w - font.width(page) - 6, y + h - 13, 0xFF697585);
+        }
+    }
+
+    private void drawSettingsPanel(GuiGraphics g, int mouseX, int mouseY) {
+        int x = settingsX(), y = settingsY(), w = settingsWidth(), h = settingsHeight();
+        g.fill(x, y, x + w, y + h, 0xF00E1219);
+        g.fill(x, y, x + w, y + 30, 0xFF202834);
+        g.fill(x, y, x + 3, y + 30, accentColor());
+        g.renderOutline(x, y, w, h, 0xFF3A4655);
+        g.drawString(font, selected.name(), x + 10, y + 10, 0xFFFFFFFF);
+        g.drawString(font, "×", x + w - 14, y + 10, 0xFF9AA5B5);
+        String description = selected.description();
+        if (!description.isBlank()) {
+            String clipped = description;
+            while (clipped.length() > 12 && font.width(clipped) > w - 20) clipped = clipped.substring(0, clipped.length() - 1);
+            if (clipped.length() != description.length()) clipped += "…";
+            g.drawString(font, clipped, x + 10, y + 35, 0xFF8995A4);
+        }
+        g.drawString(font, selected.enabled() ? "ENABLED" : "DISABLED", x + 10, y + h - 14,
+                selected.enabled() ? accentColor() : 0xFF77818F);
+        g.drawString(font, "SCROLL FOR SETTINGS", x + w - 126, y + h - 14, 0xFF697585);
+    }
+
+    private int accentColor() {
+        return switch (theme) {
+            case MIDNIGHT -> 0xFF4C8DFF;
+            case GRAPHITE -> 0xFF9BAEC4;
+            case CONTRAST -> 0xFFFFFFFF;
+        };
+    }
+    private int panelColor() {
+        return switch (theme) {
+            case MIDNIGHT -> 0xE510141C;
+            case GRAPHITE -> 0xE5171B22;
+            case CONTRAST -> 0xEE08090B;
+        };
+    }
+
+    private void toggleSelected() {
+        if (selected == null) return;
+        selected.toggle();
+        NotificationCenter.push(selected.name(), selected.enabled() ? "Enabled" : "Disabled");
+        saveConfig();
+        rebuildWidgets();
+    }
+
+    private void applyEdit() {
+        if (valueEditor == null) return;
+        if (editingString != null) editingString.set(valueEditor.getValue());
+        else if (editingColor != null) {
+            try {
+                String raw = valueEditor.getValue().trim().replace("#", "");
+                if (raw.length() == 6) raw = "FF" + raw;
+                if (raw.length() != 8) throw new NumberFormatException();
+                editingColor.set((int) Long.parseLong(raw, 16));
+            } catch (NumberFormatException ignored) {
+                NotificationCenter.push("Invalid color", "Use RRGGBB or AARRGGBB");
+                return;
+            }
+        }
+        editingString = null;
+        editingColor = null;
+        saveConfig();
+        rebuildWidgets();
+    }
+
+    private void saveConfig() {
+        if (minecraft != null) ConfigManager.save(minecraft, ArsonClient.getInstance().modules());
+    }
+
+    private void saveProfile() {
+        if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
+        if (ConfigManager.saveProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) {
+            NotificationCenter.push("Profile", "Saved " + profile.getValue());
+        } else NotificationCenter.push("Profile", "Invalid profile name");
+    }
+
+    private void loadProfile() {
+        if (minecraft == null || profile == null || profile.getValue().isBlank()) return;
+        if (ConfigManager.loadProfile(minecraft, ArsonClient.getInstance().modules(), profile.getValue())) {
+            NotificationCenter.push("Profile", "Loaded " + profile.getValue());
+            rebuildWidgets();
+        } else NotificationCenter.push("Profile", "Profile not found or invalid");
+    }
+
+    private static String pretty(Object value) {
+        if (value == null) return "None";
+        String raw = value.toString().toLowerCase(Locale.ROOT);
+        StringBuilder out = new StringBuilder();
+        for (String part : raw.split("_")) {
+            if (part.isEmpty()) continue;
+            if (!out.isEmpty()) out.append(' ');
+            out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return out.toString();
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (super.mouseClicked(event, doubleClick)) return true;
+        if (event.button() == 0 && selected != null && inSettingsClose(event.x(), event.y())) {
+            selected = null;
+            editingString = null;
+            editingColor = null;
+            rebuildWidgets();
+            return true;
+        }
+        if (width < 520 && event.button() == 0 && event.y() >= 42 && event.y() <= 61) {
+            int tabWidth = Math.max(42, (width - 24) / Module.Category.values().length);
+            int index = Math.max(0, Math.min(Module.Category.values().length - 1, (int) ((event.x() - 12) / tabWidth)));
+            activeCategory = Module.Category.values()[index];
+            rebuildWidgets();
+            return true;
+        }
+        for (int i = 0; i < windowCount(); i++) {
+            Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
+            int x = windowX(i), y = windowY(i), w = windowWidth(), h = windowHeight();
+            if (event.x() < x || event.x() >= x + w || event.y() < y || event.y() >= y + h) continue;
+            if (event.y() < y + 23) {
+                if (event.button() == 0) {
+                    if (event.x() >= x + w - 20) collapsed[category.ordinal()] = !collapsed[category.ordinal()];
+                    else {
+                        draggingWindow = category.ordinal();
+                        dragOffsetX = event.x() - x;
+                        dragOffsetY = event.y() - y;
+                    }
+                    return true;
+                }
+            } else if (!collapsed[category.ordinal()]) {
+                List<Module> modules = visibleModules(category);
+                int rowHeight = 18;
+                int row = (int) ((event.y() - (y + 26)) / rowHeight);
+                int maxRows = Math.max(0, (h - 30) / rowHeight);
+                int index = windowScroll[category.ordinal()] + row;
+                if (row >= 0 && row < maxRows && index >= 0 && index < modules.size()) {
+                    Module module = modules.get(index);
+                    if (event.button() == 0) {
+                        module.toggle();
+                        NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
+                        saveConfig();
+                        rebuildWidgets();
+                    } else if (event.button() == 1) {
+                        selected = module;
+                        settingsScroll = 0;
+                        editingString = null;
+                        editingColor = null;
+                        rebuildWidgets();
+                    } else if (event.button() == 2) {
+                        module.setFavorite(!module.favorite());
+                        saveConfig();
+                        rebuildWidgets();
+                    }
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    private boolean inSettingsClose(double mouseX, double mouseY) {
+        int x = settingsX(), y = settingsY(), w = settingsWidth();
+        return mouseX >= x + w - 26 && mouseX <= x + w && mouseY >= y && mouseY <= y + 30;
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (draggingWindow >= 0 && event.button() == 0) {
+            int index = draggingWindow;
+            int baseX = width < 520 ? 12 : Math.max(12, (width - (columns() * windowWidth() + (columns() - 1) * 8)) / 2)
+                    + (index % columns()) * (windowWidth() + 8);
+            int baseY = width < 520 ? 66 : columns() == 6 ? 48 : 48 + (index / columns()) * (windowHeight() + 8);
+            windowOffsetX[index] = Math.max(-baseX, Math.min(width - baseX - windowWidth(), (int) Math.round(event.x() - dragOffsetX - baseX)));
+            windowOffsetY[index] = Math.max(-baseY, Math.min(height - baseY - 36, (int) Math.round(event.y() - dragOffsetY - baseY)));
+            return true;
+        }
+        return super.mouseDragged(event, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (event.button() == 0 && draggingWindow >= 0) {
+            draggingWindow = -1;
+            return true;
+        }
+        return super.mouseReleased(event);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
+        if (selected != null && mouseX >= settingsX() && mouseX <= settingsX() + settingsWidth()
+                && mouseY >= settingsY() && mouseY <= settingsY() + settingsHeight()) {
+            settingsScroll = Math.max(0, settingsScroll + (vertical > 0 ? -1 : 1));
+            rebuildWidgets();
+            return true;
+        }
+        for (int i = 0; i < windowCount(); i++) {
+            Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
+            int x = windowX(i), y = windowY(i);
+            if (mouseX >= x && mouseX <= x + windowWidth() && mouseY >= y && mouseY <= y + windowHeight()) {
+                windowScroll[category.ordinal()] = Math.max(0, windowScroll[category.ordinal()] + (vertical > 0 ? -1 : 1));
+                return true;
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
+        if (bindingModule != null) {
+            if (key == GLFW.GLFW_KEY_ESCAPE) {
+                bindingModule = null;
+                rebuildWidgets();
+                return true;
+            }
+            bindingModule.setKeyCode(key);
+            NotificationCenter.push(bindingModule.name(), "Keybind updated");
+            bindingModule = null;
+            saveConfig();
+            rebuildWidgets();
+            return true;
+        }
+        if (key == GLFW.GLFW_KEY_ESCAPE) {
+            onClose();
+            return true;
+        }
+        if (event.hasControlDown() && key == GLFW.GLFW_KEY_K && search != null) {
+            searchFocused = true;
+            search.setFocused(true);
+            return true;
+        }
         return super.keyPressed(event);
     }
 
-    private ClickGuiLayoutModel.Focus nextFocus(int delta){
-        ClickGuiLayoutModel.Focus[] order={ClickGuiLayoutModel.Focus.SEARCH,ClickGuiLayoutModel.Focus.CATEGORY,ClickGuiLayoutModel.Focus.MODULE,ClickGuiLayoutModel.Focus.ACTION};
-        int current=0;for(int i=0;i<order.length;i++)if(order[i]==focus){current=i;break;}
-        return order[Math.floorMod(current+delta,order.length)];
-    }
-    private void applyFocus(){if(search!=null)search.setFocused(focus==ClickGuiLayoutModel.Focus.SEARCH);}
-
-    @Override public boolean charTyped(CharacterEvent event){boolean handled=super.charTyped(event);if(search!=null&&search.isFocused()){scroll=0;rebuild();}return handled;}
-    @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
-        if(geometry.moduleList().contains(mouseX,mouseY)||geometry.detail().contains(mouseX,mouseY)){if(geometry.detail().contains(mouseX,mouseY)){detailScroll=Math.max(0,Math.min(maxDetailScroll(),detailScroll+(vertical>0?-1:1)));}else{scroll=Math.max(0,scroll+(vertical>0?-1:1));}rebuild();return true;}
-        return super.mouseScrolled(mouseX,mouseY,horizontal,vertical);
-    }
-
-    @Override public void render(GuiGraphics g,int mouseX,int mouseY,float delta){
-        Rects r=new Rects(geometry);
-        g.fill(0,0,width,height,0x42000000);
-        rounded(g,geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),panelColor());
-        g.fill(geometry.panelX(),geometry.panelY(),geometry.panelX()+geometry.panelWidth(),geometry.panelY()+34,headerColor());
-        g.drawString(font,"ARSON",geometry.panelX()+14,geometry.panelY()+10,0xFFFFFFFF);
-        g.drawString(font,"CLIENT V3",geometry.panelX()+14,geometry.panelY()+21,0xFF7E8998);
-        g.drawString(font,""+ArsonClient.getInstance().modules().enabledCount()+" enabled",geometry.panelX()+geometry.panelWidth()-92,geometry.panelY()+12,0xFFB8C1CC);
-        g.renderOutline(geometry.panelX(),geometry.panelY(),geometry.panelWidth(),geometry.panelHeight(),accentColor());
-        g.fill(geometry.rail().x(),geometry.rail().y(),geometry.rail().right(),geometry.rail().bottom(),0x65151A22);
-        if(selected!=null){
-            g.drawString(font,selected.name(),r.detail().x()+8,r.detail().y()-12,accentColor());
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        boolean handled = super.charTyped(event);
+        if (search != null && search.isFocused()) {
+            searchFocused = true;
+            for (int i = 0; i < windowCount(); i++) {
+                Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
+                windowScroll[category.ordinal()] = 0;
+            }
+            rebuildWidgets();
         }
-        super.render(g,mouseX,mouseY,delta);
+        return handled;
     }
 
-    private static void rounded(GuiGraphics g,int x,int y,int w,int h,int color){
-        if(w<4||h<4){g.fill(x,y,x+w,y+h,color);return;}
-        g.fill(x+2,y,x+w-2,y+h,color);g.fill(x,y+2,x+w,y+h-2,color);
-        g.fill(x+1,y+1,x+w-1,y+2,color);g.fill(x+1,y+h-2,x+w-1,y+h-1,color);
+    @Override
+    public void onClose() {
+        bindingModule = null;
+        saveConfig();
+        minecraft.setScreen(parent);
     }
-
-    private record Rects(ClickGuiLayoutModel.Geometry g){
-        ClickGuiLayoutModel.Rect rail(){return g.rail();}
-        ClickGuiLayoutModel.Rect detail(){return g.detail();}
-        ClickGuiLayoutModel.Rect search(){return g.search();}
-        ClickGuiLayoutModel.Rect toolbar(){return g.toolbar();}
-        ClickGuiLayoutModel.Rect footer(){return g.footer();}
-        int headerY(){return g.panelY()+9;}
-        int headerLeftX(){return g.panelX()+8;}
-        int headerButtonW(){return g.mode()==ClickGuiLayoutModel.Mode.NARROW?34:54;}
-    }
-
-    @Override public void onClose(){bindingModule=null;saveConfig();minecraft.setScreen(parent);}
 }
