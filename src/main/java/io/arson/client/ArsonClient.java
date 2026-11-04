@@ -68,9 +68,7 @@ public final class ArsonClient implements ClientModInitializer {
         instance = this;
         MinecraftClient client = MinecraftClient.getInstance();
         MeteorClient.initialize(client);
-        moduleManager = new ModuleManager();
-        moduleManager.registerDefaults();
-        Systems.add(moduleManager);
+        moduleManager = Systems.add(new ModuleManager());
         KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arson.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         ArsonCommand.register();
