@@ -103,6 +103,11 @@ public final class HudLayoutModule extends Module {
     }
 
 
+    /** Compatibility entry point for tests and older integrations. */
+    public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList) {
+        return repairNoOverlap(viewportWidth,viewportHeight,globalScale,arrayListWidth,arrayListHeight,arrayList,new HudModule());
+    }
+
     /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
     public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList,HudModule hud) {
         if(hud==null) return false;
