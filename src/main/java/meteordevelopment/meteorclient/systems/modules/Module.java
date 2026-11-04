@@ -8,6 +8,7 @@
 package meteordevelopment.meteorclient.systems.modules;
 
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.settings.Settings;
 import net.minecraft.client.MinecraftClient;
 
 public abstract class Module {
@@ -44,6 +45,7 @@ public abstract class Module {
     public final void toggle() {
         if (!active) {
             active = true;
+            settings.onActivated();
             if (autoSubscribe) MeteorClient.EVENT_BUS.subscribe(this);
             onActivate();
         } else {
