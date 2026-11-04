@@ -38,13 +38,22 @@ public final class NoOverlapLayout {
         int step=Math.max(1,gap);
         Map<String,Placement> result=new LinkedHashMap<>();
         List<Rect> occupied=new ArrayList<>();
+        int compactColumns=Math.max(1,(int)Math.ceil(Math.sqrt(Math.max(1,order.size()))));
+        int compactRows=Math.max(1,(int)Math.ceil(order.size()/(double)compactColumns));
         for(String id:order){
             Size requested=sizes.getOrDefault(id,new Size(1,1));
             int w=Math.min(requested.width(),regionWidth),h=Math.min(requested.height(),regionHeight);
+            boolean compacted=w!=requested.width()||h!=requested.height();
+            // If one requested rectangle would consume the entire tiny viewport,
+            // reserve a share for the remaining elements before placing the first one.
+            if(order.size()>1&&w>=regionWidth&&h>=regionHeight){
+                w=Math.max(1,regionWidth/compactColumns);
+                h=Math.max(1,regionHeight/compactRows);
+                compacted=true;
+            }
             Rect pref=preferred.getOrDefault(id,new Rect(safeLeft,safeTop,w,h));
             int px=clamp(pref.x(),safeLeft,safeRight-w),py=clamp(pref.y(),safeTop,safeBottom-h);
             Rect chosen=new Rect(px,py,w,h);
-            boolean compacted=w!=requested.width()||h!=requested.height();
             if(conflicts(chosen,occupied)){
                 Rect candidate=findCandidate(chosen,w,h,safeLeft,safeTop,safeRight,safeBottom,step,occupied);
                 if(candidate!=null) chosen=candidate;
