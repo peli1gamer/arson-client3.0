@@ -120,8 +120,13 @@ public final class HudLayoutModule extends Module {
         for(String element:order){
             if("array-list".equals(element)){
                 if(arrayList == null || !arrayList.enabled()) continue;
-                // Array-list coordinates are already in the raw viewport space.
-                preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,arrayListPreferredX),Math.max(0,arrayListPreferredY),arrayListWidth,arrayListHeight));
+                // Convert the Array List's edge anchor into its visible bounding rectangle.
+                int padding=(int)Math.round(arrayList.padding()*arrayList.scale());
+                int preferredX=arrayList.rightAlign()
+                        ? viewportWidth-arrayList.x()-arrayListWidth+padding
+                        : arrayList.x()-padding;
+                int preferredY=arrayList.y()-padding;
+                preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,preferredX),Math.max(0,preferredY),arrayListWidth,arrayListHeight));
                 sizes.put(element,new NoOverlapLayout.Size(arrayListWidth,arrayListHeight));
                 continue;
             }
@@ -138,8 +143,14 @@ public final class HudLayoutModule extends Module {
         for(String element:placements.keySet()){
             NoOverlapLayout.Rect rect=placements.get(element).rect();
             if("array-list".equals(element)){
-                int targetX=rect.x(),targetY=rect.y();
-                if(arrayList != null && (arrayList.x()!=targetX || arrayList.y()!=targetY)){ arrayList.setEditorPosition(targetX,targetY); changed=true; }
+                if(arrayList != null){
+                    int padding=(int)Math.round(arrayList.padding()*arrayList.scale());
+                    int targetX=arrayList.rightAlign()
+                            ? viewportWidth-rect.x()-arrayListWidth+padding
+                            : rect.x()+padding;
+                    int targetY=rect.y()+padding;
+                    if(arrayList.x()!=targetX || arrayList.y()!=targetY){ arrayList.setEditorPosition(targetX,targetY); changed=true; }
+                }
                 continue;
             }
             double x=rect.x()/scale,y=rect.y()/scale;
