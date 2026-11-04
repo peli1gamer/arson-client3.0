@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 
 public class Settings implements Iterable<SettingGroup> {
     private SettingGroup defaultGroup;
@@ -62,14 +64,23 @@ public class Settings implements Iterable<SettingGroup> {
 
     public NbtCompound toTag() {
         NbtCompound tag = new NbtCompound();
-        for (SettingGroup group : groups) tag.put(group.name, group.toTag());
+        NbtList list = new NbtList();
+        for (SettingGroup group : groups) {
+            if (group.wasChanged()) list.add(group.toTag());
+        }
+        if (!list.isEmpty()) tag.put("groups", list);
         return tag;
     }
 
-    public void fromTag(NbtCompound tag) {
-        for (SettingGroup group : groups) {
-            if (tag.contains(group.name)) group.fromTag(tag.getCompoundOrEmpty(group.name));
+    public Settings fromTag(NbtCompound tag) {
+        reset();
+        NbtList list = tag.getListOrEmpty("groups");
+        for (NbtElement element : list) {
+            if (!(element instanceof NbtCompound groupTag)) continue;
+            SettingGroup group = getGroup(groupTag.getString("name", ""));
+            if (group != null) group.fromTag(groupTag);
         }
+        return this;
     }
 
     @Override
