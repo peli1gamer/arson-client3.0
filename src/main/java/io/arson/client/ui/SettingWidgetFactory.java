@@ -4,6 +4,7 @@ import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
+import io.arson.client.settings.IntSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.StringSetting;
 import net.minecraft.client.font.TextRenderer;
@@ -30,6 +31,10 @@ public final class SettingWidgetFactory {
                 bool.set(!bool.enabled());
                 changed.run();
             }).dimensions(x, y, width, height).build();
+        }
+
+        if (setting instanceof IntSetting number) {
+            return new IntSettingSlider(x, y, width, height, number, persist);
         }
 
         if (setting instanceof DoubleSetting number) {
