@@ -92,6 +92,20 @@ class MeteorFrameworkIntegrationTest {
     }
 
     @Test
+    void moduleActivationMaintainsMeteorActiveRegistry() {
+        MeteorClient.initialize(null);
+        ModuleManager manager = Systems.add(new ModuleManager());
+        EventModule module = new EventModule();
+        manager.register(module);
+
+        module.enable();
+        assertTrue(manager.getActive().contains(module));
+
+        module.disable();
+        assertFalse(manager.getActive().contains(module));
+    }
+
+    @Test
     void moduleManagerRegistersThroughMeteorSystemsLifecycle() {
         ModuleManager manager = Systems.add(new ModuleManager());
 
