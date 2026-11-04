@@ -66,7 +66,7 @@ public final class ArrayListRenderer {
         renderScale=Math.max(0.05,renderScale);
 
         graphics.pose().pushMatrix();
-        graphics.pose().translate(module.x(), module.y());
+        graphics.pose().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
         graphics.pose().scale((float)renderScale, (float)renderScale);
 
         int line = module.spacing();
