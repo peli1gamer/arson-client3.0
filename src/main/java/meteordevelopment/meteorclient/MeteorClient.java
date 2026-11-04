@@ -6,7 +6,6 @@
  */
 package meteordevelopment.meteorclient;
 
-import io.arson.client.module.Module;
 import meteordevelopment.orbit.EventBus;
 import meteordevelopment.orbit.IEventBus;
 import net.minecraft.client.MinecraftClient;
