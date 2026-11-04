@@ -9,9 +9,12 @@ package meteordevelopment.meteorclient.systems.modules;
 
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.settings.Settings;
+import meteordevelopment.meteorclient.utils.misc.ISerializable;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.nbt.NbtCompound;
 
-public abstract class Module {
+public abstract class Module implements ISerializable<Module> {
     protected final MinecraftClient mc;
 
     public final Category category;
@@ -75,6 +78,31 @@ public abstract class Module {
 
     public final boolean isActive() {
         return active;
+    }
+
+    @Override
+    public NbtCompound toTag() {
+        if (!serialize) return null;
+        NbtCompound tag = new NbtCompound();
+        tag.putString("name", name);
+        tag.put("keybind", keybind.toTag());
+        tag.putBoolean("toggleOnKeyRelease", toggleOnBindRelease);
+        tag.putBoolean("chatFeedback", chatFeedback);
+        tag.putBoolean("favorite", favorite);
+        tag.put("settings", settings.toTag());
+        tag.putBoolean("active", active);
+        return tag;
+    }
+
+    @Override
+    public Module fromTag(NbtCompound tag) {
+        keybind.fromTag(tag.getCompoundOrEmpty("keybind"));
+        toggleOnBindRelease = tag.getBoolean("toggleOnKeyRelease", false);
+        chatFeedback = tag.getBoolean("chatFeedback", true);
+        favorite = tag.getBoolean("favorite", false);
+        settings.fromTag(tag.getCompoundOrEmpty("settings"));
+        setEnabled(tag.getBoolean("active", false));
+        return this;
     }
 
     private static String toTitle(String name) {
