@@ -8,6 +8,7 @@ import io.arson.client.context.FeatureContext;
 import io.arson.client.module.AimAssistModule;
 import io.arson.client.module.BlockESPModule;
 import io.arson.client.module.ContainerESPModule;
+import io.arson.client.module.ChunkFinderModule;
 import io.arson.client.module.EntityESPModule;
 import io.arson.client.module.EntityInfoModule;
 import io.arson.client.module.EntityTracerModule;
@@ -20,6 +21,8 @@ import io.arson.client.platform.FeatureContextAdapter;
 import io.arson.client.render.AimAssistRenderStage;
 import io.arson.client.render.ArrayListRenderer;
 import io.arson.client.render.BlockRenderStage;
+import io.arson.client.render.ChunkFinderRenderStage;
+import io.arson.client.render.ChunkFinderScanner;
 import io.arson.client.render.BlockScanner;
 import io.arson.client.render.CombatInfoRenderer;
 import io.arson.client.render.EntityInfoStage;
@@ -83,6 +86,7 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new EntityInfoStage(client, entityScanner, (EntityInfoModule) moduleManager.get("entity-info")));
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
         worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
+        worldRenderBridge.register(new ChunkFinderRenderStage(client, new ChunkFinderScanner(), (ChunkFinderModule) moduleManager.get("chunk-finder")));
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
         worldRenderBridge.attach();
 
