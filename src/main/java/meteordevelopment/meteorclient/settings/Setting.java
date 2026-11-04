@@ -102,6 +102,7 @@ public abstract class Setting<T> {
 
     public NbtCompound toTag() {
         NbtCompound tag = new NbtCompound();
+        tag.putString("name", name);
         Object current = value;
         if (current instanceof Boolean bool) tag.putBoolean("value", bool);
         else if (current instanceof Integer integer) tag.putInt("value", integer);
