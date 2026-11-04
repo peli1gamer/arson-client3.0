@@ -136,9 +136,8 @@ public final class ArsonClient implements ClientModInitializer {
         if (client.getWindow() == null || client.currentScreen != null) return;
         long window = client.getWindow().getHandle();
         for (Module module : moduleManager.all()) {
-            int keyCode = module.keyCode();
-            if (keyCode <= 0) continue;
-            boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
+            if (!module.hasKeybind()) continue;
+            boolean down = module.keybind().isPressed(window);
             if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
                 module.toggle();
                 NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
