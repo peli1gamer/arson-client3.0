@@ -46,6 +46,8 @@ public abstract class Module {
     public final void toggle() {
         if (!active) {
             active = true;
+            Modules manager = Modules.get();
+            if (manager != null) manager.addActive(this);
             settings.onActivated();
             if (autoSubscribe) MeteorClient.EVENT_BUS.subscribe(this);
             onActivate();
@@ -53,6 +55,8 @@ public abstract class Module {
             if (autoSubscribe) MeteorClient.EVENT_BUS.unsubscribe(this);
             onDeactivate();
             active = false;
+            Modules manager = Modules.get();
+            if (manager != null) manager.removeActive(this);
         }
     }
 
