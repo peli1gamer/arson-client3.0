@@ -238,7 +238,7 @@ public final class ArsonScreen extends Screen {
             addDrawableChild(SettingWidgetFactory.createRow(setting, x, y, w, 20, () -> {
                 saveConfig();
                 refreshWidgets();
-            }, edited -> {
+            }, this::saveConfig, edited -> {
                 editingString = edited instanceof StringSetting string ? string : null;
                 editingColor = edited instanceof ColorSetting color ? color : null;
                 refreshWidgets();
