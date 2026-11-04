@@ -31,8 +31,14 @@ jobs:
       - name: Migrate main sources from Mojang mappings to Yarn
         run: gradle migrateMappings --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
 
-      - name: Migrate test sources from Mojang mappings to Yarn
-        run: gradle migrateMappings --input "src/test/java" --output "src/test/java" --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
+      - name: Migrate test sources from Mojang mappings to Yarn when present
+        shell: bash
+        run: |
+          if [ -d "src/test/java" ]; then
+            gradle migrateMappings --input "src/test/java" --output "src/test/java" --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
+          else
+            echo "No test Java source directory; skipping test-source migration."
+          fi
 
       - name: Switch Gradle configuration to Meteor's 1.21.11 toolchain
         shell: bash
