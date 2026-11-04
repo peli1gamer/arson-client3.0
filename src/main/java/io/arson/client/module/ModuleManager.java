@@ -12,8 +12,8 @@ import net.minecraft.client.MinecraftClient;
 /** Arson's Meteor Modules registry adapter and default module catalogue. */
 public final class ModuleManager extends meteordevelopment.meteorclient.systems.modules.Modules {
     @Override
-    protected String key(Module module) {
-        return module.id();
+    protected String key(meteordevelopment.meteorclient.systems.modules.Module module) {
+        return ((Module) module).id();
     }
 
     public void register(Module module) {
@@ -28,12 +28,27 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
         register(GameStateModule.create());register(ScreenInfoModule.create());
     }
 
-    public Module get(String id) { return super.get(id); }
-    public Collection<Module> all() { return getAll(); }
+
+    @Override
+    public Module get(String id) {
+        return (Module) super.get(id);
+    }
+
+    public Collection<Module> all() {
+        return arsonModules();
+    }
+
+    private ArrayList<Module> arsonModules() {
+        ArrayList<Module> result = new ArrayList<>();
+        for (meteordevelopment.meteorclient.systems.modules.Module module : getAll()) {
+            if (module instanceof Module arsonModule) result.add(arsonModule);
+        }
+        return result;
+    }
 
     public Collection<Module> organized(Module.Category category) {
         ArrayList<Module> result = new ArrayList<>();
-        for (Module module : getAll()) if (module.category() == category) result.add(module);
+        for (Module module : arsonModules()) if (module.category() == category) result.add(module);
         sort(result);
         return result;
     }
@@ -41,7 +56,7 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
     public Collection<Module> search(String query) {
         ArrayList<Module> result = new ArrayList<>();
         String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-        for (Module module : getAll()) {
+        for (Module module : arsonModules()) {
             String haystack = (module.name() + " " + module.id() + " " + module.description()).toLowerCase(Locale.ROOT);
             if (q.isEmpty() || haystack.contains(q)) result.add(module);
         }
@@ -51,30 +66,30 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
 
     public int categoryCount(Module.Category category) {
         int count = 0;
-        for (Module module : getAll()) if (module.category() == category) count++;
+        for (Module module : arsonModules()) if (module.category() == category) count++;
         return count;
     }
 
     public int enabledCount(Module.Category category) {
         int count = 0;
-        for (Module module : getAll()) if (module.category() == category && module.enabled()) count++;
+        for (Module module : arsonModules()) if (module.category() == category && module.enabled()) count++;
         return count;
     }
 
     public int favoriteCount() {
         int count = 0;
-        for (Module module : getAll()) if (module.favorite()) count++;
+        for (Module module : arsonModules()) if (module.favorite()) count++;
         return count;
     }
 
     public int enabledCount() {
         int count = 0;
-        for (Module module : getAll()) if (module.enabled()) count++;
+        for (Module module : arsonModules()) if (module.enabled()) count++;
         return count;
     }
 
     public void tick(MinecraftClient client) {
-        for (Module module : getAll()) module.tick(client);
+        for (Module module : arsonModules()) module.tick(client);
     }
 
     private static void sort(ArrayList<Module> modules) {
@@ -95,4 +110,5 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
     private static final class StorageStatusModule extends Module{private final BooleanSetting showScreenState=setting(new BooleanSetting("show-screen-state","Show Screen State",true));private boolean containerOpen;private StorageStatusModule(){super("storage-status","Storage Status",Category.MISC,"Reports whether a local container screen is currently open.");showScreenState.description("Track whether a local container screen is open.");}@Override protected void onTick(MinecraftClient client){containerOpen=showScreenState.enabled()&&client.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?>;}public boolean containerOpen(){return containerOpen;}}
     private static final class UtilityStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private UtilityStatusModule(){super("utility-status","Utility Status",Category.MISC,"Local utility telemetry for compact HUD presentation.");}public DisplayMode mode(){return mode.get();}}
 }
+
 
