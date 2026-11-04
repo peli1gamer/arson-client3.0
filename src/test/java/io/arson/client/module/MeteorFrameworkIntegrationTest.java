@@ -3,6 +3,7 @@ package io.arson.client.module;
 import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.EnumSetting;
+import meteordevelopment.meteorclient.settings.IntSetting;
 import meteordevelopment.meteorclient.systems.Systems;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +29,15 @@ class MeteorFrameworkIntegrationTest {
         assertTrue(amount.set(0.75));
         assertFalse(amount.set(2.0));
         assertEquals(0.75, amount.get());
+
+        IntSetting count = new IntSetting.Builder()
+            .name("count")
+            .defaultValue(5)
+            .range(0, 10)
+            .build();
+        assertTrue(count.set(8));
+        assertFalse(count.set(11));
+        assertEquals(8, count.get());
 
         EnumSetting<Mode> mode = new EnumSetting.Builder<Mode>()
             .name("mode")
