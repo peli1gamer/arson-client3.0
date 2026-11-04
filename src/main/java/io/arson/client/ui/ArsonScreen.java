@@ -620,7 +620,16 @@ public final class ArsonScreen extends Screen {
             search.setFocused(true);
             return true;
         }
-        return super.keyPressed(event);
+        boolean handled = super.keyPressed(event);
+        if (handled && search != null && search.isFocused()) {
+            searchFocused = true;
+            for (int i = 0; i < windowCount(); i++) {
+                Module.Category category = width < 520 ? activeCategory : Module.Category.values()[i];
+                windowScroll[category.ordinal()] = 0;
+            }
+            refreshWidgets();
+        }
+        return handled;
     }
 
     @Override
