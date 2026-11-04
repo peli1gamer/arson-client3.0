@@ -59,6 +59,9 @@ public final class ArsonScreen extends Screen {
     private boolean enabledOnly;
     private boolean alphabetical;
     private ClickGuiPreferencesModule.Theme theme = ClickGuiPreferencesModule.Theme.MIDNIGHT;
+    private final List<SettingGroupHeader> settingGroupHeaders = new ArrayList<>();
+
+    private record SettingGroupHeader(String title, int y) { }
 
     public ArsonScreen(Screen parent) {
         super(Text.literal("Arson Client V3"));
@@ -205,15 +208,19 @@ public final class ArsonScreen extends Screen {
         int bottom = Math.min(height - 38, settingsY() + settingsHeight() - 8);
         int rowHeight = 23;
         List<Setting<?>> visible = selected.settings().stream().filter(Setting::visible).toList();
-        int maxRows = Math.max(0, (bottom - y) / rowHeight);
-        int start = Math.min(settingsScroll, Math.max(0, visible.size() - maxRows));
-        int shown = 0;
+        int start = Math.min(settingsScroll, Math.max(0, visible.size() - 1));
         String lastGroup = null;
-        for (int i = start; i < visible.size() && shown < maxRows; i++, shown++) {
+        settingGroupHeaders.clear();
+        for (int i = start; i < visible.size(); i++) {
             Setting<?> setting = visible.get(i);
-            if (setting.group() != null && !setting.group().id().equals(lastGroup)) {
-                lastGroup = setting.group().id();
+            SettingGroup group = setting.group();
+            if (group != null && !group.id().equals(lastGroup)) {
+                lastGroup = group.id();
+                if (y + 9 > bottom) break;
+                settingGroupHeaders.add(new SettingGroupHeader(group.name(), y));
+                y += 11;
             }
+            if (y + 20 > bottom) break;
             if (setting instanceof BooleanSetting bs) {
                 addDrawableChild(ButtonWidget.builder(Text.literal(setting.name() + "  " + (bs.enabled() ? "ON" : "OFF")),
                         b -> { bs.set(!bs.enabled()); saveConfig(); refreshWidgets(); })
@@ -393,6 +400,10 @@ public final class ArsonScreen extends Screen {
         g.drawStrokedRectangle(x, y, w, h, 0xFF3A4655);
         g.drawTextWithShadow(textRenderer, selected.name(), x + 10, y + 10, 0xFFFFFFFF);
         g.drawTextWithShadow(textRenderer, "×", x + w - 14, y + 10, 0xFF9AA5B5);
+        for (SettingGroupHeader header : settingGroupHeaders) {
+            g.drawTextWithShadow(textRenderer, header.title().toUpperCase(Locale.ROOT),
+                    x + 10, header.y(), accentColor());
+        }
         String description = selected.description();
         if (!description.isBlank()) {
             String clipped = description;
