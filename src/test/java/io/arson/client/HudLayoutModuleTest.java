@@ -1,6 +1,7 @@
 package io.arson.client;
 
 import io.arson.client.module.HudLayoutModule;
+import io.arson.client.module.HudModule;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,6 +45,21 @@ class HudLayoutModuleTest {
         layout.setOffset("world-info", 0, 0);
         assertTrue(layout.repairNoOverlap(360, 240, 1.0, 100, 80, null));
         assertFalse(layout.repairNoOverlap(360, 240, 1.0, 100, 80, null));
+    }
+
+    @Test
+    void hiddenElementsDoNotReserveSpaceDuringOverlapRepair() {
+        HudLayoutModule layout = new HudLayoutModule();
+        HudModule hud = new HudModule();
+        for (String element : new String[]{"watermark", "coordinates", "fps", "player-info", "world-info"}) {
+            layout.setOffset(element, 0, 0);
+        }
+        hud.setElementVisible("coordinates", false);
+
+        layout.repairNoOverlap(640, 360, 1.0, 100, 80, null, hud);
+
+        assertEquals(0.0, layout.offsetX("coordinates"));
+        assertEquals(0.0, layout.offsetY("coordinates"));
     }
 
     @Test
