@@ -3,6 +3,8 @@ package io.arson.client.module;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Categories;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
+import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +22,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     private final List<Setting<?>> arsonSettings = new ArrayList<>();
     private final List<SettingGroup> settingGroups = new ArrayList<>();
     private final SettingGroup defaultGroup = new SettingGroup("general", "General", "General module settings.");
-    private int keyCode;
+    private final Keybind keybind = Keybind.none();
 
     protected Module(String id, String name, Category category) {
         this(id, name, category, "");
@@ -38,7 +40,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
         super(meteorCategory(category), name, description);
         this.id = id;
         this.arsonCategory = category;
-        this.keyCode = Math.max(0, defaultKeyCode);
+        setKeyCode(defaultKeyCode);
         settingGroups.add(defaultGroup);
         settings.addGroup(defaultGroup);
     }
@@ -51,7 +53,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
         setEnabled(false);
         resetSettings();
         favorite = false;
-        keyCode = 0;
+        keybind.reset();
         toggleOnBindRelease = false;
         chatFeedback = true;
     }
@@ -115,9 +117,11 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     public boolean enabled() { return isActive(); }
     public boolean favorite() { return favorite; }
     public void setFavorite(boolean favorite) { this.favorite = favorite; }
-    public int keyCode() { return keyCode; }
-    public void setKeyCode(int keyCode) { this.keyCode = Math.max(0, keyCode); }
-    public boolean hasKeybind() { return keyCode > 0; }
+    public int keyCode() { return keybind.isKey() && keybind.isSet() ? keybind.getValue() : 0; }
+    public void setKeyCode(int keyCode) { if (keyCode <= 0) keybind.reset(); else keybind.set(true, keyCode, 0); }
+    public Keybind keybind() { return keybind; }
+    public void setKeybind(Keybind value) { keybind.set(value); }
+    public boolean hasKeybind() { return keybind.isSet(); }
     public List<Setting<?>> settings() { return Collections.unmodifiableList(arsonSettings); }
     public List<SettingGroup> settingGroups() { return Collections.unmodifiableList(settingGroups); }
     public SettingGroup defaultGroup() { return defaultGroup; }
