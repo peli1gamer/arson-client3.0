@@ -17,7 +17,7 @@ import net.minecraft.client.MinecraftClient;
 public abstract class Module extends meteordevelopment.meteorclient.systems.modules.Module {
     private final String id;
     private final Category arsonCategory;
-    private final List<Setting<?>> settings = new ArrayList<>();
+    private final List<Setting<?>> arsonSettings = new ArrayList<>();
     private final List<SettingGroup> settingGroups = new ArrayList<>();
     private final SettingGroup defaultGroup = new SettingGroup("general", "General", "General module settings.");
     private int keyCode;
@@ -40,10 +40,11 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
         this.arsonCategory = category;
         this.keyCode = Math.max(0, defaultKeyCode);
         settingGroups.add(defaultGroup);
+        settings.addGroup(defaultGroup);
     }
 
     public final void resetSettings() {
-        for (Setting<?> setting : settings) setting.reset();
+        settings.reset();
     }
 
     public final void resetToDefaults() {
@@ -60,7 +61,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     }
 
     protected final <T extends Setting<?>> T setting(T setting) {
-        settings.add(setting);
+        arsonSettings.add(setting);
         defaultGroup.add(setting);
         return setting;
     }
@@ -71,6 +72,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
         }
         SettingGroup group = new SettingGroup(id, name, description);
         settingGroups.add(group);
+        settings.addGroup(group);
         return group;
     }
 
@@ -116,7 +118,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     public int keyCode() { return keyCode; }
     public void setKeyCode(int keyCode) { this.keyCode = Math.max(0, keyCode); }
     public boolean hasKeybind() { return keyCode > 0; }
-    public List<Setting<?>> settings() { return Collections.unmodifiableList(settings); }
+    public List<Setting<?>> settings() { return Collections.unmodifiableList(arsonSettings); }
     public List<SettingGroup> settingGroups() { return Collections.unmodifiableList(settingGroups); }
     public SettingGroup defaultGroup() { return defaultGroup; }
 
