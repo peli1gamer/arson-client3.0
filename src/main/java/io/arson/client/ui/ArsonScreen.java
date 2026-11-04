@@ -106,8 +106,8 @@ public final class ArsonScreen extends Screen {
         valueEditor = null;
 
         int headerY = 12;
-        search = new EditBox(font, 112, headerY, Math.max(100, Math.min(230, width - 420)), 22,
-                Component.literal("Search modules"));
+        int searchWidth = width < 520 ? Math.max(80, width - 190) : Math.max(100, Math.min(230, width - 420));
+        search = new EditBox(font, 112, headerY, searchWidth, 22, Component.literal("Search modules"));
         search.setHint(Component.literal("Search modules..."));
         search.setValue(searchValue);
         search.setFocused(searchFocused);
@@ -117,32 +117,34 @@ public final class ArsonScreen extends Screen {
             if (ArsonClient.getInstance().modules().get("hud") instanceof HudModule) {
                 minecraft.setScreen(new HudEditorScreen(this));
             }
-        }).bounds(width - 270, headerY, 48, 22).build());
+        }).bounds(width - (width < 520 ? 60 : 270), headerY, 48, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Theme"), b -> {
-            ClickGuiPreferencesModule.Theme[] themes = ClickGuiPreferencesModule.Theme.values();
-            theme = themes[(theme.ordinal() + 1) % themes.length];
-            savePreferences();
-            rebuildWidgets();
-        }).bounds(width - 216, headerY, 54, 22).build());
+        if (width >= 520) {
+            addRenderableWidget(Button.builder(Component.literal("Theme"), b -> {
+                ClickGuiPreferencesModule.Theme[] themes = ClickGuiPreferencesModule.Theme.values();
+                theme = themes[(theme.ordinal() + 1) % themes.length];
+                savePreferences();
+                rebuildWidgets();
+            }).bounds(width - 216, headerY, 54, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
-            favoritesOnly = !favoritesOnly;
-            savePreferences();
-            rebuildWidgets();
-        }).bounds(width - 156, headerY, 28, 22).build());
+            addRenderableWidget(Button.builder(Component.literal(favoritesOnly ? "★" : "☆"), b -> {
+                favoritesOnly = !favoritesOnly;
+                savePreferences();
+                rebuildWidgets();
+            }).bounds(width - 156, headerY, 28, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "ON" : "ALL"), b -> {
-            enabledOnly = !enabledOnly;
-            savePreferences();
-            rebuildWidgets();
-        }).bounds(width - 124, headerY, 38, 22).build());
+            addRenderableWidget(Button.builder(Component.literal(enabledOnly ? "ON" : "ALL"), b -> {
+                enabledOnly = !enabledOnly;
+                savePreferences();
+                rebuildWidgets();
+            }).bounds(width - 124, headerY, 38, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal(alphabetical ? "A-Z" : "Smart"), b -> {
-            alphabetical = !alphabetical;
-            savePreferences();
-            rebuildWidgets();
-        }).bounds(width - 80, headerY, 48, 22).build());
+            addRenderableWidget(Button.builder(Component.literal(alphabetical ? "A-Z" : "Smart"), b -> {
+                alphabetical = !alphabetical;
+                savePreferences();
+                rebuildWidgets();
+            }).bounds(width - 80, headerY, 48, 22).build());
+        }
 
         if (selected != null) addSettingsWidgets(editValue);
         if (width < 520) addNarrowCategoryTabs();
@@ -320,8 +322,8 @@ public final class ArsonScreen extends Screen {
         g.drawString(font, "V3", 57, 9, accentColor());
         g.drawString(font, "CLIENT", 14, 22, 0xFF7F8998);
         int enabled = ArsonClient.getInstance().modules().enabledCount();
-        g.drawString(font, enabled + " ACTIVE", 14, 42, 0xFF9AA5B5);
-        if (width >= 760) g.drawString(font, "RIGHT CLICK = SETTINGS", width - 390, 23, 0xFF727D8C);
+        if (width >= 520) g.drawString(font, enabled + " ACTIVE", 14, 42, 0xFF9AA5B5);
+        if (width >= 760) g.drawString(font, "RIGHT CLICK = SETTINGS", 360, 23, 0xFF727D8C);
     }
 
     private void drawNarrowTabs(GuiGraphics g) {
