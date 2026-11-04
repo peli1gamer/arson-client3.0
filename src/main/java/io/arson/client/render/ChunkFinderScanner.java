@@ -66,7 +66,7 @@ public final class ChunkFinderScanner {
             lastCycleTick = now;
         }
 
-        if (now != lastStepTick && now - lastStepTick >= module.scanIntervalTicks()) {
+        if (now != lastStepTick && (lastStepTick == Long.MIN_VALUE || now - lastStepTick >= module.scanIntervalTicks())) {
             lastStepTick = now;
             int budget = module.chunksPerTick();
             while (budget-- > 0 && !pending.isEmpty()) {
@@ -79,6 +79,7 @@ public final class ChunkFinderScanner {
                 if (chunk == null) continue;
                 analyse(client, chunk, module);
             }
+            if (pending.isEmpty()) lastCycleTick = now;
         }
 
         double maxDistance = (radius + 1.0) * 16.0;
