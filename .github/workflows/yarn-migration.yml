@@ -31,22 +31,12 @@ jobs:
       - name: Migrate main sources from Mojang mappings to Yarn
         run: gradle migrateMappings --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
 
-      - name: Migrate test sources from Mojang mappings to Yarn when present
-        shell: bash
-        run: |
-          if [ -d "src/test/java" ]; then
-            gradle migrateMappings --input "src/test/java" --output "src/test/java" --mappings "1.21.11+build.3" --overrideInputsIHaveABackup --no-daemon
-          else
-            echo "No test Java source directory; skipping test-source migration."
-          fi
-
       - name: Switch Gradle configuration to Meteor's 1.21.11 toolchain
         shell: bash
         run: |
-          cat >> gradle.properties <<'EOF'
-
-          yarn_mappings=1.21.11+build.3
-          EOF
+          if ! grep -q '^yarn_mappings=' gradle.properties; then
+            printf '\nyarn_mappings=1.21.11+build.3\n' >> gradle.properties
+          fi
           sed -i 's/loader_version=0.18.1/loader_version=0.18.2/' gradle.properties
           sed -i 's/fabric_version=0.141.3+1.21.11/fabric_version=0.140.0+1.21.11/' gradle.properties
           sed -i 's/mappings loom.officialMojangMappings()/mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"/' build.gradle
@@ -56,8 +46,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/main/java src/test/java gradle.properties build.gradle .yarn-migration-pending
-          git add -u
+          git add -A
           if git diff --cached --quiet; then
             echo "No migration changes detected."
             exit 1
