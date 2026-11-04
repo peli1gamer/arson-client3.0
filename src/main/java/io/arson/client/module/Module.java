@@ -3,6 +3,7 @@ package io.arson.client.module;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Categories;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -117,7 +118,7 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     public int keyCode() { return keybind.isKey() && keybind.isSet() ? keybind.getValue() : 0; }
     public void setKeyCode(int keyCode) { if (keyCode <= 0) keybind.reset(); else keybind.set(true, keyCode, 0); }
     public Keybind keybind() { return keybind; }
-    public void setKeybind(meteordevelopment.meteorclient.utils.misc.Keybind value) { keybind.set(value); }
+    public void setKeybind(Keybind value) { keybind.set(value); }
     public boolean hasKeybind() { return keybind.isSet(); }
     public List<Setting<?>> settings() { return Collections.unmodifiableList(arsonSettings); }
     public List<SettingGroup> settingGroups() { return Collections.unmodifiableList(settingGroups); }
