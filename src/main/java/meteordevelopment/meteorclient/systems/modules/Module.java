@@ -28,6 +28,7 @@ public abstract class Module {
     public boolean chatFeedback = true;
     public boolean toggleOnBindRelease;
     public boolean favorite;
+    public final Keybind keybind = Keybind.none();
 
     protected Module(Category category, String name, String description) {
         this.mc = MinecraftClient.getInstance();
