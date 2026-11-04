@@ -103,8 +103,14 @@ public final class HudLayoutModule extends Module {
     }
 
 
-    /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
+    /** Compatibility entry point for tests and older integrations. */
     public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList) {
+        return repairNoOverlap(viewportWidth,viewportHeight,globalScale,arrayListWidth,arrayListHeight,arrayList,new HudModule());
+    }
+
+    /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
+    public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList,HudModule hud) {
+        if(hud==null) return false;
         double scale=Math.max(0.5,globalScale);
         int logicalW=Math.max(1,(int)Math.floor(viewportWidth/scale));
         int logicalH=Math.max(1,(int)Math.floor(viewportHeight/scale));
@@ -114,13 +120,13 @@ public final class HudLayoutModule extends Module {
         for(String element:order){
             if("array-list".equals(element)){
                 if(arrayList == null || !arrayList.enabled()) continue;
-                preferred.put(element,new NoOverlapLayout.Rect(0,0,arrayListWidth,arrayListHeight));
                 // Array-list coordinates are already in the raw viewport space.
                 preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,arrayListPreferredX),Math.max(0,arrayListPreferredY),arrayListWidth,arrayListHeight));
                 sizes.put(element,new NoOverlapLayout.Size(arrayListWidth,arrayListHeight));
                 continue;
             }
-            double elementScale=elementScaleHint(element,viewportWidth,viewportHeight);
+            if(!hud.elementVisible(element)) continue;
+            double elementScale=hud.elementScale(element);
             double[] p=resolve(element,logicalW,logicalH,190*elementScale,35*elementScale);
             int x=(int)Math.round(p[0]*scale),y=(int)Math.round(p[1]*scale);
             int w=Math.max(1,(int)Math.ceil(190*elementScale*scale)),h=Math.max(1,(int)Math.ceil(35*elementScale*scale));
@@ -137,8 +143,10 @@ public final class HudLayoutModule extends Module {
                 continue;
             }
             double x=rect.x()/scale,y=rect.y()/scale;
-            if(Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[0]-x)>0.5 || Math.abs(resolve(element,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight))[1]-y)>0.5){
-                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScaleHint(element,viewportWidth,viewportHeight),35*elementScaleHint(element,viewportWidth,viewportHeight));
+            double elementScale=hud.elementScale(element);
+            double[] current=resolve(element,logicalW,logicalH,190*elementScale,35*elementScale);
+            if(Math.abs(current[0]-x)>0.5 || Math.abs(current[1]-y)>0.5){
+                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScale,35*elementScale);
                 changed=true;
             }
         }
@@ -147,7 +155,6 @@ public final class HudLayoutModule extends Module {
 
     private int arrayListPreferredX=6,arrayListPreferredY=6;
     public void setArrayListPreferredPosition(int x,int y){arrayListPreferredX=x;arrayListPreferredY=y;}
-    private double elementScaleHint(String element,int viewportWidth,int viewportHeight){return viewportWidth<520||viewportHeight<360?1.0:2.0;}
 
     @Override protected void onTick(Minecraft client) { /* layout is declarative; no per-tick work is required */ }
 }

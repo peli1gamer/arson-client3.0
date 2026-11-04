@@ -48,6 +48,7 @@ public final class ArsonScreen extends Screen {
 
     @Override protected void init() {
         syncPreferences();
+        categoryFocus = categoriesIndex(category);
         geometry = ClickGuiLayoutModel.compute(width, height, compactMode ? 0.86 : preferencesScale());
         rebuild();
     }
@@ -113,6 +114,7 @@ public final class ArsonScreen extends Screen {
         search = new EditBox(font, r.search().x(), r.search().y(), r.search().width(), r.search().height(), Component.literal("Search"));
         search.setHint(Component.literal("Search modules...   Ctrl+K"));
         search.setValue(searchValue);
+        search.setFocused(focus == ClickGuiLayoutModel.Focus.SEARCH);
         addRenderableWidget(search);
 
         addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {

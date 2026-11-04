@@ -5,14 +5,13 @@ import io.arson.client.notification.NotificationCenter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.ChunkPos;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,13 +73,32 @@ public final class ChunkFinderScanner {
                 queued.remove(key);
                 int chunkX = (int) (key >> 32);
                 int chunkZ = (int) key;
-                if (!client.level.hasChunk(chunkX, chunkZ)) continue;
+                if (!client.level.hasChunk(chunkX, chunkZ)) {
+                    results.remove(key);
+                    notified.remove(key);
+                    continue;
+                }
                 LevelChunk chunk = client.level.getChunkSource().getChunkNow(chunkX, chunkZ);
-                if (chunk == null) continue;
+                if (chunk == null) {
+                    results.remove(key);
+                    notified.remove(key);
+                    continue;
+                }
                 analyse(client, chunk, module);
             }
             if (pending.isEmpty()) lastCycleTick = now;
         }
+
+        // Chunk unloads can happen after a result was produced. Never keep rendering stale data.
+        results.entrySet().removeIf(entry -> {
+            long key = entry.getKey();
+            int chunkX = (int) (key >> 32);
+            int chunkZ = (int) key;
+            boolean loaded = client.level.hasChunk(chunkX, chunkZ)
+                    && client.level.getChunkSource().getChunkNow(chunkX, chunkZ) != null;
+            if (!loaded) notified.remove(key);
+            return !loaded;
+        });
 
         double maxDistance = (radius + 1.0) * 16.0;
         double maxDistanceSq = maxDistance * maxDistance;
@@ -125,7 +143,7 @@ public final class ChunkFinderScanner {
 
     private void analyse(Minecraft client, LevelChunk chunk, ChunkFinderModule module) {
         int storage = 0, redstone = 0, obsidian = 0, processedDeepslate = 0;
-        int spawners = 0, oreBlocks = 0, verticalVeins = 0, concealed = 0;
+        int spawners = 0, verticalVeins = 0, concealed = 0;
         long yTotal = 0;
         int ySignals = 0;
         int minY = client.level.getMinY();
@@ -142,7 +160,6 @@ public final class ChunkFinderScanner {
 
                     boolean ore = isOre(state);
                     if (ore) {
-                        oreBlocks++;
                         currentOreRun++;
                         if (module.detectConcealedOre() && isConcealedOre(client, pos)) concealed++;
                     } else {
@@ -207,7 +224,7 @@ public final class ChunkFinderScanner {
         return state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST) || state.is(Blocks.BARREL)
                 || state.is(Blocks.HOPPER) || state.is(Blocks.FURNACE) || state.is(Blocks.BLAST_FURNACE)
                 || state.is(Blocks.SMOKER) || state.is(Blocks.DISPENSER) || state.is(Blocks.DROPPER)
-                || state.is(Blocks.SHULKER_BOX);
+                || state.getBlock() instanceof ShulkerBoxBlock;
     }
 
     private static boolean isRedstone(BlockState state) {
@@ -234,7 +251,15 @@ public final class ChunkFinderScanner {
     private static boolean isConcealedOre(Minecraft client, BlockPos pos) {
         int solid = 0;
         for (var direction : net.minecraft.core.Direction.values()) {
-            if (!client.level.getBlockState(pos.relative(direction)).isAir()) solid++;
+            BlockPos neighbour = pos.relative(direction);
+            if (neighbour.getY() < client.level.getMinY() || neighbour.getY() >= client.level.getMaxY()) {
+                solid++;
+                continue;
+            }
+            // An unloaded adjacent chunk is unknown, not air. Treat the ore as unclassified
+            // rather than awarding a concealed-ore signal from an artificial chunk boundary.
+            if (!client.level.hasChunk(neighbour.getX() >> 4, neighbour.getZ() >> 4)) return false;
+            if (!client.level.getBlockState(neighbour).isAir()) solid++;
         }
         return solid >= 5;
     }
