@@ -38,7 +38,7 @@ public final class Keybind {
     public int getValue() { return value; }
     public int getModifiers() { return modifiers; }
     public boolean isKey() { return key; }
-    public boolean isSet() { return value != GLFW.GLFW_KEY_UNKNOWN; }
+    public boolean isSet() { return key ? value != GLFW.GLFW_KEY_UNKNOWN : value >= 0; }
     public boolean hasMods() { return key && modifiers != 0; }
 
     public void set(boolean key, int value, int modifiers) {
