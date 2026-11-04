@@ -8,6 +8,7 @@ import io.arson.client.settings.IntSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.StringSetting;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -27,39 +28,48 @@ public final class SettingWidgetFactory {
     public static ClickableWidget createRow(Setting<?> setting, int x, int y, int width, int height,
                                             Runnable changed, Runnable persist, Consumer<Setting<?>> edit) {
         if (setting instanceof BooleanSetting bool) {
-            return ButtonWidget.builder(label(setting.name(), bool.enabled() ? "ON" : "OFF"), button -> {
+            return withDescription(ButtonWidget.builder(label(setting.name(), bool.enabled() ? "ON" : "OFF"), button -> {
                 bool.set(!bool.enabled());
                 changed.run();
-            }).dimensions(x, y, width, height).build();
+            }).dimensions(x, y, width, height).build(), setting);
         }
 
         if (setting instanceof IntSetting number) {
-            return new IntSettingSlider(x, y, width, height, number, persist);
+            return withDescription(new IntSettingSlider(x, y, width, height, number, persist), setting);
         }
 
         if (setting instanceof DoubleSetting number) {
-            return new DoubleSettingSlider(x, y, width, height, number, persist);
+            return withDescription(new DoubleSettingSlider(x, y, width, height, number, persist), setting);
         }
 
         if (setting instanceof EnumSetting<?> enumeration) {
-            return ButtonWidget.builder(label(setting.name(), pretty(enumeration.get())), button -> {
+            ClickableWidget widget = ButtonWidget.builder(label(setting.name(), pretty(enumeration.get()) + "  ›"), button -> {
                 enumeration.cycle(1);
                 changed.run();
             }).dimensions(x, y, width, height).build();
+            return withDescription(widget, setting);
         }
 
         if (setting instanceof ColorSetting color) {
-            return ButtonWidget.builder(label(setting.name(), "#" + String.format(Locale.ROOT, "%08X", color.get())),
-                    button -> edit.accept(setting)).dimensions(x, y, width, height).build();
+            return withDescription(ButtonWidget.builder(label(setting.name(), "#" + String.format(Locale.ROOT, "%08X", color.get())),
+                    button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting);
         }
 
         if (setting instanceof StringSetting string) {
-            return ButtonWidget.builder(label(setting.name(), string.get()),
-                    button -> edit.accept(setting)).dimensions(x, y, width, height).build();
+            return withDescription(ButtonWidget.builder(label(setting.name(), string.get()),
+                    button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting);
         }
 
-        return ButtonWidget.builder(label(setting.name(), String.valueOf(setting.get())), button -> { })
-                .dimensions(x, y, width, height).build();
+        return withDescription(ButtonWidget.builder(label(setting.name(), String.valueOf(setting.get())), button -> { })
+                .dimensions(x, y, width, height).build(), setting);
+    }
+
+    private static <T extends ClickableWidget> T withDescription(T widget, Setting<?> setting) {
+        String description = setting.description();
+        if (description != null && !description.isBlank()) {
+            widget.setTooltip(Tooltip.of(Text.literal(description)));
+        }
+        return widget;
     }
 
     public static TextFieldWidget createEditor(TextRenderer renderer, int x, int y, int width, int height,
@@ -73,6 +83,10 @@ public final class SettingWidgetFactory {
             initial = string != null ? string.get() : String.format(Locale.ROOT, "%08X", color.get());
         }
         editor.setText(initial);
+        String description = string != null ? string.description() : color.description();
+        if (description != null && !description.isBlank()) {
+            editor.setTooltip(Tooltip.of(Text.literal(description)));
+        }
         return editor;
     }
 
