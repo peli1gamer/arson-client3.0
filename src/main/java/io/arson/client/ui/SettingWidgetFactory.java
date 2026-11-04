@@ -62,7 +62,7 @@ public final class SettingWidgetFactory {
         if (string == null && color == null) throw new IllegalArgumentException("A string or color setting is required");
         String title = string != null ? string.name() : color.name();
         TextFieldWidget editor = new TextFieldWidget(renderer, x, y, width, height, Text.literal(title));
-        editor.setMaxLength(string != null ? string.maxLength() : 8);
+        editor.setMaxLength(string != null ? string.maxLength() : 9);
         String initial = currentText == null ? "" : currentText;
         if (initial.isEmpty()) {
             initial = string != null ? string.get() : String.format(Locale.ROOT, "%08X", color.get());
