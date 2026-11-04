@@ -11,6 +11,8 @@ import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.StringSetting;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
+import org.lwjgl.glfw.GLFW;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -68,7 +70,7 @@ public final class ConfigManager {
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
                 if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
-                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
+                if (data.has("keybind") && data.get("keybind").isJsonObject()) {\n                    JsonObject bind = data.getAsJsonObject("keybind");\n                    boolean isKey = !bind.has("isKey") || bind.get("isKey").getAsBoolean();\n                    int value = bind.has("value") ? bind.get("value").getAsInt() : GLFW.GLFW_KEY_UNKNOWN;\n                    int modifiers = bind.has("modifiers") ? bind.get("modifiers").getAsInt() : 0;\n                    module.setKeybind(isKey ? Keybind.fromKeys(value, modifiers) : Keybind.fromButton(value));\n                } else if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
                 for (Setting<?> setting : module.settings()) {
                     JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
@@ -121,7 +123,7 @@ public final class ConfigManager {
         Path tempPath = path.resolveSibling(path.getFileName() + ".tmp"), backupPath = path.resolveSibling(path.getFileName() + ".bak");
         JsonObject root = new JsonObject(); root.addProperty("version", CONFIG_VERSION); JsonObject moduleRoot = new JsonObject(); root.add("modules", moduleRoot);
         for (Module module : modules.all()) {
-            JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("keyCode", module.keyCode()); JsonObject settings = new JsonObject();
+            JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("keyCode", module.keyCode()); JsonObject bind = new JsonObject(); bind.addProperty("isKey", module.keybind().isKey()); bind.addProperty("value", module.keybind().getValue()); bind.addProperty("modifiers", module.keybind().getModifiers()); data.add("keybind", bind); JsonObject settings = new JsonObject();
             for (Setting<?> setting : module.settings()) { Object value = setting.get(); if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool); else if (value instanceof Number number) settings.addProperty(setting.id(), number); else if (value instanceof String text) settings.addProperty(setting.id(), text); else if (value instanceof Enum<?> select) settings.addProperty(setting.id(), select.name()); }
             data.add("settings", settings); moduleRoot.add(module.id(), data);
         }
