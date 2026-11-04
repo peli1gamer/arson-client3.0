@@ -7,6 +7,7 @@ package meteordevelopment.meteorclient.settings;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import net.minecraft.nbt.NbtCompound;
 
 public class Settings implements Iterable<SettingGroup> {
     private SettingGroup defaultGroup;
@@ -57,6 +58,18 @@ public class Settings implements Iterable<SettingGroup> {
 
     public void addGroup(SettingGroup group) {
         if (!groups.contains(group)) groups.add(group);
+    }
+
+    public NbtCompound toTag() {
+        NbtCompound tag = new NbtCompound();
+        for (SettingGroup group : groups) tag.put(group.name, group.toTag());
+        return tag;
+    }
+
+    public void fromTag(NbtCompound tag) {
+        for (SettingGroup group : groups) {
+            if (tag.contains(group.name)) group.fromTag(tag.getCompoundOrEmpty(group.name));
+        }
     }
 
     @Override
