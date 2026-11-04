@@ -3,6 +3,7 @@ package io.arson.client.module;
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.systems.modules.Categories;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +20,7 @@ public abstract class Module {
     private final String id;
     private final String name;
     private final Category category;
+    private final meteordevelopment.meteorclient.systems.modules.Category meteorCategory;
     private final String description;
     private final List<Setting<?>> settings = new ArrayList<>();
     private final List<SettingGroup> settingGroups = new ArrayList<>();
@@ -41,6 +43,14 @@ public abstract class Module {
         this.id = id;
         this.name = name;
         this.category = category;
+        this.meteorCategory = switch (category) {
+            case COMBAT -> Categories.Combat;
+            case MOVEMENT -> Categories.Movement;
+            case RENDER -> Categories.Render;
+            case PLAYER -> Categories.Player;
+            case WORLD -> Categories.World;
+            case MISC -> Categories.Misc;
+        };
         this.description = description == null ? "" : description;
         this.keyCode = Math.max(0, defaultKeyCode);
         settingGroups.add(defaultGroup);
@@ -112,6 +122,7 @@ public abstract class Module {
     public String id() { return id; }
     public String name() { return name; }
     public Category category() { return category; }
+    public meteordevelopment.meteorclient.systems.modules.Category meteorCategory() { return meteorCategory; }
     public String description() { return description; }
     public String help() { return description.isBlank() ? name + " [" + category.displayName() + "]" : name + " [" + category.displayName() + "]: " + description; }
     public boolean enabled() { return enabled; }
