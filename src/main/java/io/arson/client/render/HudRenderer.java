@@ -48,6 +48,9 @@ import net.minecraft.world.entity.EquipmentSlot;
 
 /** Lightweight client HUD renderer driven by module settings. */
 public final class HudRenderer {
+    private static int lastLayoutWidth=-1,lastLayoutHeight=-1,lastArrayWidth=-1,lastArrayHeight=-1;
+    private static int lastArrayX=Integer.MIN_VALUE,lastArrayY=Integer.MIN_VALUE,lastLayoutSignature;
+    private static float lastLayoutScale=Float.NaN;
     private HudRenderer() {}
     public static void render(GuiGraphics graphics, DeltaTracker tickCounter) {
         Minecraft client = Minecraft.getInstance();
@@ -93,10 +96,25 @@ public final class HudRenderer {
         RenderResolutionInfoModule resolutionInfo = (RenderResolutionInfoModule) ArsonClient.getInstance().modules().get("render-resolution-info");
         float globalScale = (float) hud.scale();
         if(layout != null){
+            int viewportWidth=client.getWindow().getGuiScaledWidth();
+            int viewportHeight=client.getWindow().getGuiScaledHeight();
             int[] arraySize=estimateArrayListSize(client,arrayList);
-            layout.setArrayListPreferredPosition(arrayList==null?6:arrayList.x(),arrayList==null?6:arrayList.y());
-            if(layout.repairNoOverlap(client.getWindow().getGuiScaledWidth(),client.getWindow().getGuiScaledHeight(),globalScale,arraySize[0],arraySize[1],arrayList))
-                ConfigManager.save(client,ArsonClient.getInstance().modules());
+            int arrayX=arrayList==null?6:arrayList.x();
+            int arrayY=arrayList==null?6:arrayList.y();
+            int signature=layoutSignature(hud,layout,arrayList);
+            boolean needsRepair=viewportWidth!=lastLayoutWidth||viewportHeight!=lastLayoutHeight
+                    ||Float.compare(globalScale,lastLayoutScale)!=0||arraySize[0]!=lastArrayWidth
+                    ||arraySize[1]!=lastArrayHeight||arrayX!=lastArrayX||arrayY!=lastArrayY
+                    ||signature!=lastLayoutSignature;
+            if(needsRepair){
+                layout.setArrayListPreferredPosition(arrayX,arrayY);
+                if(layout.repairNoOverlap(viewportWidth,viewportHeight,globalScale,arraySize[0],arraySize[1],arrayList,hud))
+                    ConfigManager.save(client,ArsonClient.getInstance().modules());
+                lastLayoutWidth=viewportWidth;lastLayoutHeight=viewportHeight;lastLayoutScale=globalScale;
+                lastArrayWidth=arraySize[0];lastArrayHeight=arraySize[1];
+                lastArrayX=arrayList==null?6:arrayList.x();lastArrayY=arrayList==null?6:arrayList.y();
+                lastLayoutSignature=layoutSignature(hud,layout,arrayList);
+            }
         }
         graphics.pose().pushMatrix(); graphics.pose().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
@@ -166,6 +184,22 @@ public final class HudRenderer {
         }
         graphics.pose().popMatrix();
     }
+    private static int layoutSignature(HudModule hud,HudLayoutModule layout,ArrayListModule arrayList){
+        int hash=Float.hashCode((float)hud.scale());
+        for(String element:new String[]{"watermark","coordinates","fps","player-info","world-info"}){
+            hash=31*hash+Boolean.hashCode(hud.elementVisible(element));
+            hash=31*hash+Double.hashCode(hud.elementScale(element));
+            hash=31*hash+layout.anchor(element).ordinal();
+            hash=31*hash+Double.hashCode(layout.offsetX(element));
+            hash=31*hash+Double.hashCode(layout.offsetY(element));
+        }
+        if(arrayList!=null){
+            hash=31*hash+Boolean.hashCode(arrayList.enabled());
+            hash=31*hash+arrayList.x();hash=31*hash+arrayList.y();
+        }
+        return hash;
+    }
+
     private static int[] estimateArrayListSize(Minecraft client, ArrayListModule module) {
         if(module==null || !module.enabled()) return new int[]{1,1};
         int maxWidth=1;
