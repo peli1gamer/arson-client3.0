@@ -50,7 +50,6 @@ public final class HudEditorScreen extends Screen {
         repairLayout();
 
         int leftX = 12, leftY = 58, leftW = 154;
-        addRenderableWidget(Button.builder(Component.literal("HUD ELEMENTS"), b -> {}).bounds(leftX, 38, leftW, 18).build());
         for (int i = 0; i < ELEMENTS.length; i++) {
             String element = ELEMENTS[i];
             int rowY = leftY + i * 25;
