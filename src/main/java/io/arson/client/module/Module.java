@@ -2,6 +2,7 @@ package io.arson.client.module;
 
 import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
+import meteordevelopment.meteorclient.MeteorClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,8 +49,13 @@ public abstract class Module {
     public final void setEnabled(boolean enabled) {
         if (this.enabled == enabled) return;
         this.enabled = enabled;
-        if (enabled) onActivate();
-        else onDeactivate();
+        if (enabled) {
+            MeteorClient.EVENT_BUS.subscribe(this);
+            onActivate();
+        } else {
+            MeteorClient.EVENT_BUS.unsubscribe(this);
+            onDeactivate();
+        }
     }
 
     public final void toggle() { setEnabled(!enabled); }
