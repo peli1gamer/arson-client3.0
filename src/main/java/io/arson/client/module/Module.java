@@ -4,7 +4,6 @@ import io.arson.client.settings.Setting;
 import io.arson.client.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
-import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
