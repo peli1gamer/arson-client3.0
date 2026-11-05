@@ -44,6 +44,35 @@ class MeteorFrameworkIntegrationTest {
         }
     }
 
+    private static final class FailingActivateModule extends Module {
+        private final AtomicInteger events = new AtomicInteger();
+
+        private FailingActivateModule() {
+            super("failing-activate", "Failing Activate", Category.MISC);
+        }
+
+        @Override
+        public void onActivate() {
+            throw new IllegalStateException("activation failure");
+        }
+
+        @EventHandler
+        private void onPulse(Pulse event) {
+            events.incrementAndGet();
+        }
+    }
+
+    private static final class FailingDeactivateModule extends Module {
+        private FailingDeactivateModule() {
+            super("failing-deactivate", "Failing Deactivate", Category.MISC);
+        }
+
+        @Override
+        public void onDeactivate() {
+            throw new IllegalStateException("deactivation failure");
+        }
+    }
+
     @Test
     void typedMeteorSettingBuildersValidateValues() {
         BoolSetting enabled = new BoolSetting.Builder()
@@ -103,6 +132,26 @@ class MeteorFrameworkIntegrationTest {
         module.disable();
         MeteorClient.EVENT_BUS.post(new Pulse());
         assertEquals(1, module.events.get());
+    }
+
+    @Test
+    void failedActivationRollsBackActiveStateAndOrbitSubscription() {
+        FailingActivateModule module = new FailingActivateModule();
+
+        assertThrows(IllegalStateException.class, module::enable);
+        assertFalse(module.isActive());
+
+        MeteorClient.EVENT_BUS.post(new Pulse());
+        assertEquals(0, module.events.get());
+    }
+
+    @Test
+    void failedDeactivationStillClearsActiveState() {
+        FailingDeactivateModule module = new FailingDeactivateModule();
+        module.enable();
+
+        assertThrows(IllegalStateException.class, module::disable);
+        assertFalse(module.isActive());
     }
 
     @Test
