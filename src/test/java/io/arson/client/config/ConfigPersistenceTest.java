@@ -38,6 +38,8 @@ class ConfigPersistenceTest {
         assertNotNull(sprint);
         sprint.setEnabled(true);
         sprint.setKeyCode(65);
+        sprint.toggleOnBindRelease = true;
+        sprint.chatFeedback = false;
         ConfigManager.saveToPath(profile, source);
 
         ModuleManager loaded = new ModuleManager();
@@ -48,6 +50,8 @@ class ConfigPersistenceTest {
         assertTrue(ConfigManager.loadFromPath(profile, loaded));
         assertTrue(loaded.get("sprint").enabled());
         assertEquals(65, loaded.get("sprint").keyCode());
+        assertTrue(loaded.get("sprint").toggleOnBindRelease);
+        assertFalse(loaded.get("sprint").chatFeedback);
         assertEquals(14, loadedInteger.count.get());
 
         ConfigManager.saveToPath(live, loaded);
@@ -58,7 +62,30 @@ class ConfigPersistenceTest {
         assertTrue(ConfigManager.loadFromPath(live, restarted));
         assertTrue(restarted.get("sprint").enabled());
         assertEquals(65, restarted.get("sprint").keyCode());
+        assertTrue(restarted.get("sprint").toggleOnBindRelease);
+        assertFalse(restarted.get("sprint").chatFeedback);
         assertEquals(14, restartedInteger.count.get());
+    }
+
+    @Test
+    void malformedLaterModuleDoesNotPartiallyApplyEarlierModuleState() throws Exception {
+        Path profile = Files.createTempFile("arson-malformed", ".json");
+        Files.writeString(profile, """
+                {
+                  "version": 4,
+                  "modules": {
+                    "sprint": { "enabled": false },
+                    "aim-assist": { "keybind": { "isKey": true, "value": "not-a-key-code", "modifiers": 0 } }
+                  }
+                }
+                """);
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        Module sprint = manager.get("sprint");
+        sprint.setEnabled(true);
+
+        assertFalse(ConfigManager.loadFromPath(profile, manager));
+        assertTrue(sprint.enabled());
     }
 
     @Test
