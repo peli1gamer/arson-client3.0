@@ -77,6 +77,30 @@ class ConfigPersistenceTest {
     }
 
     @Test
+    void nativeMeteorSettingsAndGroupExpansionRoundTripThroughJsonProfiles() throws Exception {
+        Path profile = Files.createTempFile("arson-meteor-settings", ".json");
+
+        ModuleManager source = new ModuleManager();
+        source.registerDefaults();
+        NativeSettingsTestModule sourceModule = new NativeSettingsTestModule();
+        source.register(sourceModule);
+        sourceModule.nativeToggle.set(true);
+        sourceModule.defaultGroup().sectionExpanded = false;
+        assertTrue(ConfigManager.saveToPath(profile, source));
+
+        ModuleManager loaded = new ModuleManager();
+        loaded.registerDefaults();
+        NativeSettingsTestModule loadedModule = new NativeSettingsTestModule();
+        loaded.register(loadedModule);
+        assertFalse(loadedModule.nativeToggle.get());
+        assertTrue(loadedModule.defaultGroup().sectionExpanded);
+
+        assertTrue(ConfigManager.loadFromPath(profile, loaded));
+        assertTrue(loadedModule.nativeToggle.get());
+        assertFalse(loadedModule.defaultGroup().sectionExpanded);
+    }
+
+    @Test
     void legacyHudLayoutWithoutSettingsObjectMigratesSafely() throws Exception {
         Path profile = Files.createTempFile("arson-legacy-hud", ".json");
         Files.writeString(profile, """
