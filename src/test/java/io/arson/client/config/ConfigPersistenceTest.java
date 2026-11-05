@@ -16,6 +16,15 @@ class ConfigPersistenceTest {
         IntegerTestModule() { super("integer-test", "Integer Test", Category.MISC); }
     }
 
+    private static final class NativeSettingsTestModule extends Module {
+        final meteordevelopment.meteorclient.settings.BoolSetting nativeToggle;
+        NativeSettingsTestModule() {
+            super("native-settings-test", "Native Settings Test", Category.MISC);
+            nativeToggle = defaultGroup().add(new meteordevelopment.meteorclient.settings.BoolSetting.Builder()
+                    .name("native-toggle").defaultValue(false).build());
+        }
+    }
+
     @Test
     void profileNameSanitizationIsDeterministicAndPathSafe() {
         assertEquals("Combat_01test", ConfigManager.sanitizeProfileName("Combat_01/test"));
