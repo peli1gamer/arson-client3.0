@@ -28,8 +28,14 @@ public final class ConfigManager {
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
     private static final int CONFIG_VERSION = 4;
     private ConfigManager() {}
-    public static void load(MinecraftClient client, ModuleManager modules) { loadFromPath(client.runDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static void save(MinecraftClient client, ModuleManager modules) { saveToPath(client.runDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    static Path resolveConfigPath(MinecraftClient client, java.io.File folder) {
+        Path directory = folder == null
+                ? client.runDirectory.toPath().resolve("config")
+                : folder.toPath();
+        return directory.resolve(FILE_NAME);
+    }
+    public static void load(MinecraftClient client, ModuleManager modules) { loadFromPath(resolveConfigPath(client, null), modules); }
+    public static void save(MinecraftClient client, ModuleManager modules) { saveToPath(resolveConfigPath(client, null), modules); }
     public static boolean saveProfile(MinecraftClient client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path directory = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
