@@ -133,15 +133,32 @@ public final class ArsonClient implements ClientModInitializer {
     }
 
     private void processModuleKeybinds(MinecraftClient client) {
-        if (client.getWindow() == null || client.currentScreen != null) return;
+        if (client.getWindow() == null) return;
         long window = client.getWindow().getHandle();
+        boolean screenOpen = client.currentScreen != null;
         for (Module module : moduleManager.all()) {
-            if (!module.hasKeybind()) continue;
-            boolean down = module.keybind().isPressed(window);
-            if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
-                module.toggle();
-                NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
+            String id = module.id();
+            if (!module.hasKeybind()) {
+                moduleKeyStates.remove(id);
+                continue;
             }
+
+            boolean wasDown = moduleKeyStates.getOrDefault(id, false);
+            boolean down = module.keybind().isPressed(window);
+            moduleKeyStates.put(id, down);
+
+            // Always track physical state while a GUI is open so closing it cannot
+            // turn a held key into a synthetic press or release event.
+            if (screenOpen) continue;
+
+            boolean triggered = module.toggleOnBindRelease ? wasDown && !down : down && !wasDown;
+            if (!triggered) continue;
+
+            module.toggle();
+            if (module.chatFeedback && client.player != null) {
+                client.player.sendMessage(Text.literal(module.name() + (module.enabled() ? " enabled" : " disabled")), false);
+            }
+            NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
         }
     }
     public ModuleManager modules() { return moduleManager; }
