@@ -27,6 +27,18 @@ public final class HoverTotemModule extends Module {
         }
         Slot hovered = null;
         if (screen instanceof HandledScreenAccessor accessor) hovered = accessor.arson$getHoveredSlot();
+        if (!requireHover.enabled()) {
+            if (hovered == null || !hovered.hasStack() || !hovered.getStack().isOf(Items.TOTEM_OF_UNDYING)) {
+                hovered = null;
+                for (Slot slot : screen.getScreenHandler().slots) {
+                    if (slot.getIndex() >= 0 && slot.getIndex() <= 35
+                            && slot.hasStack() && slot.getStack().isOf(Items.TOTEM_OF_UNDYING)) {
+                        hovered = slot;
+                        break;
+                    }
+                }
+            }
+        }
         if (hovered == null || !hovered.hasStack()) return;
         if (onlyPlayerInventory.enabled() && hovered.getIndex() > 35) return;
         if (!hovered.getStack().isOf(Items.TOTEM_OF_UNDYING)) return;
