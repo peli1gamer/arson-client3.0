@@ -77,7 +77,7 @@ public final class SettingWidgetFactory {
     private static <T extends ClickableWidget> T withTooltip(T widget, Setting<?> setting, String detail) {
         String description = setting.description();
         String tooltip = description == null || description.isBlank() ? detail
-                : detail == null || detail.isBlank() ? description : description + "\\n" + detail;
+                : detail == null || detail.isBlank() ? description : description + "\n" + detail;
         if (tooltip != null && !tooltip.isBlank()) {
             widget.setTooltip(Tooltip.of(Text.literal(tooltip)));
         }
