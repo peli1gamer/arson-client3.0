@@ -57,8 +57,10 @@ public final class ArsonScreen extends Screen {
     private boolean alphabetical;
     private ClickGuiPreferencesModule.Theme theme = ClickGuiPreferencesModule.Theme.MIDNIGHT;
     private final List<SettingGroupHeader> settingGroupHeaders = new ArrayList<>();
+    private final List<ColorPreview> colorPreviews = new ArrayList<>();
 
     private record SettingGroupHeader(String title, int y) { }
+    private record ColorPreview(int x, int y, int color) { }
 
     public ArsonScreen(Screen parent) {
         super(Text.literal("Arson Client V3"));
@@ -101,6 +103,7 @@ public final class ArsonScreen extends Screen {
         String profileValue = profile == null ? "" : profile.getText();
         String editValue = valueEditor == null ? null : valueEditor.getText();
         clearChildren();
+        colorPreviews.clear();
         search = null;
         profile = null;
         valueEditor = null;
@@ -243,6 +246,9 @@ public final class ArsonScreen extends Screen {
                 editingColor = edited instanceof ColorSetting color ? color : null;
                 refreshWidgets();
             }));
+            if (setting instanceof ColorSetting color) {
+                colorPreviews.add(new ColorPreview(x + w - 23, y + 3, color.get()));
+            }
             y += rowHeight;
         }
 
@@ -323,6 +329,24 @@ public final class ArsonScreen extends Screen {
         }
         if (selected != null) drawSettingsPanel(g, mouseX, mouseY);
         super.render(g, mouseX, mouseY, delta);
+        drawColorPreviews(g);
+    }
+
+    private void drawColorPreviews(DrawContext g) {
+        for (ColorPreview preview : colorPreviews) {
+            int x = preview.x();
+            int y = preview.y();
+            g.fill(x, y, x + 16, y + 14, 0xFF101318);
+            for (int row = 0; row < 2; row++) {
+                for (int column = 0; column < 2; column++) {
+                    int shade = ((row + column) & 1) == 0 ? 0xFFB8BEC8 : 0xFF737D8A;
+                    g.fill(x + 1 + column * 7, y + 1 + row * 6, x + 1 + (column + 1) * 7,
+                            y + 1 + (row + 1) * 6, shade);
+                }
+            }
+            g.fill(x + 1, y + 1, x + 15, y + 13, preview.color());
+            g.drawStrokedRectangle(x, y, 16, 14, 0xFFDFE5ED);
+        }
     }
 
     private void drawBackground(DrawContext g) {
