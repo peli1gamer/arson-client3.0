@@ -132,7 +132,8 @@ public final class ConfigManager {
                 JsonElement groupsRaw = data.get("settingGroups");
                 if (groupsRaw != null) {
                     if (!groupsRaw.isJsonObject()) return false;
-                    for (JsonElement expanded : groupsRaw.getAsJsonObject().asMap().values()) {
+                    for (var entry : groupsRaw.getAsJsonObject().entrySet()) {
+                        JsonElement expanded = entry.getValue();
                         if (!expanded.isJsonPrimitive()) return false;
                         expanded.getAsBoolean();
                     }
