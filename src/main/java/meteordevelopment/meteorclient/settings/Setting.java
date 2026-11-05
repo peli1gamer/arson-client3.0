@@ -2,8 +2,8 @@
  * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
  * Copyright (c) Meteor Development.
  *
- * Arson carries the core value, validation, callback and builder semantics used
- * by Meteor's typed settings. Persistence and widget adapters remain separate.
+ * Arson extends this typed model while retaining its stable setting IDs and
+ * JSON profile adapter.
  */
 package meteordevelopment.meteorclient.settings;
 
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 public abstract class Setting<T> {
     public final String name;
     public final String title;
-    public final String description;
+    public String description;
 
     protected final T defaultValue;
     protected T value;
@@ -40,9 +40,7 @@ public abstract class Setting<T> {
         resetImpl();
     }
 
-    public T get() {
-        return value;
-    }
+    public T get() { return value; }
 
     public boolean set(T value) {
         if (!isValueValid(value)) return false;
@@ -51,22 +49,21 @@ public abstract class Setting<T> {
         return true;
     }
 
-    protected void resetImpl() {
-        value = defaultValue;
-    }
+    protected void resetImpl() { value = defaultValue; }
 
     public void reset() {
         resetImpl();
         onChanged();
     }
 
-    public T getDefaultValue() {
-        return defaultValue;
-    }
+    public T getDefaultValue() { return defaultValue; }
 
-    public boolean wasChanged() {
-        return !Objects.equals(value, defaultValue);
-    }
+    /** Stable identity used by persistence adapters; defaults to the display name. */
+    public String getId() { return name; }
+
+    public boolean wasChanged() { return !Objects.equals(value, defaultValue); }
+
+    public void setDescription(String description) { this.description = description == null ? "" : description; }
 
     public void onChanged() {
         if (onChanged != null) onChanged.accept(value);
@@ -76,13 +73,9 @@ public abstract class Setting<T> {
         if (onModuleActivated != null) onModuleActivated.accept(this);
     }
 
-    public boolean isVisible() {
-        return visible == null || visible.getAsBoolean();
-    }
+    public boolean isVisible() { return visible == null || visible.getAsBoolean(); }
 
-    protected boolean isValueValid(T value) {
-        return true;
-    }
+    protected boolean isValueValid(T value) { return true; }
 
     private static String toTitle(String name) {
         StringBuilder result = new StringBuilder(name.length() + 8);
@@ -103,6 +96,7 @@ public abstract class Setting<T> {
     public NbtCompound toTag() {
         NbtCompound tag = new NbtCompound();
         tag.putString("name", name);
+        tag.putString("id", getId());
         Object current = value;
         if (current instanceof Boolean bool) tag.putBoolean("value", bool);
         else if (current instanceof Integer integer) tag.putInt("value", integer);
@@ -139,46 +133,14 @@ public abstract class Setting<T> {
         protected Consumer<V> onChanged;
         protected Consumer<Setting<V>> onModuleActivated;
 
-        protected SettingBuilder(V defaultValue) {
-            this.defaultValue = defaultValue;
-        }
+        protected SettingBuilder(V defaultValue) { this.defaultValue = defaultValue; }
 
-        @SuppressWarnings("unchecked")
-        public B name(String name) {
-            this.name = name;
-            return (B) this;
-        }
-
-        @SuppressWarnings("unchecked")
-        public B description(String description) {
-            this.description = description;
-            return (B) this;
-        }
-
-        @SuppressWarnings("unchecked")
-        public B defaultValue(V defaultValue) {
-            this.defaultValue = defaultValue;
-            return (B) this;
-        }
-
-        @SuppressWarnings("unchecked")
-        public B visible(BooleanSupplier visible) {
-            this.visible = visible;
-            return (B) this;
-        }
-
-        @SuppressWarnings("unchecked")
-        public B onChanged(Consumer<V> onChanged) {
-            this.onChanged = onChanged;
-            return (B) this;
-        }
-
-        @SuppressWarnings("unchecked")
-        public B onModuleActivated(Consumer<Setting<V>> onModuleActivated) {
-            this.onModuleActivated = onModuleActivated;
-            return (B) this;
-        }
-
+        @SuppressWarnings("unchecked") public B name(String name) { this.name = name; return (B) this; }
+        @SuppressWarnings("unchecked") public B description(String description) { this.description = description; return (B) this; }
+        @SuppressWarnings("unchecked") public B defaultValue(V defaultValue) { this.defaultValue = defaultValue; return (B) this; }
+        @SuppressWarnings("unchecked") public B visible(BooleanSupplier visible) { this.visible = visible; return (B) this; }
+        @SuppressWarnings("unchecked") public B onChanged(Consumer<V> onChanged) { this.onChanged = onChanged; return (B) this; }
+        @SuppressWarnings("unchecked") public B onModuleActivated(Consumer<Setting<V>> onModuleActivated) { this.onModuleActivated = onModuleActivated; return (B) this; }
         public abstract S build();
     }
 }
