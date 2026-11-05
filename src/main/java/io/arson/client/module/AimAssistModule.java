@@ -55,7 +55,7 @@ public final class AimAssistModule extends Module {
     @Override protected void onDisable() { target = null; }
 
     @Override protected void onTick(MinecraftClient client) {
-        if (client.player == null || client.world == null || !isActivated(client)) { target = null; return; }
+        if (client.player == null || client.world == null || client.currentScreen != null || !isActivated(client)) { target = null; return; }
         LivingEntity selected = chooseTarget(client);
         if (selected == null) { target = null; return; }
         target = selected;
@@ -75,10 +75,14 @@ public final class AimAssistModule extends Module {
     private LivingEntity chooseTarget(MinecraftClient client) {
         Box search = client.player.getBoundingBox().expand(range.get());
         LivingEntity locked = target;
-        if (sticky.enabled() && locked != null && isValid(client, locked) && inCrosshairGate(client, locked)) return locked;
-        return client.world.getEntitiesByClass(LivingEntity.class, search, entity -> isValid(client, entity) && inCrosshairGate(client, entity))
+        boolean keepLocked = sticky.enabled() && locked != null && isValid(client, locked) && inCrosshairGate(client, locked);
+        LivingEntity best = client.world.getEntitiesByClass(LivingEntity.class, search, entity -> isValid(client, entity) && inCrosshairGate(client, entity))
                 .stream().min(Comparator.comparingDouble((LivingEntity entity) -> crosshairDistance(client, entity))
                 .thenComparingDouble(entity -> client.player.squaredDistanceTo(entity))).orElse(null);
+        if (!keepLocked || locked == best || best == null) return best;
+        double lockedScore = crosshairDistance(client, locked);
+        double bestScore = crosshairDistance(client, best);
+        return lockedScore <= bestScore * (1.0 + targetLock.get()) ? locked : best;
     }
 
     private boolean isValid(MinecraftClient client, LivingEntity entity) {
@@ -104,7 +108,10 @@ public final class AimAssistModule extends Module {
     private boolean inCrosshairGate(MinecraftClient client, LivingEntity entity) {
         Vec3d point = aimPoint(client, entity);
         double[] angles = anglesTo(client, point);
-        double yawPixels = pixelsFromYaw(client, Math.abs(MathHelper.wrapDegrees(angles[0] - client.player.getYaw())));
+        double yawDelta = MathHelper.wrapDegrees(angles[0] - client.player.getYaw());
+        double pitchDelta = angles[1] - client.player.getPitch();
+        if (Math.hypot(yawDelta, pitchDelta) > fov.get() * 0.5) return false;
+        double yawPixels = pixelsFromYaw(client, Math.abs(yawDelta));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getPitch()));
         double halfW = crosshairWidth.get() * 0.5;
         double halfH = crosshairHeight.get() * 0.5;
