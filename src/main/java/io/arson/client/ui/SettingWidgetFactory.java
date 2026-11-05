@@ -55,9 +55,9 @@ public final class SettingWidgetFactory {
         }
 
         if (setting instanceof ColorSetting color) {
-            return withTooltip(ButtonWidget.builder(label(setting.name(), "#" + String.format(Locale.ROOT, "%08X", color.get())),
+            return withTooltip(ButtonWidget.builder(label(setting.name(), "Color"),
                     button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting,
-                    "ARGB color. Click to edit as RRGGBB or AARRGGBB.");
+                    "ARGB: #" + String.format(Locale.ROOT, "%08X", color.get()) + ". Click to edit as RRGGBB or AARRGGBB.");
         }
 
         if (setting instanceof StringSetting string) {
