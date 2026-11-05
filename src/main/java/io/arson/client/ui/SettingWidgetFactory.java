@@ -35,11 +35,13 @@ public final class SettingWidgetFactory {
         }
 
         if (setting instanceof IntSetting number) {
-            return withDescription(new IntSettingSlider(x, y, width, height, number, persist), setting);
+            return withTooltip(new IntSettingSlider(x, y, width, height, number, persist), setting,
+                    "Range: " + number.min() + " to " + number.max() + "  •  Step: " + number.step());
         }
 
         if (setting instanceof DoubleSetting number) {
-            return withDescription(new DoubleSettingSlider(x, y, width, height, number, persist), setting);
+            return withTooltip(new DoubleSettingSlider(x, y, width, height, number, persist), setting,
+                    "Range: " + number.min() + " to " + number.max() + "  •  Step: " + number.step());
         }
 
         if (setting instanceof EnumSetting<?> enumeration) {
@@ -47,17 +49,21 @@ public final class SettingWidgetFactory {
                 enumeration.cycle(1);
                 changed.run();
             }).dimensions(x, y, width, height).build();
-            return withDescription(widget, setting);
+            String options = enumeration.values().stream().map(SettingWidgetFactory::pretty)
+                    .reduce((left, right) -> left + "  •  " + right).orElse("");
+            return withTooltip(widget, setting, "Click to cycle. Options: " + options);
         }
 
         if (setting instanceof ColorSetting color) {
-            return withDescription(ButtonWidget.builder(label(setting.name(), "#" + String.format(Locale.ROOT, "%08X", color.get())),
-                    button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting);
+            return withTooltip(ButtonWidget.builder(label(setting.name(), "#" + String.format(Locale.ROOT, "%08X", color.get())),
+                    button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting,
+                    "ARGB color. Click to edit as RRGGBB or AARRGGBB.");
         }
 
         if (setting instanceof StringSetting string) {
-            return withDescription(ButtonWidget.builder(label(setting.name(), string.get()),
-                    button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting);
+            return withTooltip(ButtonWidget.builder(label(setting.name(), string.get()),
+                    button -> edit.accept(setting)).dimensions(x, y, width, height).build(), setting,
+                    "Text value. Maximum length: " + string.maxLength() + ". Click to edit.");
         }
 
         return withDescription(ButtonWidget.builder(label(setting.name(), String.valueOf(setting.get())), button -> { })
@@ -65,9 +71,15 @@ public final class SettingWidgetFactory {
     }
 
     private static <T extends ClickableWidget> T withDescription(T widget, Setting<?> setting) {
+        return withTooltip(widget, setting, "");
+    }
+
+    private static <T extends ClickableWidget> T withTooltip(T widget, Setting<?> setting, String detail) {
         String description = setting.description();
-        if (description != null && !description.isBlank()) {
-            widget.setTooltip(Tooltip.of(Text.literal(description)));
+        String tooltip = description == null || description.isBlank() ? detail
+                : detail == null || detail.isBlank() ? description : description + "\\n" + detail;
+        if (tooltip != null && !tooltip.isBlank()) {
+            widget.setTooltip(Tooltip.of(Text.literal(tooltip)));
         }
         return widget;
     }
