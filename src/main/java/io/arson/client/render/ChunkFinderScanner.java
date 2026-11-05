@@ -152,7 +152,7 @@ public final class ChunkFinderScanner {
         for (int x = chunk.getPos().getStartX(); x < chunk.getPos().getStartX() + 16; x++) {
             for (int z = chunk.getPos().getStartZ(); z < chunk.getPos().getStartZ() + 16; z++) {
                 int currentOreRun = 0;
-                for (int y = minY; y < maxY; y++) {
+                for (int y = minY; y <= maxY; y++) {
                     pos.set(x, y, z);
                     BlockState state = client.world.getBlockState(pos);
                     if (state.isAir()) { currentOreRun = 0; continue; }
@@ -251,7 +251,7 @@ public final class ChunkFinderScanner {
         int solid = 0;
         for (var direction : net.minecraft.util.math.Direction.values()) {
             BlockPos neighbour = pos.offset(direction);
-            if (neighbour.getY() < client.world.getBottomY() || neighbour.getY() >= client.world.getTopYInclusive()) {
+            if (neighbour.getY() < client.world.getBottomY() || neighbour.getY() > client.world.getTopYInclusive()) {
                 solid++;
                 continue;
             }
