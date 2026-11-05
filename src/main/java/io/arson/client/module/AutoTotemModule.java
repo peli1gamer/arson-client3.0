@@ -34,7 +34,9 @@ public final class AutoTotemModule extends Module {
 
     private int findTotem(MinecraftClient client) {
         if (includeHotbar.enabled()) {
+            int selectedSlot = client.player.getInventory().getSelectedSlot();
             for (int i = 0; i < 9; i++) {
+                if (preserveHeld.enabled() && i == selectedSlot) continue;
                 if (client.player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) return i;
             }
         }
