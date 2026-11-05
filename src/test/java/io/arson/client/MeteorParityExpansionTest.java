@@ -3,6 +3,7 @@ package io.arson.client;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.module.HudLayoutModule;
+import meteordevelopment.meteorclient.systems.Systems;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,5 +38,34 @@ class MeteorParityExpansionTest {
         assertEquals(900, at1000[0], 0.001);
         assertEquals(1100, at1200[0], 0.001);
         assertEquals(12, at1200[1], 0.001);
+    }
+
+    @Test void failedSystemInitializationRollsBackRegistryEntry() {
+        assertThrows(IllegalStateException.class, () -> Systems.add(new FailingInitSystem()));
+        assertNull(Systems.get(FailingInitSystem.class));
+    }
+
+    @Test void duplicateSystemRegistrationIsRejectedWithoutReplacingOriginal() {
+        DuplicateSystem original = Systems.add(new DuplicateSystem());
+
+        assertThrows(IllegalArgumentException.class, () -> Systems.add(new DuplicateSystem()));
+        assertSame(original, Systems.get(DuplicateSystem.class));
+    }
+
+    private static final class FailingInitSystem extends meteordevelopment.meteorclient.systems.System<FailingInitSystem> {
+        private FailingInitSystem() {
+            super("test-failing-init");
+        }
+
+        @Override
+        public void init() {
+            throw new IllegalStateException("expected test failure");
+        }
+    }
+
+    private static final class DuplicateSystem extends meteordevelopment.meteorclient.systems.System<DuplicateSystem> {
+        private DuplicateSystem() {
+            super("test-duplicate-registration");
+        }
     }
 }
