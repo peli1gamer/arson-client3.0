@@ -33,16 +33,16 @@ public final class SettingGroup extends meteordevelopment.meteorclient.settings.
     public List<Setting<?>> settings() { return List.copyOf(arsonSettings); }
 
     @Override public <T extends meteordevelopment.meteorclient.settings.Setting<?>> T add(T setting) {
-        if (!(setting instanceof Setting<?> arsonSetting)) {
-            throw new IllegalArgumentException("Arson setting groups only accept Arson setting adapters");
-        }
-        for (Setting<?> existing : arsonSettings) {
-            if (existing == arsonSetting) return setting;
-            if (existing.id().equals(arsonSetting.id())) {
-                throw new IllegalArgumentException("Duplicate setting ID in group " + id + ": " + arsonSetting.id());
+        Objects.requireNonNull(setting, "setting");
+        if (setting instanceof Setting<?> arsonSetting) {
+            for (Setting<?> existing : arsonSettings) {
+                if (existing == arsonSetting) return setting;
+                if (existing.id().equals(arsonSetting.id())) {
+                    throw new IllegalArgumentException("Duplicate setting ID in group " + id + ": " + arsonSetting.id());
+                }
             }
+            arsonSettings.add(arsonSetting);
         }
-        arsonSettings.add(arsonSetting);
         return super.add(setting);
     }
 
