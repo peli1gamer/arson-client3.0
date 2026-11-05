@@ -112,9 +112,11 @@ public final class AimAssistModule extends Module {
         double yawDelta = MathHelper.wrapDegrees(angles[0] - client.player.getYaw());
         double pitchDelta = angles[1] - client.player.getPitch();
         double yawRadians = Math.toRadians(yawDelta);
-        double pitchRadians = Math.toRadians(pitchDelta);
-        double viewDot = MathHelper.clamp(Math.cos(yawRadians) * Math.cos(pitchRadians), -1.0, 1.0);
-        double angularDistance = Math.toDegrees(Math.acos(viewDot));
+        double currentPitchRadians = Math.toRadians(client.player.getPitch());
+        double targetPitchRadians = Math.toRadians(angles[1]);
+        double viewDot = Math.cos(currentPitchRadians) * Math.cos(targetPitchRadians) * Math.cos(yawRadians)
+                + Math.sin(currentPitchRadians) * Math.sin(targetPitchRadians);
+        double angularDistance = Math.toDegrees(Math.acos(MathHelper.clamp(viewDot, -1.0, 1.0)));
         if (angularDistance > fov.get() * 0.5) return false;
         double yawPixels = pixelsFromYaw(client, Math.abs(yawDelta));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getPitch()));
