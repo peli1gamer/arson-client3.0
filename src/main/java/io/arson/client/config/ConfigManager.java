@@ -5,13 +5,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
-import io.arson.client.settings.BooleanSetting;
-import io.arson.client.settings.ColorSetting;
-import io.arson.client.settings.DoubleSetting;
-import io.arson.client.settings.EnumSetting;
-import io.arson.client.settings.IntSetting;
-import io.arson.client.settings.Setting;
-import io.arson.client.settings.StringSetting;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import org.lwjgl.glfw.GLFW;
 import java.io.IOException;
@@ -26,7 +19,7 @@ import net.minecraft.client.MinecraftClient;
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
-    private static final int CONFIG_VERSION = 4;
+    private static final int CONFIG_VERSION = 5;
     private ConfigManager() {}
     static Path resolveConfigPath(MinecraftClient client, java.io.File folder) {
         Path directory = folder == null
@@ -90,16 +83,18 @@ public final class ConfigManager {
                     module.setKeybind(isKey ? Keybind.fromKeys(value, modifiers) : Keybind.fromButton(value));
                 } else if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
-                for (Setting<?> setting : module.settings()) {
-                    JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
-                    try {
-                        if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
-                        else if (setting instanceof IntSetting number) number.set(value.getAsInt());
-                        else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
-                        else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
-                        else if (setting instanceof StringSetting text) text.set(value.getAsString());
-                        else if (setting instanceof EnumSetting<?> select) setEnum(select, value.getAsString());
-                    } catch (RuntimeException ignored) {}
+                for (meteordevelopment.meteorclient.settings.Setting<?> setting : module.settings) {
+                    JsonElement value = settings.get(setting.getId());
+                    if (value == null || !value.isJsonPrimitive()) continue;
+                    applySettingValue(setting, value);
+                }
+                JsonElement groupsRaw = data.get("settingGroups");
+                if (groupsRaw != null && groupsRaw.isJsonObject()) {
+                    JsonObject groups = groupsRaw.getAsJsonObject();
+                    for (var entry : groups.entrySet()) {
+                        meteordevelopment.meteorclient.settings.SettingGroup group = module.settings.getGroup(entry.getKey());
+                        if (group != null) group.sectionExpanded = entry.getValue().getAsBoolean();
+                    }
                 }
             }
             return true;
@@ -127,15 +122,20 @@ public final class ConfigManager {
                 }
                 if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) data.get("keyCode").getAsInt();
                 JsonElement settingsRaw = data.get("settings");
-                if (settingsRaw == null || !settingsRaw.isJsonObject()) continue;
-                JsonObject settings = settingsRaw.getAsJsonObject();
-                for (Setting<?> setting : module.settings()) {
-                    JsonElement value = settings.get(setting.id());
-                    if (value == null || !value.isJsonPrimitive()) continue;
-                    if (setting instanceof BooleanSetting) value.getAsBoolean();
-                    else if (setting instanceof IntSetting || setting instanceof ColorSetting) value.getAsInt();
-                    else if (setting instanceof DoubleSetting) value.getAsDouble();
-                    else if (setting instanceof StringSetting || setting instanceof EnumSetting<?>) value.getAsString();
+                if (settingsRaw != null && settingsRaw.isJsonObject()) {
+                    JsonObject settings = settingsRaw.getAsJsonObject();
+                    for (meteordevelopment.meteorclient.settings.Setting<?> setting : module.settings) {
+                        JsonElement value = settings.get(setting.getId());
+                        if (value != null && value.isJsonPrimitive()) validateSettingValue(setting, value);
+                    }
+                }
+                JsonElement groupsRaw = data.get("settingGroups");
+                if (groupsRaw != null) {
+                    if (!groupsRaw.isJsonObject()) return false;
+                    for (JsonElement expanded : groupsRaw.getAsJsonObject().asMap().values()) {
+                        if (!expanded.isJsonPrimitive()) return false;
+                        expanded.getAsBoolean();
+                    }
                 }
             }
             return true;
@@ -173,8 +173,40 @@ public final class ConfigManager {
             moduleRoot.add("hud-layout", moduleData);
         }
     }
-    private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
-    @SuppressWarnings({"rawtypes", "unchecked"}) private static void setEnumUnchecked(EnumSetting setting, Enum value) { setting.set(value); }
+    private static void validateSettingValue(meteordevelopment.meteorclient.settings.Setting<?> setting, JsonElement value) {
+        Object fallback = setting.getDefaultValue();
+        if (fallback instanceof Boolean) value.getAsBoolean();
+        else if (fallback instanceof Integer || fallback instanceof Short || fallback instanceof Byte) value.getAsInt();
+        else if (fallback instanceof Long) value.getAsLong();
+        else if (fallback instanceof Float) value.getAsFloat();
+        else if (fallback instanceof Double) value.getAsDouble();
+        else if (fallback instanceof String || fallback instanceof Enum<?>) value.getAsString();
+    }
+
+    private static void applySettingValue(meteordevelopment.meteorclient.settings.Setting<?> setting, JsonElement value) {
+        Object fallback = setting.getDefaultValue();
+        if (fallback instanceof Boolean) setSettingUnchecked(setting, value.getAsBoolean());
+        else if (fallback instanceof Integer || fallback instanceof Short || fallback instanceof Byte) setSettingUnchecked(setting, value.getAsInt());
+        else if (fallback instanceof Long) setSettingUnchecked(setting, value.getAsLong());
+        else if (fallback instanceof Float) setSettingUnchecked(setting, value.getAsFloat());
+        else if (fallback instanceof Double) setSettingUnchecked(setting, value.getAsDouble());
+        else if (fallback instanceof String) setSettingUnchecked(setting, value.getAsString());
+        else if (fallback instanceof Enum<?> enumeration) {
+            String requested = value.getAsString();
+            for (Object candidate : enumeration.getDeclaringClass().getEnumConstants()) {
+                Enum<?> option = (Enum<?>) candidate;
+                if (option.name().equalsIgnoreCase(requested) || option.toString().equalsIgnoreCase(requested)) {
+                    setSettingUnchecked(setting, option);
+                    break;
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void setSettingUnchecked(meteordevelopment.meteorclient.settings.Setting setting, Object value) {
+        setting.set(value);
+    }
     private static int readVersion(JsonObject root) { try { JsonElement value = root.get("version"); return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1; } catch (RuntimeException ignored) { return 1; } }
     static boolean saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent(); if (directory == null) return false;
@@ -182,8 +214,19 @@ public final class ConfigManager {
         JsonObject root = new JsonObject(); root.addProperty("version", CONFIG_VERSION); JsonObject moduleRoot = new JsonObject(); root.add("modules", moduleRoot);
         for (Module module : modules.all()) {
             JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("toggleOnBindRelease", module.toggleOnBindRelease); data.addProperty("chatFeedback", module.chatFeedback); data.addProperty("keyCode", module.keyCode()); JsonObject bind = new JsonObject(); bind.addProperty("isKey", module.keybind().isKey()); bind.addProperty("value", module.keybind().getValue()); bind.addProperty("modifiers", module.keybind().getModifiers()); data.add("keybind", bind); JsonObject settings = new JsonObject();
-            for (Setting<?> setting : module.settings()) { Object value = setting.get(); if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool); else if (value instanceof Number number) settings.addProperty(setting.id(), number); else if (value instanceof String text) settings.addProperty(setting.id(), text); else if (value instanceof Enum<?> select) settings.addProperty(setting.id(), select.name()); }
-            data.add("settings", settings); moduleRoot.add(module.id(), data);
+            for (meteordevelopment.meteorclient.settings.Setting<?> setting : module.settings) {
+                Object value = setting.get();
+                String id = setting.getId();
+                if (value instanceof Boolean bool) settings.addProperty(id, bool);
+                else if (value instanceof Number number) settings.addProperty(id, number);
+                else if (value instanceof String text) settings.addProperty(id, text);
+                else if (value instanceof Enum<?> select) settings.addProperty(id, select.name());
+            }
+            JsonObject groups = new JsonObject();
+            for (meteordevelopment.meteorclient.settings.SettingGroup group : module.settings) groups.addProperty(group.getId(), group.sectionExpanded);
+            data.add("settings", settings);
+            data.add("settingGroups", groups);
+            moduleRoot.add(module.id(), data);
         }
         try {
             Files.createDirectories(directory); Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);
