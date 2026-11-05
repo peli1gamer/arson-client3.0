@@ -24,11 +24,13 @@ public final class ArsonConfigSystem extends System<ArsonConfigSystem> {
 
     @Override
     public void load(File folder) {
-        ConfigManager.load(client, modules);
+        if (folder == null) ConfigManager.load(client, modules);
+        else ConfigManager.loadFromPath(ConfigManager.resolveConfigPath(client, folder), modules);
     }
 
     @Override
     public void save(File folder) {
-        ConfigManager.save(client, modules);
+        if (folder == null) ConfigManager.save(client, modules);
+        else ConfigManager.saveToPath(ConfigManager.resolveConfigPath(client, folder), modules);
     }
 }
