@@ -68,6 +68,26 @@ class ConfigPersistenceTest {
     }
 
     @Test
+    void legacyHudLayoutWithoutSettingsObjectMigratesSafely() throws Exception {
+        Path profile = Files.createTempFile("arson-legacy-hud", ".json");
+        Files.writeString(profile, """
+                {
+                  "version": 3,
+                  "hudLayout": {
+                    "watermark": { "x": 12.5, "y": 22.5, "anchor": "TOP_LEFT" }
+                  },
+                  "modules": {
+                    "hud-layout": {}
+                  }
+                }
+                """);
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+
+        assertTrue(ConfigManager.loadFromPath(profile, manager));
+    }
+
+    @Test
     void malformedLaterModuleDoesNotPartiallyApplyEarlierModuleState() throws Exception {
         Path profile = Files.createTempFile("arson-malformed", ".json");
         Files.writeString(profile, """
