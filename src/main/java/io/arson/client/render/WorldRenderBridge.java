@@ -35,7 +35,13 @@ public final class WorldRenderBridge {
         if (registered) return;
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             frame++;
-            if (contextAdapter != null) contextAdapter.render(featureContext, frame, partialTick());
+            if (contextAdapter != null) {
+                try {
+                    contextAdapter.render(featureContext, frame, partialTick());
+                } catch (RuntimeException exception) {
+                    LOGGER.error("Feature context render adapter failed; continuing with world stages.", exception);
+                }
+            }
             for (WorldRenderStage stage : List.copyOf(stages)) {
                 try {
                     stage.render(context);
