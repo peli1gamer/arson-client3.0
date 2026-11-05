@@ -7,6 +7,7 @@ package meteordevelopment.meteorclient.settings;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -16,7 +17,7 @@ public class Settings implements Iterable<SettingGroup> {
     public final List<SettingGroup> groups = new ArrayList<>(1);
 
     public void onActivated() {
-        for (SettingGroup group : groups) {
+        for (SettingGroup group : List.copyOf(groups)) {
             for (Setting<?> setting : group) setting.onActivated();
         }
     }
@@ -24,21 +25,21 @@ public class Settings implements Iterable<SettingGroup> {
     public Setting<?> get(String name) {
         for (SettingGroup group : this) {
             for (Setting<?> setting : group) {
-                if (name.equalsIgnoreCase(setting.name)) return setting;
+                if (name.equalsIgnoreCase(setting.name) || name.equalsIgnoreCase(setting.getId())) return setting;
             }
         }
         return null;
     }
 
     public void reset() {
-        for (SettingGroup group : groups) {
+        for (SettingGroup group : List.copyOf(groups)) {
             for (Setting<?> setting : group) setting.reset();
         }
     }
 
     public SettingGroup getGroup(String name) {
         for (SettingGroup group : this) {
-            if (group.name.equals(name)) return group;
+            if (group.name.equals(name) || group.getId().equals(name)) return group;
         }
         return null;
     }
@@ -54,12 +55,17 @@ public class Settings implements Iterable<SettingGroup> {
         return group;
     }
 
-    public SettingGroup createGroup(String name) {
-        return createGroup(name, true);
-    }
+    public SettingGroup createGroup(String name) { return createGroup(name, true); }
 
     public void addGroup(SettingGroup group) {
-        if (!groups.contains(group)) groups.add(group);
+        Objects.requireNonNull(group, "group");
+        for (SettingGroup existing : groups) {
+            if (existing == group) return;
+            if (existing.getId().equals(group.getId())) {
+                throw new IllegalArgumentException("Duplicate setting group ID: " + group.getId());
+            }
+        }
+        groups.add(group);
     }
 
     public NbtCompound toTag() {
@@ -77,14 +83,14 @@ public class Settings implements Iterable<SettingGroup> {
         NbtList list = tag.getListOrEmpty("groups");
         for (NbtElement element : list) {
             if (!(element instanceof NbtCompound groupTag)) continue;
-            SettingGroup group = getGroup(groupTag.getString("name", ""));
+            String id = groupTag.getString("id", "");
+            String name = groupTag.getString("name", "");
+            SettingGroup group = getGroup(id.isEmpty() ? name : id);
+            if (group == null) group = getGroup(name);
             if (group != null) group.fromTag(groupTag);
         }
         return this;
     }
 
-    @Override
-    public Iterator<SettingGroup> iterator() {
-        return groups.iterator();
-    }
+    @Override public Iterator<SettingGroup> iterator() { return groups.iterator(); }
 }
