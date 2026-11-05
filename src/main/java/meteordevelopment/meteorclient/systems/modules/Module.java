@@ -49,18 +49,29 @@ public abstract class Module implements ISerializable<Module> {
 
     public final void toggle() {
         if (!active) {
+            Modules manager = Modules.get();
             active = true;
-            Modules manager = Modules.get();
             if (manager != null) manager.addActive(this);
-            settings.onActivated();
-            if (autoSubscribe) MeteorClient.EVENT_BUS.subscribe(this);
-            onActivate();
+
+            try {
+                settings.onActivated();
+                if (autoSubscribe) MeteorClient.EVENT_BUS.subscribe(this);
+                onActivate();
+            } catch (RuntimeException | Error exception) {
+                if (autoSubscribe) MeteorClient.EVENT_BUS.unsubscribe(this);
+                active = false;
+                if (manager != null) manager.removeActive(this);
+                throw exception;
+            }
         } else {
-            if (autoSubscribe) MeteorClient.EVENT_BUS.unsubscribe(this);
-            onDeactivate();
-            active = false;
             Modules manager = Modules.get();
-            if (manager != null) manager.removeActive(this);
+            try {
+                if (autoSubscribe) MeteorClient.EVENT_BUS.unsubscribe(this);
+                onDeactivate();
+            } finally {
+                active = false;
+                if (manager != null) manager.removeActive(this);
+            }
         }
     }
 
