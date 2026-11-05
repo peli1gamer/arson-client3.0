@@ -111,14 +111,15 @@ public final class ConfigManager {
             JsonElement raw = elements.get(element);
             if (raw == null || !raw.isJsonObject()) continue;
             JsonObject value = raw.getAsJsonObject();
-            JsonObject settings = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout").getAsJsonObject("settings") : new JsonObject();
+            JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
+                    ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
+            JsonElement existingSettings = moduleData.get("settings");
+            JsonObject settings = existingSettings != null && existingSettings.isJsonObject()
+                    ? existingSettings.getAsJsonObject() : new JsonObject();
             if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
             if (value.has("x") && value.get("x").isJsonPrimitive()) settings.addProperty(element + "-x", value.get("x").getAsDouble());
             if (value.has("y") && value.get("y").isJsonPrimitive()) settings.addProperty(element + "-y", value.get("y").getAsDouble());
             if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
-            JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
             moduleData.add("settings", settings);
             moduleRoot.add("hud-layout", moduleData);
         }
