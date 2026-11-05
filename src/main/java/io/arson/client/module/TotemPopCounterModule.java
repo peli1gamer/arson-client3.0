@@ -19,6 +19,7 @@ public final class TotemPopCounterModule extends Module {
 
     private final Map<UUID, Integer> pops = new HashMap<>();
     private final Map<UUID, Long> lastPopTick = new HashMap<>();
+    private Object trackedWorld;
 
     public TotemPopCounterModule() {
         super("totem-pop-counter", "Totem Pop Counter", Category.COMBAT);
@@ -28,11 +29,22 @@ public final class TotemPopCounterModule extends Module {
     protected void onDisable() {
         pops.clear();
         lastPopTick.clear();
+        trackedWorld = null;
     }
 
     @Override
     protected void onTick(MinecraftClient client) {
-        if (client.world == null) return;
+        if (client.world == null) {
+            pops.clear();
+            lastPopTick.clear();
+            trackedWorld = null;
+            return;
+        }
+        if (trackedWorld != client.world) {
+            pops.clear();
+            lastPopTick.clear();
+            trackedWorld = client.world;
+        }
         double seconds = resetAfterSeconds.get();
         if (seconds <= 0.0) return;
         long now = client.world.getTime();
