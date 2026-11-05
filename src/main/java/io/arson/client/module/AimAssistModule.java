@@ -79,7 +79,8 @@ public final class AimAssistModule extends Module {
         LivingEntity best = client.world.getEntitiesByClass(LivingEntity.class, search, entity -> isValid(client, entity) && inCrosshairGate(client, entity))
                 .stream().min(Comparator.comparingDouble((LivingEntity entity) -> crosshairDistance(client, entity))
                 .thenComparingDouble(entity -> client.player.squaredDistanceTo(entity))).orElse(null);
-        if (!keepLocked || locked == best || best == null) return best;
+        if (!keepLocked) return best;
+        if (locked == best || best == null) return locked;
         double lockedScore = crosshairDistance(client, locked);
         double bestScore = crosshairDistance(client, best);
         return lockedScore <= bestScore * (1.0 + targetLock.get()) ? locked : best;
@@ -110,7 +111,11 @@ public final class AimAssistModule extends Module {
         double[] angles = anglesTo(client, point);
         double yawDelta = MathHelper.wrapDegrees(angles[0] - client.player.getYaw());
         double pitchDelta = angles[1] - client.player.getPitch();
-        if (Math.hypot(yawDelta, pitchDelta) > fov.get() * 0.5) return false;
+        double yawRadians = Math.toRadians(yawDelta);
+        double pitchRadians = Math.toRadians(pitchDelta);
+        double viewDot = MathHelper.clamp(Math.cos(yawRadians) * Math.cos(pitchRadians), -1.0, 1.0);
+        double angularDistance = Math.toDegrees(Math.acos(viewDot));
+        if (angularDistance > fov.get() * 0.5) return false;
         double yawPixels = pixelsFromYaw(client, Math.abs(yawDelta));
         double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getPitch()));
         double halfW = crosshairWidth.get() * 0.5;
