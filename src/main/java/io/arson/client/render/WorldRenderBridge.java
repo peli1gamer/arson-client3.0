@@ -8,9 +8,12 @@ import net.minecraft.client.MinecraftClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Single integration point between Arson's render pipeline and Fabric's world renderer. */
 public final class WorldRenderBridge {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Arson/WorldRender");
     private final List<WorldRenderStage> stages = new ArrayList<>();
     private final FeatureContext featureContext;
     private final FeatureContextAdapter contextAdapter;
@@ -33,7 +36,14 @@ public final class WorldRenderBridge {
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             frame++;
             if (contextAdapter != null) contextAdapter.render(featureContext, frame, partialTick());
-            for (WorldRenderStage stage : stages) stage.render(context);
+            for (WorldRenderStage stage : List.copyOf(stages)) {
+                try {
+                    stage.render(context);
+                } catch (RuntimeException exception) {
+                    LOGGER.error("World render stage {} failed; continuing with remaining stages.",
+                            stage.getClass().getSimpleName(), exception);
+                }
+            }
         });
         registered = true;
     }
