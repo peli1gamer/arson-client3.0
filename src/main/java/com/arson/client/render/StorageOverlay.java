@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 /**
  * Builds lightweight render commands from already-discovered storage positions.
- * World scanning and Minecraft-specific drawing stay outside this class.
+ * Range filtering uses the supplied reference point and each target's centre.
  */
 public final class StorageOverlay {
     private final StorageRenderProfile profile;
@@ -31,13 +31,13 @@ public final class StorageOverlay {
         this.range = Math.max(1.0, Math.min(256.0, range));
     }
 
-    public List<RenderBox> build(double cameraX, double cameraY, double cameraZ,
+    public List<RenderBox> build(double referenceX, double referenceY, double referenceZ,
                                  List<StorageTarget> targets) {
-        return build(cameraX, cameraY, cameraZ, targets,
+        return build(referenceX, referenceY, referenceZ, targets,
                 type -> new RenderStyle(profile.color(type), true, true, 0.25f, 1.0f, 1.0f));
     }
 
-    public List<RenderBox> build(double cameraX, double cameraY, double cameraZ,
+    public List<RenderBox> build(double referenceX, double referenceY, double referenceZ,
                                  List<StorageTarget> targets,
                                  Function<StorageType, RenderStyle> styleProvider) {
         List<RenderBox> boxes = new ArrayList<>();
@@ -47,9 +47,9 @@ public final class StorageOverlay {
             if (!profile.enabled(target.type())) {
                 continue;
             }
-            double dx = target.x() - cameraX;
-            double dy = target.y() - cameraY;
-            double dz = target.z() - cameraZ;
+            double dx = target.x() + target.width() * 0.5 - referenceX;
+            double dy = target.y() + target.height() * 0.5 - referenceY;
+            double dz = target.z() + target.depth() * 0.5 - referenceZ;
             if (dx * dx + dy * dy + dz * dz > rangeSquared) {
                 continue;
             }
