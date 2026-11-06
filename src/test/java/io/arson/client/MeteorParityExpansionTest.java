@@ -4,6 +4,7 @@ import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HotkeysModule;
+import io.arson.client.module.ClientInfoModule;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import io.arson.client.module.PerformanceModule;
 import meteordevelopment.meteorclient.systems.Systems;
@@ -21,6 +22,14 @@ class MeteorParityExpansionTest {
         assertTrue(manager.categoryCount(Module.Category.WORLD) >= 3);
         assertTrue(manager.get("player-coordinates").description().length() > 10);
         assertTrue(manager.get("world-clock").description().length() > 10);
+    }
+
+    @Test void clientInfoModuleProducesRealVersionMetadata() {
+        ClientInfoModule clientInfo = new ClientInfoModule();
+
+        assertTrue(clientInfo.showVersion());
+        assertTrue(clientInfo.formatted().startsWith("Arson "));
+        assertTrue(clientInfo.formatted().contains("Minecraft "));
     }
 
     @Test void hotkeysModuleListsBoundModulesInStableOrder() {

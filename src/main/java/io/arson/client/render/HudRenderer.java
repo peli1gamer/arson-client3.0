@@ -2,6 +2,7 @@ package io.arson.client.render;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.CameraInfoModule;
+import io.arson.client.module.ClientInfoModule;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ClientPerformanceInfoModule;
@@ -98,6 +99,7 @@ public final class HudRenderer {
         ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
         PerformanceModule performance = (PerformanceModule) ArsonClient.getInstance().modules().get("performance");
         HotkeysModule hotkeys = (HotkeysModule) ArsonClient.getInstance().modules().get("hotkeys");
+        ClientInfoModule clientInfo = (ClientInfoModule) ArsonClient.getInstance().modules().get("client-info");
         RenderResolutionInfoModule resolutionInfo = (RenderResolutionInfoModule) ArsonClient.getInstance().modules().get("render-resolution-info");
         float globalScale = (float) hud.scale();
         if(layout != null){
@@ -200,6 +202,7 @@ public final class HudRenderer {
             if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
+            if (clientInfo != null && clientInfo.enabled()) rows.add(clientInfo.formatted());
             if (hotkeys != null && hotkeys.enabled()) {
                 rows.add("HOTKEYS");
                 var boundModules = hotkeys.boundModules(ArsonClient.getInstance().modules().all());
