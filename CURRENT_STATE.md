@@ -6,7 +6,7 @@ _Last verified: 2026-11-06_
 
 - Repository: peli1gamer/arson-client3.0
 - Working branch: audit/fix-test-cycle
-- Documentation branch head: ffa40ea4abc425b1d1cc03e2beb5647546ed433a
+- Documentation files are committed on audit/fix-test-cycle; check that branch for the latest documentation revision.
 - Code state validated by CI at: 67aac40672aa5501ec52b157d4cc016bbcbe8d17
 - The audit/fix work is on this branch. The main branch has not been changed by this work.
 - No pull request or merge is implied by this document.
