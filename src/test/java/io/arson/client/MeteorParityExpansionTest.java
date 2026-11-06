@@ -3,6 +3,8 @@ package io.arson.client;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.module.HudLayoutModule;
+import io.arson.client.module.HotkeysModule;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
 import io.arson.client.module.PerformanceModule;
 import meteordevelopment.meteorclient.systems.Systems;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,19 @@ class MeteorParityExpansionTest {
         assertTrue(manager.categoryCount(Module.Category.WORLD) >= 3);
         assertTrue(manager.get("player-coordinates").description().length() > 10);
         assertTrue(manager.get("world-clock").description().length() > 10);
+    }
+
+    @Test void hotkeysModuleListsBoundModulesInStableOrder() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        HotkeysModule hotkeys = (HotkeysModule) manager.get("hotkeys");
+        manager.get("hud").setKeybind(Keybind.fromKey(72));
+        manager.get("fps").setKeybind(Keybind.fromKey(70));
+        manager.get("performance").setKeybind(Keybind.fromKey(80));
+
+        assertEquals(java.util.List.of("FPS", "HUD", "Performance"),
+                hotkeys.boundModules(manager.all()).stream().map(Module::name).toList());
+        assertEquals(3, hotkeys.boundModuleCount(manager.all()));
     }
 
     @Test void favoritesSortAheadOfOrdinaryModules() {

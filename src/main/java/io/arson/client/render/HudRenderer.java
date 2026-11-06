@@ -5,6 +5,8 @@ import io.arson.client.module.CameraInfoModule;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ClientPerformanceInfoModule;
+import io.arson.client.module.HotkeysModule;
+import io.arson.client.module.Module;
 import io.arson.client.module.PerformanceModule;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
@@ -95,6 +97,7 @@ public final class HudRenderer {
         RenderCameraInfoModule cameraInfo2 = (RenderCameraInfoModule) ArsonClient.getInstance().modules().get("render-camera-info");
         ClientPerformanceInfoModule performanceInfo = (ClientPerformanceInfoModule) ArsonClient.getInstance().modules().get("client-performance-info");
         PerformanceModule performance = (PerformanceModule) ArsonClient.getInstance().modules().get("performance");
+        HotkeysModule hotkeys = (HotkeysModule) ArsonClient.getInstance().modules().get("hotkeys");
         RenderResolutionInfoModule resolutionInfo = (RenderResolutionInfoModule) ArsonClient.getInstance().modules().get("render-resolution-info");
         float globalScale = (float) hud.scale();
         if(layout != null){
@@ -197,6 +200,16 @@ public final class HudRenderer {
             if (targetInfo != null && targetInfo.enabled()) rows.add(targetInfo.formatted());
             if (displayInfo != null && displayInfo.enabled()) rows.add(displayInfo.formatted());
             if (performanceInfo != null && performanceInfo.enabled()) rows.add(performanceInfo.formatted());
+            if (hotkeys != null && hotkeys.enabled()) {
+                rows.add("HOTKEYS");
+                var boundModules = hotkeys.boundModules(ArsonClient.getInstance().modules().all());
+                if (boundModules.isEmpty()) rows.add("No keys bound");
+                else for (Module boundModule : boundModules) {
+                    rows.add(boundModule.name() + "  " + boundModule.keybind());
+                }
+                int hidden = hotkeys.boundModuleCount(ArsonClient.getInstance().modules().all()) - boundModules.size();
+                if (hidden > 0) rows.add("+" + hidden + " more");
+            }
             if (performance != null && performance.enabled() && performance.showStats()) {
                 ChunkFinderScanner scanner = ArsonClient.getInstance().chunkFinderScanner();
                 if (scanner != null) rows.add(performance.formattedStats(
