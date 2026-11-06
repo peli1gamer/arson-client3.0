@@ -9,8 +9,11 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class ModuleManager {
+    private static final Logger LOGGER = Logger.getLogger(ModuleManager.class.getName());
     private final Map<String, Module> modules=new LinkedHashMap<>();
     public void register(Module module){if(modules.putIfAbsent(module.id(),module)!=null)throw new IllegalArgumentException("Duplicate module: "+module.id());}
     public void registerDefaults(){
@@ -26,7 +29,16 @@ public final class ModuleManager {
     public int categoryCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category)count++;return count;}
     public int enabledCount(Module.Category category){int count=0;for(Module module:modules.values())if(module.category()==category&&module.enabled())count++;return count;}
     public int favoriteCount(){int count=0;for(Module module:modules.values())if(module.favorite())count++;return count;}
-    public int enabledCount(){int count=0;for(Module module:modules.values())if(module.enabled())count++;return count;} public void tick(Minecraft client){for(Module module:modules.values())module.tick(client);}
+    public int enabledCount(){int count=0;for(Module module:modules.values())if(module.enabled())count++;return count;}
+    public void tick(Minecraft client) {
+        for (Module module : modules.values()) {
+            try {
+                module.tick(client);
+            } catch (RuntimeException failure) {
+                LOGGER.log(Level.SEVERE, "Module tick failed: " + module.id(), failure);
+            }
+        }
+    }
     public enum DisplayMode{COMPACT,DETAILED} public enum RenderMode{STANDARD,HIGH_CONTRAST,MINIMAL}
     private static final class ClientInfoModule extends Module{private ClientInfoModule(){super("client-info","Client Info",Category.MISC,"Shows client/version metadata used by the local HUD.");setting(new BooleanSetting("show-version","Show Version",true));}}
     private static final class SprintModule extends Module{private final BooleanSetting forwardOnly=setting(new BooleanSetting("forward-only","Forward Only",true));private SprintModule(){super("sprint","Sprint",Category.MOVEMENT,"Local sprint state helper; it only affects the local player's sprint flag while enabled.");}@Override protected void onTick(Minecraft client){if(client.player==null)return;if(forwardOnly.enabled()&&!client.options.keyUp.isDown())return;client.player.setSprinting(true);}}
