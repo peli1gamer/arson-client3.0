@@ -6,7 +6,8 @@ _Last verified: 2026-11-06_
 
 - Repository: peli1gamer/arson-client3.0
 - Working branch: audit/fix-test-cycle
-- Verified branch head: 67aac40672aa5501ec52b157d4cc016bbcbe8d17
+- Documentation branch head: ffa40ea4abc425b1d1cc03e2beb5647546ed433a
+- Code state validated by CI at: 67aac40672aa5501ec52b157d4cc016bbcbe8d17
 - The audit/fix work is on this branch. The main branch has not been changed by this work.
 - No pull request or merge is implied by this document.
 
@@ -14,7 +15,7 @@ _Last verified: 2026-11-06_
 
 **CI PASSED**
 
-The GitHub Actions run for the branch head completed successfully:
+The latest code-changing commit completed the GitHub Actions workflow successfully. The documentation commits were added afterward and their own workflow runs were queued/in progress at the time this file was updated:
 
 - Workflow run: [42181804484](https://github.com/peli1gamer/arson-client3.0/actions/runs/42181804484)
 - Java 21 setup: passed
@@ -33,7 +34,7 @@ Verified CI artifact:
 - SHA-256: 6bd14e27b8a4aaad4ce7803027c38a7c04a332f40c4bb655723a940fca806930
 - [Workflow run and downloadable artifact](https://github.com/peli1gamer/arson-client3.0/actions/runs/42181804484)
 
-This is a successful CI artifact, not a published GitHub release.
+This artifact corresponds to the validated code commit above; it is not a published GitHub release. Documentation-only commits followed it.
 
 ## Platform/build target
 
@@ -83,7 +84,7 @@ Regression tests were added for AutoTotem slot mapping, HoverTotem slot behavior
 
 ## Known status / limitations
 
-- No build failure is currently known at the verified branch head.
+- No build failure is known for the validated code commit. The documentation-only commits still have a CI run pending.
 - A passing CI workflow does not prove that every feature behaves correctly on every server, world, screen size, or Minecraft runtime state.
 - The full source tree has not yet completed a systematic line-by-line audit.
 - The items in TODO.md are review tasks and unverified candidates unless explicitly described as confirmed.
