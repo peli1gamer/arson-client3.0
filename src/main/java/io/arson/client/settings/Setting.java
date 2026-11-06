@@ -84,8 +84,16 @@ public abstract class Setting<T> extends meteordevelopment.meteorclient.settings
 
     @SuppressWarnings("unchecked")
     public <S extends Setting<T>> S group(SettingGroup value) {
-        group = Objects.requireNonNull(value);
+        Objects.requireNonNull(value, "group");
+        if (group == value) return (S) this;
+        if (group != null) {
+            throw new IllegalStateException("Setting " + id + " already belongs to group " + group.id());
+        }
+
+        // Add first: a duplicate ID must not leave this setting pointing at a group
+        // that rejected its registration.
         value.add(this);
+        group = value;
         return (S) this;
     }
 
