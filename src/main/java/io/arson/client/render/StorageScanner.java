@@ -21,8 +21,6 @@ import java.util.Set;
 
 /** Cached storage discovery. Positions are reused while range filtering stays dynamic. */
 public final class StorageScanner {
-    private static final long CACHE_REFRESH_TICKS = 20L;
-
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
@@ -30,7 +28,12 @@ public final class StorageScanner {
     private int cachedRadius = Integer.MIN_VALUE;
     private List<StorageOverlay.StorageTarget> cachedTargets = List.of();
 
+    /** Compatibility overload using the previous default refresh interval. */
     public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range) {
+        return scan(client, range, 20);
+    }
+
+    public List<StorageOverlay.StorageTarget> scan(Minecraft client, double range, int refreshInterval) {
         if (client.level == null || client.player == null) {
             return List.of();
         }
@@ -44,7 +47,7 @@ public final class StorageScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean chunkChanged = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean radiusChanged = cachedRadius != radius;
-        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
+        boolean refreshDue = isRefreshDue(gameTime, cachedTick, refreshInterval);
 
         if (worldChanged || chunkChanged || radiusChanged || refreshDue) {
             cachedTargets = scanLoadedStorage(client, radius);
@@ -70,6 +73,11 @@ public final class StorageScanner {
             }
         }
         return visible.isEmpty() ? List.of() : List.copyOf(visible);
+    }
+
+    static boolean isRefreshDue(long gameTime, long cachedTick, int interval) {
+        return cachedTick == Long.MIN_VALUE || gameTime < cachedTick
+                || gameTime - cachedTick >= Math.max(1, interval);
     }
 
     private static List<StorageOverlay.StorageTarget> scanLoadedStorage(Minecraft client, int chunkRadius) {
