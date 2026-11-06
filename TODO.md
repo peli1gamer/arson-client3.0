@@ -11,18 +11,20 @@ This is the active backlog for Arson Client V3. Items are not claims that a bug 
 - [ ] Run the full workflow after each meaningful repair batch.
 - [ ] Update CURRENT_STATE.md after the branch head or CI status changes.
 
-## Confirmed Storage ESP findings (Anubis comparison pending)
+## Storage ESP — Arson-side fixes applied; Anubis comparison pending
 
-These are confirmed by tracing the current Arson source. They are not yet patched; compare the reference JAR before choosing the final behavior.
+The following Arson-side defects were confirmed and patched. The Anubis JAR has not yet been inspected, so no claim is made that these choices match its behavior.
 
-- [ ] StorageScanner has a hard-coded 20-tick refresh while ContainerESP exposes a configurable 1–20 tick Scan Interval. The user-facing setting does not control the scanner's own cache refresh.
-- [ ] ContainerESP exposes Label Background, Label Padding, and Label Background Color, but StorageRenderStage only draws label text and never reads those three settings.
-- [ ] StorageScanner range-filters targets by their centre relative to the player, while StorageOverlay applies a second range check from the target's minimum corner relative to the camera. This mixes origins and reference points and can drop targets inconsistently near the range boundary.
+- [x] StorageScanner now accepts the module's configured refresh interval instead of enforcing a separate hard-coded 20-tick cache. The legacy overload retains a 20-tick default for callers that do not supply an interval.
+- [x] Storage labels now render the configured background color and padding when Label Background is enabled; label alpha follows distance fade.
+- [x] Storage range checks now use target centres and the player's position consistently in scanner, overlay, labels, and distance fade.
+- [ ] Inspect Anubis Storage ESP and compare observable behavior, setting names/defaults, label layout, storage classification, double-chest bounds, range semantics, and refresh timing. Adjust Arson only where the reference comparison and Arson's design justify it.
+- [ ] Run the Storage ESP focused tests and full Java 21/Fabric/JAR verification before marking this module complete.
 
 ## Priority 1 — Finish the reliability audit
 
 - [ ] Review WorldRenderBridge: decide whether each render stage should be isolated so one stage failure cannot skip later stages. Preserve useful error logging and ensure render state is restored correctly.
-- [ ] Review StorageScanner refresh behavior. It currently has its own fixed 20-tick cache interval; compare this with the user-facing storage scan settings and make the behavior explicit and testable.
+- [x] Review StorageScanner refresh behavior. It now receives the configured module interval; finish reference comparison and verification.
 - [ ] Add a focused test for ModuleManager tick isolation: one module throws, and later modules still receive their tick.
 - [ ] Review enable/disable cleanup for modules that register callbacks, retain targets, or hold temporary state.
 - [ ] Check world change, disconnect, respawn, and screen transition handling for stale cached state.
