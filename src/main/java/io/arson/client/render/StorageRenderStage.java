@@ -124,7 +124,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                             module.labelPadding(), fadeColor(module.labelBackgroundColor(), fade));
                 }
                 font.drawInBatch(Component.literal(text), -width / 2.0f, 0,
-                        fadeColor(module.labelColor(), fade), false, pose,
+                        fadeColor(module.labelColor(), fade), false, matrices.last().pose(),
                         consumers, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             } finally {
                 matrices.popPose();
