@@ -24,7 +24,7 @@ public final class ClientInfoModule extends Module {
         String arsonVersion = FabricLoader.getInstance().getModContainer(ArsonClient.MOD_ID)
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())
                 .orElse("unknown");
-        String minecraftVersion = SharedConstants.getGameVersion().getName();
+        String minecraftVersion = SharedConstants.getGameVersion().name();
         return "Arson " + arsonVersion + "  ·  Minecraft " + minecraftVersion;
     }
 }
