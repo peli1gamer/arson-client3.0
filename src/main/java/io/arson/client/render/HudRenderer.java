@@ -173,6 +173,7 @@ public final class HudRenderer {
                 if (minutes == 60) { minutes = 0; hours = (hours + 1) % 24; }
                 rows.add(String.format(java.util.Locale.ROOT, "Time %02d:%02d", hours, minutes));
             }
+            if (worldInfo.showLocalClock()) rows.add("Clock " + worldInfo.formattedLocalClock());
             if (worldInfo.showDimension()) rows.add("Dimension " + client.world.getRegistryKey().getValue());
             if (worldInfo.showWeather()) rows.add("Weather " + (client.world.isThundering() ? "Thunder" : client.world.isRaining() ? "Rain" : "Clear"));
             if (hud.showPing()) {

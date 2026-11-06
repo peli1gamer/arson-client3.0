@@ -5,6 +5,8 @@ import io.arson.client.module.ModuleManager;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HotkeysModule;
 import io.arson.client.module.ClientInfoModule;
+import io.arson.client.module.WorldInfoModule;
+import java.time.LocalTime;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import io.arson.client.module.PerformanceModule;
 import meteordevelopment.meteorclient.systems.Systems;
@@ -22,6 +24,14 @@ class MeteorParityExpansionTest {
         assertTrue(manager.categoryCount(Module.Category.WORLD) >= 3);
         assertTrue(manager.get("player-coordinates").description().length() > 10);
         assertTrue(manager.get("world-clock").description().length() > 10);
+    }
+
+    @Test void worldInfoHasIndependentLocalClockFormatting() {
+        WorldInfoModule worldInfo = new WorldInfoModule();
+
+        assertTrue(worldInfo.showLocalClock());
+        assertEquals("09:07", WorldInfoModule.formatLocalClock(LocalTime.of(9, 7)));
+        assertEquals("18:42", WorldInfoModule.formatLocalClock(LocalTime.of(18, 42)));
     }
 
     @Test void clientInfoModuleProducesRealVersionMetadata() {
