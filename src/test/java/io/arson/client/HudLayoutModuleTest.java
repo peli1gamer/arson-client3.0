@@ -2,6 +2,7 @@ package io.arson.client;
 
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
+import io.arson.client.ui.NoOverlapLayout;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

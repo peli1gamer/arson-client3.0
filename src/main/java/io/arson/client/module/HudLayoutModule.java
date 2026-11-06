@@ -179,9 +179,11 @@ public final class HudLayoutModule extends Module {
             NoOverlapLayout.Rect rect=placements.get(element).rect();
             if("array-list".equals(element)){
                 if(arrayList != null){
+                    NoOverlapLayout.Size measured = measuredSizes.getOrDefault(element,
+                            new NoOverlapLayout.Size(arrayListWidth, arrayListHeight));
                     int padding=(int)Math.round(arrayList.padding()*arrayList.scale());
                     int targetX=arrayList.rightAlign()
-                            ? viewportWidth-rect.x()-arrayListWidth+padding
+                            ? viewportWidth-rect.x()-measured.width()+padding
                             : rect.x()+padding;
                     int targetY=rect.y()+padding;
                     if(arrayList.x()!=targetX || arrayList.y()!=targetY){ arrayList.setEditorPosition(targetX,targetY); changed=true; }
@@ -193,7 +195,7 @@ public final class HudLayoutModule extends Module {
                     new NoOverlapLayout.Size(safeDimension(190 * hud.elementScale(element)), safeDimension(35 * hud.elementScale(element))));
             double[] current=resolve(element,logicalW,logicalH,measured.width(),measured.height());
             if(Math.abs(current[0]-x)>0.5 || Math.abs(current[1]-y)>0.5){
-                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScale,35*elementScale);
+                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,measured.width(),measured.height());
                 changed=true;
             }
         }
