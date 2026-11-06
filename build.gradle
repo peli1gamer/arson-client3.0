@@ -23,6 +23,14 @@ dependencies {
 processResources { inputs.property "version", project.version; filesMatching('fabric.mod.json') { expand 'version': project.version } }
 java { toolchain.languageVersion = JavaLanguageVersion.of(21); withSourcesJar() }
 tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
-tasks.named('test') { useJUnitPlatform() }
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+        showCauses true
+        showStackTraces true
+    }
+}
 jar { from('LICENSE') { rename { "${it}_${project.archives_base_name}" } } }
 publishing { publications { create('mavenJava', MavenPublication) { from components.java } }; repositories { } }
