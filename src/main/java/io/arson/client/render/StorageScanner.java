@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.enums.ChestType;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.DispenserBlockEntity;
@@ -111,10 +113,10 @@ public final class StorageScanner {
         BlockPos north = pos.north();
 
         BlockPos partner = null;
-        if (isChest(client, east)) partner = east;
-        else if (isChest(client, south)) partner = south;
-        else if (isChest(client, west)) partner = west;
-        else if (isChest(client, north)) partner = north;
+        if (canPairChest(client, pos, east)) partner = east;
+        else if (canPairChest(client, pos, south)) partner = south;
+        else if (canPairChest(client, pos, west)) partner = west;
+        else if (canPairChest(client, pos, north)) partner = north;
 
         double x = pos.getX();
         double z = pos.getZ();
@@ -134,9 +136,9 @@ public final class StorageScanner {
                 StorageType.CHEST, x, pos.getY(), z, width, 0.875, depth);
     }
 
-    private static boolean isChest(MinecraftClient client, BlockPos pos) {
-        BlockEntity entity = client.world.getBlockEntity(pos);
-        return entity instanceof ChestBlockEntity;
+    private static boolean canPairChest(MinecraftClient client, BlockPos firstPos, BlockPos secondPos) {
+        if (!client.world.isChunkLoaded(secondPos.getX() >> 4, secondPos.getZ() >> 4)) return false;
+        return StorageChestPairing.canPair(client.world.getBlockState(firstPos), client.world.getBlockState(secondPos));
     }
 
     private static StorageType classify(BlockEntity entity) {
