@@ -90,7 +90,7 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new EntityInfoStage(client, entityScanner, (EntityInfoModule) moduleManager.get("entity-info")));
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
         worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
-        worldRenderBridge.register(new ChunkFinderRenderStage(client, new ChunkFinderScanner(), (ChunkFinderModule) moduleManager.get("chunk-finder")));
+        worldRenderBridge.register(new ChunkFinderRenderStage(client, new ChunkFinderScanner(moduleManager::chunkScanBudgetNanos), (ChunkFinderModule) moduleManager.get("chunk-finder")));
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
         worldRenderBridge.attach();
 

@@ -10,6 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
+import java.util.function.LongSupplier;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
@@ -31,6 +33,21 @@ public final class ChunkFinderScanner {
     private int centerChunkZ = Integer.MIN_VALUE;
     private int lastRadius = -1;
     private int lastConfigHash;
+    private final LongSupplier budgetLimitNanos;
+    private final ChunkScanBudget timeBudget;
+
+    public ChunkFinderScanner() {
+        this(() -> Long.MAX_VALUE);
+    }
+
+    public ChunkFinderScanner(LongSupplier budgetLimitNanos) {
+        this(budgetLimitNanos, System::nanoTime);
+    }
+
+    ChunkFinderScanner(LongSupplier budgetLimitNanos, LongSupplier clock) {
+        this.budgetLimitNanos = Objects.requireNonNull(budgetLimitNanos, "budgetLimitNanos");
+        this.timeBudget = new ChunkScanBudget(Objects.requireNonNull(clock, "clock"));
+    }
 
     public List<ChunkResult> scan(MinecraftClient client, ChunkFinderModule module) {
         if (client.world == null || client.player == null || !module.enabled()) {
@@ -67,8 +84,12 @@ public final class ChunkFinderScanner {
         if (now != lastStepTick && (lastStepTick == Long.MIN_VALUE || now - lastStepTick >= module.scanIntervalTicks())) {
             lastStepTick = now;
             int budget = module.chunksPerTick();
+            timeBudget.reset(Math.max(0L, budgetLimitNanos.getAsLong()));
+            int processed = 0;
             while (budget-- > 0 && !pending.isEmpty()) {
+                if (!timeBudget.canProcess(processed)) break;
                 long key = pending.removeFirst();
+                processed++;
                 queued.remove(key);
                 int chunkX = (int) (key >> 32);
                 int chunkZ = (int) key;

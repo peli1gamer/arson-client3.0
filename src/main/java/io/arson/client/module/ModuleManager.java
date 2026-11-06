@@ -99,6 +99,15 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
         for (Module module : arsonModules()) module.tick(client);
     }
 
+    /** Returns the optional Chunk Finder work budget; disabled means no additional time cap. */
+    public long chunkScanBudgetNanos() {
+        Module module = get("performance");
+        if (module instanceof PerformanceModule performance && performance.enabled()) {
+            return Math.round(performance.tickBudget() * 1_000_000.0);
+        }
+        return Long.MAX_VALUE;
+    }
+
     private static meteordevelopment.meteorclient.systems.modules.Category meteorCategory(Module.Category category) {
         return switch (category) {
             case COMBAT -> meteordevelopment.meteorclient.systems.modules.Categories.Combat;
@@ -119,7 +128,7 @@ public final class ModuleManager extends meteordevelopment.meteorclient.systems.
     public enum DisplayMode{COMPACT,DETAILED} public enum RenderMode{STANDARD,HIGH_CONTRAST,MINIMAL}
     private static final class ClientInfoModule extends Module{private ClientInfoModule(){super("client-info","Client Info",Category.MISC,"Shows client/version metadata used by the local HUD.");setting(new BooleanSetting("show-version","Show Version",true));}}
     private static final class SprintModule extends Module{private final BooleanSetting forwardOnly=setting(new BooleanSetting("forward-only","Forward Only",true));private SprintModule(){super("sprint","Sprint",Category.MOVEMENT,"Local sprint state helper; it only affects the local player's sprint flag while enabled.");}@Override protected void onTick(MinecraftClient client){if(client.player==null)return;if(forwardOnly.enabled()&&!client.options.forwardKey.isPressed())return;client.player.setSprinting(true);}}
-    private static final class PerformanceModule extends Module{private final DoubleSetting tickBudget=setting(new DoubleSetting("tick-budget","Logic Budget",1.0,0.1,5.0,0.1));private PerformanceModule(){super("performance","Performance",Category.MISC,"Exposes a local logic-budget preference for diagnostics and presentation integrations.");}public double tickBudget(){return tickBudget.get();}}
+    private static final class PerformanceModule extends Module{private final DoubleSetting tickBudget=setting(new DoubleSetting("tick-budget","Chunk Scan Budget (ms)",1.0,0.1,5.0,0.1));private PerformanceModule(){super("performance","Performance",Category.MISC,"Limits optional Chunk Finder analysis time per game tick when enabled.");tickBudget.description("Maximum time the Chunk Finder may spend analysing chunks in one game tick. At least one queued chunk is processed to prevent starvation.");}public double tickBudget(){return tickBudget.get();}}
     private static final class CombatStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private final DoubleSetting threshold=setting(new DoubleSetting("ready-threshold","Ready Threshold",0.90,0.0,1.0,0.05));private boolean ready;private CombatStatusModule(){super("combat-status","Combat Status",Category.COMBAT,"Reports local attack-cooldown readiness without issuing attacks.");mode.description("Choose the amount of local combat state shown by integrations.");threshold.description("Attack cooldown ratio considered ready.");}@Override protected void onTick(MinecraftClient client){ready=client.player!=null&&client.player.getAttackCooldownProgress(0.0f)>=threshold.get();}public boolean ready(){return ready;}public DisplayMode mode(){return mode.get();}}
     private static final class PlayerStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private int hunger;private float health;private PlayerStatusModule(){super("player-status","Player Status",Category.PLAYER,"Tracks local health and hunger for HUD presentation.");mode.description("Choose compact or detailed local player telemetry.");}@Override protected void onTick(MinecraftClient client){if(client.player==null)return;hunger=client.player.getHungerManager().getFoodLevel();health=client.player.getHealth();}public int hunger(){return hunger;}public float health(){return health;}public DisplayMode mode(){return mode.get();}}
     private static final class MovementStatusModule extends Module{private final EnumSetting<DisplayMode> mode=setting(new EnumSetting<>("mode","Display Mode",DisplayMode.COMPACT));private double horizontalSpeed;private MovementStatusModule(){super("movement-status","Movement Status",Category.MOVEMENT,"Reports local horizontal movement speed for HUDs and diagnostics.");}@Override protected void onTick(MinecraftClient client){if(client.player==null){horizontalSpeed=0;return;}var v=client.player.getVelocity();horizontalSpeed=Math.sqrt(v.x*v.x+v.z*v.z);}public double horizontalSpeed(){return horizontalSpeed;}}
