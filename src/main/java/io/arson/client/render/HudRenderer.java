@@ -170,6 +170,11 @@ public final class HudRenderer {
             }
             if (worldInfo.showDimension()) rows.add("Dimension " + client.world.getRegistryKey().getValue());
             if (worldInfo.showWeather()) rows.add("Weather " + (client.world.isThundering() ? "Thunder" : client.world.isRaining() ? "Rain" : "Clear"));
+            if (hud.showPing()) {
+                var network = client.getNetworkHandler();
+                var localEntry = network == null ? null : network.getPlayerListEntry(client.player.getUuid());
+                if (localEntry != null) rows.add("Ping " + Math.max(0, localEntry.getLatency()) + " ms");
+            }
             if (worldEnvironment != null && worldEnvironment.enabled()) {
                 rows.add("Biome " + worldEnvironment.biome());
                 if (worldEnvironment.showWeather()) rows.add("Local Weather " + worldEnvironment.weather());

@@ -14,6 +14,7 @@ public final class HudModule extends Module {
     private final BooleanSetting coordinates = setting(new BooleanSetting("coordinates", "Coordinates", true));
     private final BooleanSetting netherCoordinates = setting(new BooleanSetting("nether-coordinates", "Nether Coordinates", true));
     private final BooleanSetting fps = setting(new BooleanSetting("fps", "FPS", true));
+    private final BooleanSetting ping = setting(new BooleanSetting("ping", "Ping", true));
     private final BooleanSetting playerInfo = setting(new BooleanSetting("player-info", "Player Info Element", true));
     private final BooleanSetting worldInfo = setting(new BooleanSetting("world-info", "World Info Element", true));
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", false));
@@ -68,6 +69,7 @@ public final class HudModule extends Module {
     public boolean showCoordinates() { return coordinates.enabled(); }
     public boolean showNetherCoordinates() { return netherCoordinates.enabled(); }
     public boolean showFps() { return fps.enabled(); }
+    public boolean showPing() { return ping.enabled(); }
     public boolean showPlayerInfo() { return playerInfo.enabled(); }
     public boolean showWorldInfo() { return worldInfo.enabled(); }
     public boolean showBackground() { return background.enabled(); }

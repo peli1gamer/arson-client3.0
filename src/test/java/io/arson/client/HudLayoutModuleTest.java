@@ -9,6 +9,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class HudLayoutModuleTest {
     @Test
+    void pingVisibilityDefaultsOnAsAnIndependentHudOption() {
+        HudModule hud = new HudModule();
+        assertTrue(hud.showPing());
+        assertTrue(hud.showFps());
+    }
+
+    @Test
     void topLeftDefaultsPreserveExistingHudPositions() {
         HudLayoutModule layout = new HudLayoutModule();
         assertEquals(HudLayoutModule.Anchor.TOP_LEFT, layout.anchor("watermark"));
