@@ -27,11 +27,19 @@ public final class ArsonApi {
     }
 
     public static boolean setHudElementPosition(String element, double x, double y) {
-        if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return false;
-        Module module = ArsonClient.getInstance().modules().get("hud");
-        if (!(module instanceof io.arson.client.module.HudModule hud)) return false;
-        try { hud.setEditorPosition(element, x, y); save(); return true; }
-        catch (IllegalArgumentException ignored) { return false; }
+        if (ArsonClient.getInstance() == null || element == null || element.isBlank()
+                || !Double.isFinite(x) || !Double.isFinite(y)) return false;
+        Module module = ArsonClient.getInstance().modules().get("hud-layout");
+        if (!(module instanceof io.arson.client.module.HudLayoutModule layout)) return false;
+        try {
+            // The renderer resolves positions from HUD Layout, not the legacy HudModule coordinates.
+            layout.setAnchor(element, io.arson.client.module.HudLayoutModule.Anchor.TOP_LEFT);
+            layout.setOffset(element, x, y);
+            save();
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
     public static int resetAllModules() {
