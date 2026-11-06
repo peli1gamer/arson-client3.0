@@ -61,8 +61,8 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
     }
 
     protected final <T extends Setting<?>> T setting(T setting) {
-        arsonSettings.add(setting);
         defaultGroup.add(setting);
+        arsonSettings.add(setting);
         return setting;
     }
 
@@ -78,8 +78,8 @@ public abstract class Module extends meteordevelopment.meteorclient.systems.modu
 
     protected final <T extends Setting<?>> T setting(SettingGroup group, T setting) {
         if (!settingGroups.contains(group)) throw new IllegalArgumentException("Setting group does not belong to module " + id);
-        arsonSettings.add(setting);
         setting.group(group);
+        arsonSettings.add(setting);
         return setting;
     }
 
