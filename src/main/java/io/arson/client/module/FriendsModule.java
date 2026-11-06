@@ -2,12 +2,11 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.StringSetting;
-import net.minecraft.world.entity.player.Player;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import net.minecraft.entity.player.PlayerEntity;
 
 /** Lightweight friend list used by combat targeting modules. */
 public final class FriendsModule extends Module {
@@ -24,7 +23,7 @@ public final class FriendsModule extends Module {
         return protectFriends.enabled();
     }
 
-    public boolean isFriend(Player player) {
+    public boolean isFriend(PlayerEntity player) {
         if (player == null || !protectFriends()) return false;
         rebuildCache();
         return cachedNames.contains(player.getName().getString().toLowerCase(Locale.ROOT));

@@ -1,15 +1,14 @@
 package io.arson.client.render;
 
 import com.arson.client.render.RenderColor;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Player;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.player.PlayerEntity;
 
 /** Discovers nearby entities through a shared per-world-tick snapshot. */
 public final class EntityScanner {
@@ -20,8 +19,8 @@ public final class EntityScanner {
     private static Object snapshotLevel;
     private static long snapshotTick = Long.MIN_VALUE;
 
-    public List<EntityTarget> scan(Minecraft client, EntityScanConfig module) {
-        if (client.level == null || client.player == null || !module.enabled()) {
+    public List<EntityTarget> scan(MinecraftClient client, EntityScanConfig module) {
+        if (client.world == null || client.player == null || !module.enabled()) {
             return List.of();
         }
 
@@ -55,18 +54,18 @@ public final class EntityScanner {
         return List.copyOf(result);
     }
 
-    private static void refreshSnapshot(Minecraft client) {
-        long gameTime = client.level.getGameTime();
-        if (snapshotLevel == client.level && snapshotTick == gameTime) return;
+    private static void refreshSnapshot(MinecraftClient client) {
+        long gameTime = client.world.getTime();
+        if (snapshotLevel == client.world && snapshotTick == gameTime) return;
 
         List<RawEntityTarget> result = new ArrayList<>();
-        for (Entity entity : client.level.entitiesForRendering()) {
+        for (Entity entity : client.world.getEntities()) {
             if (entity == client.player || entity.isRemoved()) continue;
 
             EntityType type;
-            if (entity instanceof Player) type = EntityType.PLAYER;
-            else if (entity instanceof Animal) type = EntityType.ANIMAL;
-            else if (entity instanceof Mob) type = EntityType.MOB;
+            if (entity instanceof PlayerEntity) type = EntityType.PLAYER;
+            else if (entity instanceof AnimalEntity) type = EntityType.ANIMAL;
+            else if (entity instanceof MobEntity) type = EntityType.MOB;
             else if (entity instanceof ItemEntity) type = EntityType.ITEM;
             else continue;
 
@@ -77,11 +76,11 @@ public final class EntityScanner {
             if (distanceSq > SNAPSHOT_RANGE_SQUARED) continue;
 
             var box = entity.getBoundingBox();
-            float health = entity instanceof net.minecraft.world.entity.LivingEntity living
+            float health = entity instanceof net.minecraft.entity.LivingEntity living
                     ? living.getHealth() : 0.0f;
-            float maxHealth = entity instanceof net.minecraft.world.entity.LivingEntity living
+            float maxHealth = entity instanceof net.minecraft.entity.LivingEntity living
                     ? living.getMaxHealth() : 0.0f;
-            int itemCount = entity instanceof ItemEntity item ? item.getItem().getCount() : 0;
+            int itemCount = entity instanceof ItemEntity item ? item.getStack().getCount() : 0;
 
             result.add(new RawEntityTarget(
                     type,
@@ -92,7 +91,7 @@ public final class EntityScanner {
         }
 
         snapshot = List.copyOf(result);
-        snapshotLevel = client.level;
+        snapshotLevel = client.world;
         snapshotTick = gameTime;
     }
 

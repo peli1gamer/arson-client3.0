@@ -3,7 +3,7 @@ package io.arson.client;
 import com.arson.client.render.StorageOverlay;
 import com.arson.client.render.StorageRenderProfile;
 import io.arson.client.command.ArsonCommand;
-import io.arson.client.config.ConfigManager;
+import io.arson.client.config.ArsonConfigSystem;
 import io.arson.client.context.FeatureContext;
 import io.arson.client.module.AimAssistModule;
 import io.arson.client.module.BlockESPModule;
@@ -35,16 +35,19 @@ import io.arson.client.render.StorageRenderStage;
 import io.arson.client.render.StorageScanner;
 import io.arson.client.render.WorldRenderBridge;
 import io.arson.client.ui.ArsonScreen;
+import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.events.world.TickEvent;
+import meteordevelopment.meteorclient.systems.Systems;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +56,9 @@ public final class ArsonClient implements ClientModInitializer {
     public static final String MOD_ID = "arson";
     private static ArsonClient instance;
     private ModuleManager moduleManager;
-    private KeyMapping openMenuKey;
+    private KeyBinding openMenuKey;
     private WorldRenderBridge worldRenderBridge;
+    private ChunkFinderScanner chunkFinderScanner;
     private FeatureContext featureContext;
     private FeatureContextAdapter contextAdapter;
     private final Map<String, Boolean> moduleKeyStates = new HashMap<>();
@@ -63,16 +67,17 @@ public final class ArsonClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         instance = this;
-        moduleManager = new ModuleManager();
-        moduleManager.registerDefaults();
-        KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
-        openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.arson.open_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
+        MinecraftClient client = MinecraftClient.getInstance();
+        MeteorClient.initialize(client);
+        moduleManager = Systems.add(new ModuleManager());
+        Systems.add(new ArsonConfigSystem(client, moduleManager));
+        KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
+        openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arson.open_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         ArsonCommand.register();
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "array_list"), ArrayListRenderer::render);
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "combat_info"), CombatInfoRenderer::render);
+        HudElementRegistry.addLast(Identifier.of(MOD_ID, "hud"), HudRenderer::render);
+        HudElementRegistry.addLast(Identifier.of(MOD_ID, "array_list"), ArrayListRenderer::render);
+        HudElementRegistry.addLast(Identifier.of(MOD_ID, "combat_info"), CombatInfoRenderer::render);
 
-        Minecraft client = Minecraft.getInstance();
         featureContext = new FeatureContext();
         contextAdapter = new FabricFeatureContextAdapter(client);
         contextAdapter.initialize(featureContext);
@@ -86,37 +91,40 @@ public final class ArsonClient implements ClientModInitializer {
         worldRenderBridge.register(new EntityInfoStage(client, entityScanner, (EntityInfoModule) moduleManager.get("entity-info")));
         worldRenderBridge.register(new EntityTracerStage(client, entityScanner, (EntityTracerModule) moduleManager.get("entity-tracers")));
         worldRenderBridge.register(new BlockRenderStage(client, new BlockScanner(), (BlockESPModule) moduleManager.get("block-esp")));
-        worldRenderBridge.register(new ChunkFinderRenderStage(client, new ChunkFinderScanner(), (ChunkFinderModule) moduleManager.get("chunk-finder")));
+        chunkFinderScanner = new ChunkFinderScanner(moduleManager::chunkScanBudgetNanos);
+        worldRenderBridge.register(new ChunkFinderRenderStage(client, chunkFinderScanner, (ChunkFinderModule) moduleManager.get("chunk-finder")));
         worldRenderBridge.register(new AimAssistRenderStage(client, (AimAssistModule) moduleManager.get("aim-assist")));
         worldRenderBridge.attach();
 
+        ClientTickEvents.START_CLIENT_TICK.register(clientTick ->
+            MeteorClient.EVENT_BUS.post(TickEvent.Pre.get()));
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
             contextAdapter.tick(featureContext);
-            while (openMenuKey.consumeClick()) {
-                Screen current = clientTick.screen;
+            while (openMenuKey.wasPressed()) {
+                Screen current = clientTick.currentScreen;
                 clientTick.setScreen(current instanceof ArsonScreen ? null : new ArsonScreen(current));
                 NotificationCenter.push("Arson", current instanceof ArsonScreen ? "GUI closed" : "GUI opened");
             }
             processModuleKeybinds(clientTick);
             moduleManager.tick(clientTick);
             runRuntimeSmoke(clientTick);
+            MeteorClient.EVENT_BUS.post(TickEvent.Post.get());
         });
         ClientTickEvents.END_CLIENT_TICK.register(clientTick -> {
-            if (clientTick.player != null && clientTick.level != null && clientTick.level.getGameTime() % 200 == 0) saveConfig();
+            if (clientTick.player != null && clientTick.world != null && clientTick.world.getTime() % 200 == 0) saveConfig();
         });
-        ConfigManager.load(client, moduleManager);
-        if (client.player != null) client.player.displayClientMessage(Component.literal("Arson V3 initialized"), true);
+        if (client.player != null) client.player.sendMessage(Text.literal("Arson V3 initialized"), true);
     }
 
-    public void saveConfig() { ConfigManager.save(Minecraft.getInstance(), moduleManager); }
+    public void saveConfig() { Systems.save(); }
 
-    private void runRuntimeSmoke(Minecraft client) {
+    private void runRuntimeSmoke(MinecraftClient client) {
         int limit = Integer.getInteger("arson.runtimeSmokeTicks", 0);
         if (limit <= 0) return;
         runtimeSmokeTick++;
-        if (runtimeSmokeTick == 20) client.setScreen(new ArsonScreen(client.screen));
+        if (runtimeSmokeTick == 20) client.setScreen(new ArsonScreen(client.currentScreen));
         if (runtimeSmokeTick == 50) client.setScreen(null);
-        if (runtimeSmokeTick >= limit) client.stop();
+        if (runtimeSmokeTick >= limit) client.scheduleStop();
     }
 
     static boolean consumeModuleKeyPress(Map<String, Boolean> keyStates, Module module, boolean down) {
@@ -126,20 +134,37 @@ public final class ArsonClient implements ClientModInitializer {
         return down && !wasDown;
     }
 
-    private void processModuleKeybinds(Minecraft client) {
-        if (client.getWindow() == null || client.screen != null) return;
-        long window = client.getWindow().handle();
+    private void processModuleKeybinds(MinecraftClient client) {
+        if (client.getWindow() == null) return;
+        long window = client.getWindow().getHandle();
+        boolean screenOpen = client.currentScreen != null;
         for (Module module : moduleManager.all()) {
-            int keyCode = module.keyCode();
-            if (keyCode <= 0) continue;
-            boolean down = GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
-            if (consumeModuleKeyPress(moduleKeyStates, module, down)) {
-                module.toggle();
-                NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
+            String id = module.id();
+            if (!module.hasKeybind()) {
+                moduleKeyStates.remove(id);
+                continue;
             }
+
+            boolean wasDown = moduleKeyStates.getOrDefault(id, false);
+            boolean down = module.keybind().isPressed(window);
+            moduleKeyStates.put(id, down);
+
+            // Always track physical state while a GUI is open so closing it cannot
+            // turn a held key into a synthetic press or release event.
+            if (screenOpen) continue;
+
+            boolean triggered = module.toggleOnBindRelease ? wasDown && !down : down && !wasDown;
+            if (!triggered) continue;
+
+            module.toggle();
+            if (module.chatFeedback && client.player != null) {
+                client.player.sendMessage(Text.literal(module.name() + (module.enabled() ? " enabled" : " disabled")), false);
+            }
+            NotificationCenter.push(module.name(), module.enabled() ? "Enabled" : "Disabled");
         }
     }
     public ModuleManager modules() { return moduleManager; }
     public WorldRenderBridge worldRenderBridge() { return worldRenderBridge; }
+    public ChunkFinderScanner chunkFinderScanner() { return chunkFinderScanner; }
     public FeatureContext featureContext() { return featureContext; }
 }

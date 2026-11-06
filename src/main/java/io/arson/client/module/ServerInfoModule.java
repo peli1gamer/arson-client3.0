@@ -1,7 +1,7 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ServerInfo;
 
 /** Tracks connection metadata for the HUD and addon API without changing networking state. */
 public final class ServerInfoModule extends Module {
@@ -15,8 +15,8 @@ public final class ServerInfoModule extends Module {
                 "Tracks the current server name/address and connection type for HUD integrations.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        ServerData server = client.getCurrentServer();
+    @Override protected void onTick(MinecraftClient client) {
+        ServerInfo server = client.getCurrentServerEntry();
         if (server == null) {
             name = "Singleplayer";
             address = "";
@@ -25,9 +25,9 @@ public final class ServerInfoModule extends Module {
             return;
         }
         name = server.name == null || server.name.isBlank() ? "Server" : server.name;
-        address = server.ip == null ? "" : server.ip;
+        address = server.address == null ? "" : server.address;
         multiplayer = true;
-        lan = server.isLan();
+        lan = server.isLocal();
     }
 
     public String serverName() { return name; }

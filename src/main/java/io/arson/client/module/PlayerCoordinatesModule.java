@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Exposes the local player's block coordinates for HUD and addon integrations. */
 public final class PlayerCoordinatesModule extends Module {
@@ -13,11 +13,11 @@ public final class PlayerCoordinatesModule extends Module {
                 "Tracks the local player's current block coordinates without changing movement or world state.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) return;
-        x = client.player.blockPosition().getX();
-        y = client.player.blockPosition().getY();
-        z = client.player.blockPosition().getZ();
+        x = client.player.getBlockPos().getX();
+        y = client.player.getBlockPos().getY();
+        z = client.player.getBlockPos().getZ();
     }
 
     public int x() { return x; }

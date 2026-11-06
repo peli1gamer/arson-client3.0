@@ -5,21 +5,20 @@ import com.arson.client.render.RenderBoxRenderer;
 import com.arson.client.render.RenderStyle;
 import io.arson.client.module.BlockESPModule;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
-import net.minecraft.client.Minecraft;
-
+import net.minecraft.client.MinecraftClient;
 import java.util.ArrayList;
 import java.util.List;
 
 /** World-render adapter for cached Ore ESP targets. */
 public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStage {
-    private final Minecraft client;
+    private final MinecraftClient client;
     private final BlockScanner scanner;
     private final BlockESPModule module;
     private List<BlockTarget> cachedTargets = List.of();
     private long lastScanTick = Long.MIN_VALUE;
     private int lastVisibleCount;
 
-    public BlockRenderStage(Minecraft client, BlockScanner scanner, BlockESPModule module) {
+    public BlockRenderStage(MinecraftClient client, BlockScanner scanner, BlockESPModule module) {
         this.client = client;
         this.scanner = scanner;
         this.module = module;
@@ -27,12 +26,14 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
 
     @Override
     public void render(WorldRenderContext context) {
-        if (!module.enabled() || client.level == null || client.player == null) {
+        if (!module.enabled() || client.world == null || client.player == null) {
+            cachedTargets = List.of();
+            lastScanTick = Long.MIN_VALUE;
             lastVisibleCount = 0;
             return;
         }
 
-        long gameTime = client.level.getGameTime();
+        long gameTime = client.world.getTime();
         if (gameTime - lastScanTick >= module.scanInterval() || gameTime < lastScanTick) {
             cachedTargets = scanner.scan(client, module);
             lastScanTick = gameTime;
@@ -57,7 +58,7 @@ public final class BlockRenderStage implements WorldRenderBridge.WorldRenderStag
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (distance > range) continue;
 
-            float fade = distanceFade(distance, range);
+            float fade = module.distanceFade() ? distanceFade(distance, range) : 1.0f;
             if (fade <= 0.0f) continue;
             RenderStyle style = fadeStyle(target.style(), fade);
             boxes.add(new RenderBox(target.minX(), target.minY(), target.minZ(),

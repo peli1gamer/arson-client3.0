@@ -2,13 +2,6 @@ package io.arson.client.render;
 
 import io.arson.client.module.ChunkFinderModule;
 import io.arson.client.notification.NotificationCenter;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,6 +10,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
+import java.util.function.LongSupplier;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ShulkerBoxBlock;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.chunk.WorldChunk;
 
 /** Incremental, client-thread-only chunk analysis. Never requests or force-loads chunks. */
 public final class ChunkFinderScanner {
@@ -32,22 +33,39 @@ public final class ChunkFinderScanner {
     private int centerChunkZ = Integer.MIN_VALUE;
     private int lastRadius = -1;
     private int lastConfigHash;
+    private final LongSupplier budgetLimitNanos;
+    private final ChunkScanBudget timeBudget;
+    private long lastScanNanos;
+    private int lastProcessedChunks;
 
-    public List<ChunkResult> scan(Minecraft client, ChunkFinderModule module) {
-        if (client.level == null || client.player == null || !module.enabled()) {
+    public ChunkFinderScanner() {
+        this(() -> Long.MAX_VALUE);
+    }
+
+    public ChunkFinderScanner(LongSupplier budgetLimitNanos) {
+        this(budgetLimitNanos, System::nanoTime);
+    }
+
+    ChunkFinderScanner(LongSupplier budgetLimitNanos, LongSupplier clock) {
+        this.budgetLimitNanos = Objects.requireNonNull(budgetLimitNanos, "budgetLimitNanos");
+        this.timeBudget = new ChunkScanBudget(Objects.requireNonNull(clock, "clock"));
+    }
+
+    public List<ChunkResult> scan(MinecraftClient client, ChunkFinderModule module) {
+        if (client.world == null || client.player == null || !module.enabled()) {
             clear();
             return List.of();
         }
 
-        long now = client.level.getGameTime();
-        int cx = client.player.blockPosition().getX() >> 4;
-        int cz = client.player.blockPosition().getZ() >> 4;
+        long now = client.world.getTime();
+        int cx = client.player.getBlockPos().getX() >> 4;
+        int cz = client.player.getBlockPos().getZ() >> 4;
         int radius = module.radiusChunks();
         int configHash = configHash(module);
 
-        if (levelIdentity != client.level) {
+        if (levelIdentity != client.world) {
             clear();
-            levelIdentity = client.level;
+            levelIdentity = client.world;
         }
         if (cx != centerChunkX || cz != centerChunkZ || radius != lastRadius || configHash != lastConfigHash) {
             centerChunkX = cx;
@@ -68,17 +86,21 @@ public final class ChunkFinderScanner {
         if (now != lastStepTick && (lastStepTick == Long.MIN_VALUE || now - lastStepTick >= module.scanIntervalTicks())) {
             lastStepTick = now;
             int budget = module.chunksPerTick();
+            timeBudget.reset(Math.max(0L, budgetLimitNanos.getAsLong()));
+            int processed = 0;
             while (budget-- > 0 && !pending.isEmpty()) {
+                if (!timeBudget.canProcess(processed)) break;
                 long key = pending.removeFirst();
+                processed++;
                 queued.remove(key);
                 int chunkX = (int) (key >> 32);
                 int chunkZ = (int) key;
-                if (!client.level.hasChunk(chunkX, chunkZ)) {
+                if (!client.world.isChunkLoaded(chunkX, chunkZ)) {
                     results.remove(key);
                     notified.remove(key);
                     continue;
                 }
-                LevelChunk chunk = client.level.getChunkSource().getChunkNow(chunkX, chunkZ);
+                WorldChunk chunk = client.world.getChunkManager().getWorldChunk(chunkX, chunkZ);
                 if (chunk == null) {
                     results.remove(key);
                     notified.remove(key);
@@ -86,6 +108,8 @@ public final class ChunkFinderScanner {
                 }
                 analyse(client, chunk, module);
             }
+            lastProcessedChunks = processed;
+            lastScanNanos = timeBudget.usedNanos();
             if (pending.isEmpty()) lastCycleTick = now;
         }
 
@@ -94,8 +118,8 @@ public final class ChunkFinderScanner {
             long key = entry.getKey();
             int chunkX = (int) (key >> 32);
             int chunkZ = (int) key;
-            boolean loaded = client.level.hasChunk(chunkX, chunkZ)
-                    && client.level.getChunkSource().getChunkNow(chunkX, chunkZ) != null;
+            boolean loaded = client.world.isChunkLoaded(chunkX, chunkZ)
+                    && client.world.getChunkManager().getWorldChunk(chunkX, chunkZ) != null;
             if (!loaded) notified.remove(key);
             return !loaded;
         });
@@ -113,7 +137,13 @@ public final class ChunkFinderScanner {
         return List.copyOf(visible);
     }
 
+    public long lastScanNanos() { return lastScanNanos; }
+    public int lastProcessedChunks() { return lastProcessedChunks; }
+    public int pendingCount() { return pending.size(); }
+
     public void clear() {
+        lastScanNanos = 0L;
+        lastProcessedChunks = 0;
         results.clear();
         pending.clear();
         queued.clear();
@@ -126,11 +156,11 @@ public final class ChunkFinderScanner {
         lastConfigHash = 0;
     }
 
-    private void enqueueLoadedChunks(Minecraft client, int centerX, int centerZ, int radius) {
+    private void enqueueLoadedChunks(MinecraftClient client, int centerX, int centerZ, int radius) {
         List<long[]> candidates = new ArrayList<>();
         for (int x = centerX - radius; x <= centerX + radius; x++) {
             for (int z = centerZ - radius; z <= centerZ + radius; z++) {
-                if (!client.level.hasChunk(x, z)) continue;
+                if (!client.world.isChunkLoaded(x, z)) continue;
                 candidates.add(new long[]{x, z, (long) (x - centerX) * (x - centerX) + (long) (z - centerZ) * (z - centerZ)});
             }
         }
@@ -141,21 +171,21 @@ public final class ChunkFinderScanner {
         }
     }
 
-    private void analyse(Minecraft client, LevelChunk chunk, ChunkFinderModule module) {
+    private void analyse(MinecraftClient client, WorldChunk chunk, ChunkFinderModule module) {
         int storage = 0, redstone = 0, obsidian = 0, processedDeepslate = 0;
         int spawners = 0, verticalVeins = 0, concealed = 0;
         long yTotal = 0;
         int ySignals = 0;
-        int minY = client.level.getMinY();
-        int maxY = client.level.getMaxY();
-        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        int minY = client.world.getBottomY();
+        int maxY = client.world.getTopYInclusive();
+        BlockPos.Mutable pos = new BlockPos.Mutable();
 
-        for (int x = chunk.getPos().getMinBlockX(); x < chunk.getPos().getMinBlockX() + 16; x++) {
-            for (int z = chunk.getPos().getMinBlockZ(); z < chunk.getPos().getMinBlockZ() + 16; z++) {
+        for (int x = chunk.getPos().getStartX(); x < chunk.getPos().getStartX() + 16; x++) {
+            for (int z = chunk.getPos().getStartZ(); z < chunk.getPos().getStartZ() + 16; z++) {
                 int currentOreRun = 0;
-                for (int y = minY; y < maxY; y++) {
+                for (int y = minY; y <= maxY; y++) {
                     pos.set(x, y, z);
-                    BlockState state = client.level.getBlockState(pos);
+                    BlockState state = client.world.getBlockState(pos);
                     if (state.isAir()) { currentOreRun = 0; continue; }
 
                     boolean ore = isOre(state);
@@ -169,9 +199,9 @@ public final class ChunkFinderScanner {
 
                     if (module.detectStorage() && isStorage(state)) { storage++; yTotal += y; ySignals++; }
                     if (module.detectRedstone() && isRedstone(state)) { redstone++; yTotal += y; ySignals++; }
-                    if (module.detectObsidian() && (state.is(Blocks.OBSIDIAN) || state.is(Blocks.CRYING_OBSIDIAN))) { obsidian++; yTotal += y; ySignals++; }
+                    if (module.detectObsidian() && (state.isOf(Blocks.OBSIDIAN) || state.isOf(Blocks.CRYING_OBSIDIAN))) { obsidian++; yTotal += y; ySignals++; }
                     if (module.detectDeepslate() && isProcessedDeepslate(state) && y < 64) { processedDeepslate++; yTotal += y; ySignals++; }
-                    if (module.detectSpawners() && state.is(Blocks.SPAWNER)) { spawners++; yTotal += y; ySignals++; }
+                    if (module.detectSpawners() && state.isOf(Blocks.SPAWNER)) { spawners++; yTotal += y; ySignals++; }
                 }
                 if (module.detectVerticalVeins() && currentOreRun >= 3) verticalVeins++;
             }
@@ -202,8 +232,8 @@ public final class ChunkFinderScanner {
             score += Math.min(16, concealed * 2); reasons.add("Concealed ore " + concealed);
         }
 
-        int chunkX = chunk.getPos().getMinBlockX() >> 4;
-        int chunkZ = chunk.getPos().getMinBlockZ() >> 4;
+        int chunkX = chunk.getPos().getStartX() >> 4;
+        int chunkZ = chunk.getPos().getStartZ() >> 4;
         long key = pack(chunkX, chunkZ);
         if (score < module.minimumScore()) {
             results.remove(key);
@@ -221,45 +251,45 @@ public final class ChunkFinderScanner {
     }
 
     private static boolean isStorage(BlockState state) {
-        return state.is(Blocks.CHEST) || state.is(Blocks.TRAPPED_CHEST) || state.is(Blocks.BARREL)
-                || state.is(Blocks.HOPPER) || state.is(Blocks.FURNACE) || state.is(Blocks.BLAST_FURNACE)
-                || state.is(Blocks.SMOKER) || state.is(Blocks.DISPENSER) || state.is(Blocks.DROPPER)
+        return state.isOf(Blocks.CHEST) || state.isOf(Blocks.TRAPPED_CHEST) || state.isOf(Blocks.BARREL)
+                || state.isOf(Blocks.HOPPER) || state.isOf(Blocks.FURNACE) || state.isOf(Blocks.BLAST_FURNACE)
+                || state.isOf(Blocks.SMOKER) || state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER)
                 || state.getBlock() instanceof ShulkerBoxBlock;
     }
 
     private static boolean isRedstone(BlockState state) {
-        return state.is(Blocks.PISTON) || state.is(Blocks.STICKY_PISTON) || state.is(Blocks.PISTON_HEAD)
-                || state.is(Blocks.OBSERVER) || state.is(Blocks.REPEATER) || state.is(Blocks.COMPARATOR)
-                || state.is(Blocks.REDSTONE_WIRE) || state.is(Blocks.REDSTONE_TORCH)
-                || state.is(Blocks.HOPPER) || state.is(Blocks.DISPENSER) || state.is(Blocks.DROPPER);
+        return state.isOf(Blocks.PISTON) || state.isOf(Blocks.STICKY_PISTON) || state.isOf(Blocks.PISTON_HEAD)
+                || state.isOf(Blocks.OBSERVER) || state.isOf(Blocks.REPEATER) || state.isOf(Blocks.COMPARATOR)
+                || state.isOf(Blocks.REDSTONE_WIRE) || state.isOf(Blocks.REDSTONE_TORCH)
+                || state.isOf(Blocks.HOPPER) || state.isOf(Blocks.DISPENSER) || state.isOf(Blocks.DROPPER);
     }
 
     private static boolean isProcessedDeepslate(BlockState state) {
-        return state.is(Blocks.COBBLED_DEEPSLATE) || state.is(Blocks.POLISHED_DEEPSLATE)
-                || state.is(Blocks.DEEPSLATE_BRICKS) || state.is(Blocks.DEEPSLATE_TILES)
-                || state.is(Blocks.CHISELED_DEEPSLATE);
+        return state.isOf(Blocks.COBBLED_DEEPSLATE) || state.isOf(Blocks.POLISHED_DEEPSLATE)
+                || state.isOf(Blocks.DEEPSLATE_BRICKS) || state.isOf(Blocks.DEEPSLATE_TILES)
+                || state.isOf(Blocks.CHISELED_DEEPSLATE);
     }
 
     private static boolean isOre(BlockState state) {
-        return state.is(Blocks.DIAMOND_ORE) || state.is(Blocks.DEEPSLATE_DIAMOND_ORE)
-                || state.is(Blocks.EMERALD_ORE) || state.is(Blocks.DEEPSLATE_EMERALD_ORE)
-                || state.is(Blocks.GOLD_ORE) || state.is(Blocks.DEEPSLATE_GOLD_ORE)
-                || state.is(Blocks.IRON_ORE) || state.is(Blocks.DEEPSLATE_IRON_ORE)
-                || state.is(Blocks.ANCIENT_DEBRIS);
+        return state.isOf(Blocks.DIAMOND_ORE) || state.isOf(Blocks.DEEPSLATE_DIAMOND_ORE)
+                || state.isOf(Blocks.EMERALD_ORE) || state.isOf(Blocks.DEEPSLATE_EMERALD_ORE)
+                || state.isOf(Blocks.GOLD_ORE) || state.isOf(Blocks.DEEPSLATE_GOLD_ORE)
+                || state.isOf(Blocks.IRON_ORE) || state.isOf(Blocks.DEEPSLATE_IRON_ORE)
+                || state.isOf(Blocks.ANCIENT_DEBRIS);
     }
 
-    private static boolean isConcealedOre(Minecraft client, BlockPos pos) {
+    private static boolean isConcealedOre(MinecraftClient client, BlockPos pos) {
         int solid = 0;
-        for (var direction : net.minecraft.core.Direction.values()) {
-            BlockPos neighbour = pos.relative(direction);
-            if (neighbour.getY() < client.level.getMinY() || neighbour.getY() >= client.level.getMaxY()) {
+        for (var direction : net.minecraft.util.math.Direction.values()) {
+            BlockPos neighbour = pos.offset(direction);
+            if (neighbour.getY() < client.world.getBottomY() || neighbour.getY() > client.world.getTopYInclusive()) {
                 solid++;
                 continue;
             }
             // An unloaded adjacent chunk is unknown, not air. Treat the ore as unclassified
             // rather than awarding a concealed-ore signal from an artificial chunk boundary.
-            if (!client.level.hasChunk(neighbour.getX() >> 4, neighbour.getZ() >> 4)) return false;
-            if (!client.level.getBlockState(neighbour).isAir()) solid++;
+            if (!client.world.isChunkLoaded(neighbour.getX() >> 4, neighbour.getZ() >> 4)) return false;
+            if (!client.world.getBlockState(neighbour).isAir()) solid++;
         }
         return solid >= 5;
     }

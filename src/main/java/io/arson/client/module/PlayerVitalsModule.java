@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live local player vitals for HUD and addon presentation. */
 public final class PlayerVitalsModule extends Module {
@@ -23,7 +23,7 @@ public final class PlayerVitalsModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
+    protected void onTick(MinecraftClient client) {
         if (client.player == null) {
             health = 0;
             maxHealth = 0;
@@ -42,16 +42,16 @@ public final class PlayerVitalsModule extends Module {
         var player = client.player;
         health = player.getHealth();
         maxHealth = player.getMaxHealth();
-        hunger = player.getFoodData().getFoodLevel();
-        saturation = player.getFoodData().getSaturationLevel();
-        armor = player.getArmorValue();
-        air = player.getAirSupply();
-        maxAir = player.getMaxAirSupply();
+        hunger = player.getHungerManager().getFoodLevel();
+        saturation = player.getHungerManager().getSaturationLevel();
+        armor = player.getArmor();
+        air = player.getAir();
+        maxAir = player.getMaxAir();
         level = player.experienceLevel;
         experienceProgress = player.experienceProgress;
         totalExperience = player.totalExperience;
         sprinting = player.isSprinting();
-        sneaking = player.isCrouching();
+        sneaking = player.isInSneakingPose();
     }
 
     public float health() { return health; }

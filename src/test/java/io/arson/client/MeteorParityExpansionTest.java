@@ -3,6 +3,13 @@ package io.arson.client;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.module.HudLayoutModule;
+import io.arson.client.module.HotkeysModule;
+import io.arson.client.module.ClientInfoModule;
+import io.arson.client.module.WorldInfoModule;
+import java.time.LocalTime;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
+import io.arson.client.module.PerformanceModule;
+import meteordevelopment.meteorclient.systems.Systems;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,6 +24,35 @@ class MeteorParityExpansionTest {
         assertTrue(manager.categoryCount(Module.Category.WORLD) >= 3);
         assertTrue(manager.get("player-coordinates").description().length() > 10);
         assertTrue(manager.get("world-clock").description().length() > 10);
+    }
+
+    @Test void worldInfoHasIndependentLocalClockFormatting() {
+        WorldInfoModule worldInfo = new WorldInfoModule();
+
+        assertTrue(worldInfo.showLocalClock());
+        assertEquals("09:07", WorldInfoModule.formatLocalClock(LocalTime.of(9, 7)));
+        assertEquals("18:42", WorldInfoModule.formatLocalClock(LocalTime.of(18, 42)));
+    }
+
+    @Test void clientInfoModuleProducesRealVersionMetadata() {
+        ClientInfoModule clientInfo = new ClientInfoModule();
+
+        assertTrue(clientInfo.showVersion());
+        assertTrue(clientInfo.formatted().startsWith("Arson "));
+        assertTrue(clientInfo.formatted().contains("Minecraft "));
+    }
+
+    @Test void hotkeysModuleListsBoundModulesInStableOrder() {
+        ModuleManager manager = new ModuleManager();
+        manager.registerDefaults();
+        HotkeysModule hotkeys = (HotkeysModule) manager.get("hotkeys");
+        manager.get("hud").setKeybind(Keybind.fromKey(72));
+        manager.get("fps").setKeybind(Keybind.fromKey(70));
+        manager.get("performance").setKeybind(Keybind.fromKey(80));
+
+        assertEquals(java.util.List.of("FPS", "HUD", "Performance"),
+                hotkeys.boundModules(manager.all()).stream().map(Module::name).toList());
+        assertEquals(3, hotkeys.boundModuleCount(manager.all()));
     }
 
     @Test void favoritesSortAheadOfOrdinaryModules() {
@@ -37,5 +73,45 @@ class MeteorParityExpansionTest {
         assertEquals(900, at1000[0], 0.001);
         assertEquals(1100, at1200[0], 0.001);
         assertEquals(12, at1200[1], 0.001);
+    }
+
+    @Test void performanceModuleReportsRealChunkScanMetrics() {
+        PerformanceModule performance = new PerformanceModule();
+
+        assertEquals(1_000_000L, performance.scanBudgetNanos());
+        assertTrue(performance.showStats());
+        assertEquals("Chunk scan 1.25 ms · 3 processed · 7 queued",
+                performance.formattedStats(1_250_000L, 3, 7));
+        assertEquals("Chunk scan 0.00 ms · 0 processed · 0 queued",
+                performance.formattedStats(-1L, -3, -7));
+    }
+
+    @Test void failedSystemInitializationRollsBackRegistryEntry() {
+        assertThrows(IllegalStateException.class, () -> Systems.add(new FailingInitSystem()));
+        assertNull(Systems.get(FailingInitSystem.class));
+    }
+
+    @Test void duplicateSystemRegistrationIsRejectedWithoutReplacingOriginal() {
+        DuplicateSystem original = Systems.add(new DuplicateSystem());
+
+        assertThrows(IllegalArgumentException.class, () -> Systems.add(new DuplicateSystem()));
+        assertSame(original, Systems.get(DuplicateSystem.class));
+    }
+
+    private static final class FailingInitSystem extends meteordevelopment.meteorclient.systems.System<FailingInitSystem> {
+        private FailingInitSystem() {
+            super("test-failing-init");
+        }
+
+        @Override
+        public void init() {
+            throw new IllegalStateException("expected test failure");
+        }
+    }
+
+    private static final class DuplicateSystem extends meteordevelopment.meteorclient.systems.System<DuplicateSystem> {
+        private DuplicateSystem() {
+            super("test-duplicate-registration");
+        }
     }
 }

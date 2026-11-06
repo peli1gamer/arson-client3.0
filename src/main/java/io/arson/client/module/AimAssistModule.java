@@ -1,21 +1,20 @@
 package io.arson.client.module;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.StringSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
-
 import java.util.Comparator;
 import java.util.Random;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 
 /** Crosshair-focused aim assistance with configurable target highlighting. */
 public final class AimAssistModule extends Module {
@@ -55,44 +54,49 @@ public final class AimAssistModule extends Module {
 
     @Override protected void onDisable() { target = null; }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.player == null || client.level == null || !isActivated(client)) { target = null; return; }
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.player == null || client.world == null || client.currentScreen != null || !isActivated(client)) { target = null; return; }
         LivingEntity selected = chooseTarget(client);
         if (selected == null) { target = null; return; }
         target = selected;
         rotateTowards(client, aimPoint(client, target));
     }
 
-    private boolean isActivated(Minecraft client) {
+    private boolean isActivated(MinecraftClient client) {
         String mode = activation.get().trim().toLowerCase();
         return switch (mode) {
-            case "hold right click", "right click" -> client.options.keyUse.isDown();
-            case "hold left click", "left click" -> client.options.keyAttack.isDown();
-            case "hold key", "key" -> keyCode() > 0 && InputConstants.isKeyDown(client.getWindow(), keyCode());
+            case "hold right click", "right click" -> client.options.useKey.isPressed();
+            case "hold left click", "left click" -> client.options.attackKey.isPressed();
+            case "hold key", "key" -> keyCode() > 0 && InputUtil.isKeyPressed(client.getWindow(), keyCode());
             default -> true;
         };
     }
 
-    private LivingEntity chooseTarget(Minecraft client) {
-        AABB search = client.player.getBoundingBox().inflate(range.get());
+    private LivingEntity chooseTarget(MinecraftClient client) {
+        Box search = client.player.getBoundingBox().expand(range.get());
         LivingEntity locked = target;
-        if (sticky.enabled() && locked != null && isValid(client, locked) && inCrosshairGate(client, locked)) return locked;
-        return client.level.getEntitiesOfClass(LivingEntity.class, search, entity -> isValid(client, entity) && inCrosshairGate(client, entity))
+        boolean keepLocked = sticky.enabled() && locked != null && isValid(client, locked) && inCrosshairGate(client, locked);
+        LivingEntity best = client.world.getEntitiesByClass(LivingEntity.class, search, entity -> isValid(client, entity) && inCrosshairGate(client, entity))
                 .stream().min(Comparator.comparingDouble((LivingEntity entity) -> crosshairDistance(client, entity))
-                .thenComparingDouble(entity -> client.player.distanceToSqr(entity))).orElse(null);
+                .thenComparingDouble(entity -> client.player.squaredDistanceTo(entity))).orElse(null);
+        if (!keepLocked) return best;
+        if (locked == best || best == null) return locked;
+        double lockedScore = crosshairDistance(client, locked);
+        double bestScore = crosshairDistance(client, best);
+        return lockedScore <= bestScore * (1.0 + targetLock.get()) ? locked : best;
     }
 
-    private boolean isValid(Minecraft client, LivingEntity entity) {
+    private boolean isValid(MinecraftClient client, LivingEntity entity) {
         if (entity == null || entity == client.player || !entity.isAlive() || entity.isRemoved()) return false;
-        if (client.player.distanceToSqr(entity) > range.get() * range.get()) return false;
-        if (visibleOnly.enabled() && !client.player.hasLineOfSight(entity)) return false;
-        if (entity instanceof Player player) {
+        if (client.player.squaredDistanceTo(entity) > range.get() * range.get()) return false;
+        if (visibleOnly.enabled() && !client.player.canSee(entity)) return false;
+        if (entity instanceof PlayerEntity player) {
             FriendsModule friends = friendsModule();
             if (friends != null && friends.isFriend(player)) return false;
             return players.enabled();
         }
-        if (entity instanceof Monster) return monsters.enabled();
-        if (entity instanceof Animal) return animals.enabled();
+        if (entity instanceof HostileEntity) return monsters.enabled();
+        if (entity instanceof AnimalEntity) return animals.enabled();
         return false;
     }
 
@@ -102,73 +106,82 @@ public final class AimAssistModule extends Module {
         return module instanceof FriendsModule friends ? friends : null;
     }
 
-    private boolean inCrosshairGate(Minecraft client, LivingEntity entity) {
-        Vec3 point = aimPoint(client, entity);
+    private boolean inCrosshairGate(MinecraftClient client, LivingEntity entity) {
+        Vec3d point = aimPoint(client, entity);
         double[] angles = anglesTo(client, point);
-        double yawPixels = pixelsFromYaw(client, Math.abs(Mth.wrapDegrees(angles[0] - client.player.getYRot())));
-        double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getXRot()));
+        double yawDelta = MathHelper.wrapDegrees(angles[0] - client.player.getYaw());
+        double pitchDelta = angles[1] - client.player.getPitch();
+        double yawRadians = Math.toRadians(yawDelta);
+        double currentPitchRadians = Math.toRadians(client.player.getPitch());
+        double targetPitchRadians = Math.toRadians(angles[1]);
+        double viewDot = Math.cos(currentPitchRadians) * Math.cos(targetPitchRadians) * Math.cos(yawRadians)
+                + Math.sin(currentPitchRadians) * Math.sin(targetPitchRadians);
+        double angularDistance = Math.toDegrees(Math.acos(MathHelper.clamp(viewDot, -1.0, 1.0)));
+        if (angularDistance > fov.get() * 0.5) return false;
+        double yawPixels = pixelsFromYaw(client, Math.abs(yawDelta));
+        double pitchPixels = pixelsFromPitch(client, Math.abs(angles[1] - client.player.getPitch()));
         double halfW = crosshairWidth.get() * 0.5;
         double halfH = crosshairHeight.get() * 0.5;
         return yawPixels <= halfW && pitchPixels <= halfH;
     }
 
-    private double crosshairDistance(Minecraft client, LivingEntity entity) {
-        Vec3 point = aimPoint(client, entity);
+    private double crosshairDistance(MinecraftClient client, LivingEntity entity) {
+        Vec3d point = aimPoint(client, entity);
         double[] angles = anglesTo(client, point);
-        double yaw = Mth.wrapDegrees(angles[0] - client.player.getYRot());
-        double pitch = angles[1] - client.player.getXRot();
+        double yaw = MathHelper.wrapDegrees(angles[0] - client.player.getYaw());
+        double pitch = angles[1] - client.player.getPitch();
         return Math.hypot(pixelsFromYaw(client, Math.abs(yaw)), pixelsFromPitch(client, Math.abs(pitch)));
     }
 
-    private Vec3 aimPoint(Minecraft client, LivingEntity entity) {
-        AABB box = entity.getBoundingBox();
+    private Vec3d aimPoint(MinecraftClient client, LivingEntity entity) {
+        Box box = entity.getBoundingBox();
         String mode = aimPoint.get().trim().toLowerCase();
-        if (mode.equals("head")) return new Vec3(box.getCenter().x, box.maxY - 0.12, box.getCenter().z);
-        if (mode.equals("body")) return new Vec3(box.getCenter().x, box.minY + box.getYsize() * 0.55, box.getCenter().z);
-        if (nearestHitboxPoint.enabled()) return closestPointOnBox(client.player.getEyePosition(), box);
+        if (mode.equals("head")) return new Vec3d(box.getCenter().x, box.maxY - 0.12, box.getCenter().z);
+        if (mode.equals("body")) return new Vec3d(box.getCenter().x, box.minY + box.getLengthY() * 0.55, box.getCenter().z);
+        if (nearestHitboxPoint.enabled()) return closestPointOnBox(client.player.getEyePos(), box);
         return box.getCenter();
     }
 
-    private Vec3 closestPointOnBox(Vec3 origin, AABB box) {
-        return new Vec3(Mth.clamp(origin.x, box.minX, box.maxX), Mth.clamp(origin.y, box.minY, box.maxY), Mth.clamp(origin.z, box.minZ, box.maxZ));
+    private Vec3d closestPointOnBox(Vec3d origin, Box box) {
+        return new Vec3d(MathHelper.clamp(origin.x, box.minX, box.maxX), MathHelper.clamp(origin.y, box.minY, box.maxY), MathHelper.clamp(origin.z, box.minZ, box.maxZ));
     }
 
-    private double[] anglesTo(Minecraft client, Vec3 point) {
-        Vec3 eye = client.player.getEyePosition();
+    private double[] anglesTo(MinecraftClient client, Vec3d point) {
+        Vec3d eye = client.player.getEyePos();
         double dx = point.x - eye.x, dy = point.y - eye.y, dz = point.z - eye.z;
         double horizontal = Math.sqrt(dx * dx + dz * dz);
         return new double[]{Math.toDegrees(Math.atan2(dz, dx)) - 90.0, -Math.toDegrees(Math.atan2(dy, horizontal))};
     }
 
-    private void rotateTowards(Minecraft client, Vec3 point) {
+    private void rotateTowards(MinecraftClient client, Vec3d point) {
         double[] desired = anglesTo(client, point);
-        double yawDelta = Mth.wrapDegrees(desired[0] - client.player.getYRot());
-        double pitchDelta = desired[1] - client.player.getXRot();
+        double yawDelta = MathHelper.wrapDegrees(desired[0] - client.player.getYaw());
+        double pitchDelta = desired[1] - client.player.getPitch();
         if (randomize.enabled() && randomNoise.get() > 0) {
             yawDelta += (random.nextDouble() - 0.5) * randomNoise.get() * 2.0;
             pitchDelta += (random.nextDouble() - 0.5) * randomNoise.get() * 2.0;
         }
         if (instant.enabled()) {
-            client.player.setYRot((float)(client.player.getYRot() + yawDelta));
-            client.player.setXRot((float)Mth.clamp(client.player.getXRot() + pitchDelta, -90.0, 90.0));
+            client.player.setYaw((float)(client.player.getYaw() + yawDelta));
+            client.player.setPitch((float)MathHelper.clamp(client.player.getPitch() + pitchDelta, -90.0, 90.0));
             return;
         }
         double limit = Math.min(maxRotation.get(), speed.get());
-        client.player.setYRot(client.player.getYRot() + (float)Mth.clamp(yawDelta, -limit, limit));
-        client.player.setXRot((float)Mth.clamp(client.player.getXRot() + Mth.clamp(pitchDelta, -limit, limit), -90.0, 90.0));
+        client.player.setYaw(client.player.getYaw() + (float)MathHelper.clamp(yawDelta, -limit, limit));
+        client.player.setPitch((float)MathHelper.clamp(client.player.getPitch() + MathHelper.clamp(pitchDelta, -limit, limit), -90.0, 90.0));
     }
 
-    private double pixelsFromYaw(Minecraft client, double degrees) {
-        return degrees / Math.max(0.01, client.options.fov().get()) * Math.max(1, client.getWindow().getGuiScaledWidth());
+    private double pixelsFromYaw(MinecraftClient client, double degrees) {
+        return degrees / Math.max(0.01, client.options.getFov().getValue()) * Math.max(1, client.getWindow().getScaledWidth());
     }
 
-    private double pixelsFromPitch(Minecraft client, double degrees) {
-        return degrees / Math.max(0.01, verticalFov(client)) * Math.max(1, client.getWindow().getGuiScaledHeight());
+    private double pixelsFromPitch(MinecraftClient client, double degrees) {
+        return degrees / Math.max(0.01, verticalFov(client)) * Math.max(1, client.getWindow().getScaledHeight());
     }
 
-    private double verticalFov(Minecraft client) {
-        double horizontal = Math.toRadians(client.options.fov().get());
-        double aspect = (double)client.getWindow().getGuiScaledWidth() / Math.max(1, client.getWindow().getGuiScaledHeight());
+    private double verticalFov(MinecraftClient client) {
+        double horizontal = Math.toRadians(client.options.getFov().getValue());
+        double aspect = (double)client.getWindow().getScaledWidth() / Math.max(1, client.getWindow().getScaledHeight());
         return Math.toDegrees(2.0 * Math.atan(Math.tan(horizontal * 0.5) / Math.max(0.01, aspect)));
     }
 

@@ -1,7 +1,7 @@
 package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Live local experience telemetry for HUD/API consumers. */
 public final class PlayerExperienceInfoModule extends Module {
@@ -15,7 +15,7 @@ public final class PlayerExperienceInfoModule extends Module {
             "Reports live local experience level, progress, and total experience.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) { level = 0; totalExperience = 0; progress = 0.0f; return; }
         level = client.player.experienceLevel;
         totalExperience = client.player.totalExperience;

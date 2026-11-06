@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live camera/render viewpoint state without changing the camera. */
 public final class CameraInfoModule extends Module {
@@ -13,7 +13,7 @@ public final class CameraInfoModule extends Module {
                 "Tracks live camera position, rotation, and perspective for HUD and visual integrations; it never changes camera state.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) {
             x = y = z = 0;
             yaw = pitch = 0;
@@ -24,9 +24,9 @@ public final class CameraInfoModule extends Module {
         x = player.getX();
         y = player.getY();
         z = player.getZ();
-        yaw = player.getYRot();
-        pitch = player.getXRot();
-        perspective = client.options.getCameraType().toString();
+        yaw = player.getYaw();
+        pitch = player.getPitch();
+        perspective = client.options.getPerspective().toString();
     }
 
     public double x() { return x; }

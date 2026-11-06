@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live window and GUI resolution information for render/HUD integrations. */
 public final class RenderResolutionInfoModule extends Module {
@@ -15,17 +15,17 @@ public final class RenderResolutionInfoModule extends Module {
                 "Reports live framebuffer and scaled GUI dimensions plus aspect ratio for HUD layout diagnostics.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.getWindow() == null) {
             framebufferWidth = framebufferHeight = guiWidth = guiHeight = 0;
             aspectRatio = 0;
             return;
         }
         var window = client.getWindow();
-        framebufferWidth = window.getWidth();
-        framebufferHeight = window.getHeight();
-        guiWidth = window.getGuiScaledWidth();
-        guiHeight = window.getGuiScaledHeight();
+        framebufferWidth = window.getFramebufferWidth();
+        framebufferHeight = window.getFramebufferHeight();
+        guiWidth = window.getScaledWidth();
+        guiHeight = window.getScaledHeight();
         aspectRatio = framebufferHeight == 0 ? 0 : framebufferWidth / (double) framebufferHeight;
     }
 

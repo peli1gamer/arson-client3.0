@@ -2,13 +2,12 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.player.Player;
-
 import java.util.Comparator;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.player.PlayerEntity;
 
 /** Shared, non-automating target selection foundation for combat modules. */
 public final class TargetingModule extends Module {
@@ -25,28 +24,28 @@ public final class TargetingModule extends Module {
 
     public double range() { return range.get(); }
 
-    public boolean isValidTarget(LivingEntity entity, Player self) {
+    public boolean isValidTarget(LivingEntity entity, PlayerEntity self) {
         if (entity == null || entity == self) return false;
         if (ignoreDead.enabled() && (!entity.isAlive() || entity.isRemoved())) return false;
         if (ignoreInvisible.enabled() && entity.isInvisible()) return false;
-        if (entity instanceof Player player) {
+        if (entity instanceof PlayerEntity player) {
             FriendsModule friends = friendsModule();
             if (friends != null && friends.isFriend(player)) return false;
             return players.enabled();
         }
-        if (entity instanceof Monster) return monsters.enabled();
-        if (entity instanceof Animal) return animals.enabled();
+        if (entity instanceof HostileEntity) return monsters.enabled();
+        if (entity instanceof AnimalEntity) return animals.enabled();
         return false;
     }
 
     /** Returns the nearest valid living target, or null when none is in range. */
-    public LivingEntity findTarget(Minecraft client) {
-        if (client.level == null || client.player == null) return null;
+    public LivingEntity findTarget(MinecraftClient client) {
+        if (client.world == null || client.player == null) return null;
         double maxDistanceSq = range.get() * range.get();
-        return client.level.getEntitiesOfClass(LivingEntity.class, client.player.getBoundingBox().inflate(range.get()),
-                        entity -> isValidTarget(entity, client.player) && client.player.distanceToSqr(entity) <= maxDistanceSq)
+        return client.world.getEntitiesByClass(LivingEntity.class, client.player.getBoundingBox().expand(range.get()),
+                        entity -> isValidTarget(entity, client.player) && client.player.squaredDistanceTo(entity) <= maxDistanceSq)
                 .stream()
-                .min(Comparator.comparingDouble(client.player::distanceToSqr))
+                .min(Comparator.comparingDouble(client.player::squaredDistanceTo))
                 .orElse(null);
     }
 

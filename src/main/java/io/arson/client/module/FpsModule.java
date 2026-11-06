@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks the client-reported FPS for HUD and addon presentation. */
 public final class FpsModule extends Module {
@@ -12,7 +12,7 @@ public final class FpsModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) { fps = client.getFps(); }
+    protected void onTick(MinecraftClient client) { fps = client.getCurrentFps(); }
 
     public int fps() { return fps; }
     public String formatted() { return "FPS " + fps; }

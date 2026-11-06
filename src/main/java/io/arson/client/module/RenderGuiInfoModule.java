@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Live GUI presentation telemetry for local HUD/render diagnostics. */
 public final class RenderGuiInfoModule extends Module {
@@ -14,20 +14,20 @@ public final class RenderGuiInfoModule extends Module {
                 "Reports local GUI scale, mouse position, and screen state for render diagnostics.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         var window = client.getWindow();
         if (window == null) {
             guiScale = 0;
             mouseX = mouseY = 0;
-            screenOpen = client.screen != null;
+            screenOpen = client.currentScreen != null;
             return;
         }
-        guiScale = (float) window.getGuiScale();
-        int width = window.getGuiScaledWidth();
-        int height = window.getGuiScaledHeight();
-        mouseX = clampMouseCoordinate((int) Math.round(client.mouseHandler.getScaledXPos(window)), width);
-        mouseY = clampMouseCoordinate((int) Math.round(client.mouseHandler.getScaledYPos(window)), height);
-        screenOpen = client.screen != null;
+        guiScale = (float) window.getScaleFactor();
+        int width = window.getScaledWidth();
+        int height = window.getScaledHeight();
+        mouseX = clampMouseCoordinate((int) Math.round(client.mouse.getScaledX(window)), width);
+        mouseY = clampMouseCoordinate((int) Math.round(client.mouse.getScaledY(window)), height);
+        screenOpen = client.currentScreen != null;
     }
 
     static int clampMouseCoordinate(int value, int size) {

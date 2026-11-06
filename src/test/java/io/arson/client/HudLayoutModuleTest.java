@@ -2,11 +2,19 @@ package io.arson.client;
 
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
+import io.arson.client.ui.NoOverlapLayout;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class HudLayoutModuleTest {
+    @Test
+    void pingVisibilityDefaultsOnAsAnIndependentHudOption() {
+        HudModule hud = new HudModule();
+        assertTrue(hud.showPing());
+        assertTrue(hud.showFps());
+    }
+
     @Test
     void topLeftDefaultsPreserveExistingHudPositions() {
         HudLayoutModule layout = new HudLayoutModule();
@@ -60,6 +68,44 @@ class HudLayoutModuleTest {
 
         assertEquals(0.0, layout.offsetX("coordinates"));
         assertEquals(0.0, layout.offsetY("coordinates"));
+    }
+
+    @Test
+    void overlapRepairUsesMeasuredContentBounds() {
+        HudLayoutModule layout = new HudLayoutModule();
+        HudModule hud = new HudModule();
+        for (String element : new String[]{"coordinates", "fps", "world-info"}) hud.setElementVisible(element, false);
+        layout.setOffset("watermark", 6, 6);
+        layout.setOffset("player-info", 6, 6);
+        layout.updateElementSize("watermark", 120, 20);
+        layout.updateElementSize("player-info", 120, 110);
+
+        layout.repairNoOverlap(360, 240, 1.0, 100, 80, null, hud);
+
+        double[] watermark = layout.resolve("watermark", 360, 240, 120, 20);
+        double[] playerInfo = layout.resolve("player-info", 360, 240, 120, 110);
+        NoOverlapLayout.Rect first = new NoOverlapLayout.Rect((int) watermark[0], (int) watermark[1], 120, 20);
+        NoOverlapLayout.Rect second = new NoOverlapLayout.Rect((int) playerInfo[0], (int) playerInfo[1], 120, 110);
+        assertFalse(first.intersects(second));
+    }
+
+    @Test
+    void editorCanReadMeasuredBoundsWithFallbackBeforeFirstRender() {
+        HudLayoutModule layout = new HudLayoutModule();
+
+        assertEquals(new NoOverlapLayout.Size(190, 35), layout.measuredSize("watermark", 190, 35));
+        layout.updateElementSize("player-info", 140, 96);
+        assertEquals(new NoOverlapLayout.Size(140, 96), layout.measuredSize("player-info", 190, 35));
+    }
+
+    @Test
+    void measuredBoundsSignatureChangesWhenRenderedSizeChanges() {
+        HudLayoutModule layout = new HudLayoutModule();
+        int before = layout.boundsSignature();
+
+        assertTrue(layout.updateElementSize("player-info", 140, 96));
+        assertNotEquals(before, layout.boundsSignature());
+        assertFalse(layout.updateElementSize("player-info", 140, 96));
     }
 
     @Test

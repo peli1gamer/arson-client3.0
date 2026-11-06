@@ -1,8 +1,8 @@
 package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.level.LightLayer;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.world.LightType;
 
 /** Live block/sky-light telemetry at the local player's position. */
 public final class WorldLightInfoModule extends Module {
@@ -15,11 +15,11 @@ public final class WorldLightInfoModule extends Module {
             "Reports live block and sky light at the local player position.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null || client.player == null) { blockLight = 0; skyLight = 0; return; }
-        var pos = client.player.blockPosition();
-        blockLight = client.level.getBrightness(LightLayer.BLOCK, pos);
-        skyLight = client.level.getBrightness(LightLayer.SKY, pos);
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null || client.player == null) { blockLight = 0; skyLight = 0; return; }
+        var pos = client.player.getBlockPos();
+        blockLight = client.world.getLightLevel(LightType.BLOCK, pos);
+        skyLight = client.world.getLightLevel(LightType.SKY, pos);
     }
 
     public int blockLight() { return blockLight; }

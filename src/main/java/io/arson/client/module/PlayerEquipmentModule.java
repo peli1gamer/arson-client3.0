@@ -1,8 +1,8 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
 
 /** Tracks the local player's equipped armor and offhand state for HUD/addon presentation. */
 public final class PlayerEquipmentModule extends Module {
@@ -16,7 +16,7 @@ public final class PlayerEquipmentModule extends Module {
                 "Tracks live armor occupancy, armor durability, main-hand item, and off-hand item for HUD presentation.");
     }
 
-    @Override protected void onTick(Minecraft client) {
+    @Override protected void onTick(MinecraftClient client) {
         if (client.player == null) {
             equippedArmor = 0;
             armorDurabilityPercent = 0;
@@ -25,20 +25,20 @@ public final class PlayerEquipmentModule extends Module {
         }
         int equipped = 0, remaining = 0, maximum = 0;
         for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-            ItemStack stack = client.player.getItemBySlot(slot);
+            ItemStack stack = client.player.getEquippedStack(slot);
             if (stack.isEmpty()) continue;
             equipped++;
-            if (stack.isDamageableItem()) {
-                remaining += stack.getMaxDamage() - stack.getDamageValue();
+            if (stack.isDamageable()) {
+                remaining += stack.getMaxDamage() - stack.getDamage();
                 maximum += stack.getMaxDamage();
             }
         }
         equippedArmor = equipped;
         armorDurabilityPercent = maximum == 0 ? 0 : Math.round(remaining * 100.0f / maximum);
-        ItemStack hand = client.player.getMainHandItem();
-        ItemStack off = client.player.getOffhandItem();
-        mainHand = hand.isEmpty() ? "Empty" : hand.getHoverName().getString();
-        offHand = off.isEmpty() ? "Empty" : off.getHoverName().getString();
+        ItemStack hand = client.player.getMainHandStack();
+        ItemStack off = client.player.getOffHandStack();
+        mainHand = hand.isEmpty() ? "Empty" : hand.getName().getString();
+        offHand = off.isEmpty() ? "Empty" : off.getName().getString();
     }
 
     public int equippedArmor() { return equippedArmor; }
