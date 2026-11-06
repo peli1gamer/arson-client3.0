@@ -26,8 +26,8 @@ public final class ConfigManager {
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
     private static final int CONFIG_VERSION = 4;
     private ConfigManager() {}
-    public static void load(Minecraft client, ModuleManager modules) { loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static void save(Minecraft client, ModuleManager modules) { saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    public static boolean load(Minecraft client, ModuleManager modules) { return loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
+    public static boolean save(Minecraft client, ModuleManager modules) { return saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
     public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
@@ -37,7 +37,7 @@ public final class ConfigManager {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
         Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
-        save(client, modules); return true;
+        return save(client, modules);
     }
     public static List<String> listProfiles(Minecraft client) {
         Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
