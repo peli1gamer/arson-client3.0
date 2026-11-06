@@ -3,6 +3,7 @@ package io.arson.client;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
 import io.arson.client.module.HudLayoutModule;
+import io.arson.client.module.PerformanceModule;
 import meteordevelopment.meteorclient.systems.Systems;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +39,17 @@ class MeteorParityExpansionTest {
         assertEquals(900, at1000[0], 0.001);
         assertEquals(1100, at1200[0], 0.001);
         assertEquals(12, at1200[1], 0.001);
+    }
+
+    @Test void performanceModuleReportsRealChunkScanMetrics() {
+        PerformanceModule performance = new PerformanceModule();
+
+        assertEquals(1_000_000L, performance.scanBudgetNanos());
+        assertTrue(performance.showStats());
+        assertEquals("Chunk scan 1.25 ms · 3 processed · 7 queued",
+                performance.formattedStats(1_250_000L, 3, 7));
+        assertEquals("Chunk scan 0.00 ms · 0 processed · 0 queued",
+                performance.formattedStats(-1L, -3, -7));
     }
 
     @Test void failedSystemInitializationRollsBackRegistryEntry() {

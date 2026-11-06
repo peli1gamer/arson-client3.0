@@ -35,6 +35,8 @@ public final class ChunkFinderScanner {
     private int lastConfigHash;
     private final LongSupplier budgetLimitNanos;
     private final ChunkScanBudget timeBudget;
+    private long lastScanNanos;
+    private int lastProcessedChunks;
 
     public ChunkFinderScanner() {
         this(() -> Long.MAX_VALUE);
@@ -106,6 +108,8 @@ public final class ChunkFinderScanner {
                 }
                 analyse(client, chunk, module);
             }
+            lastProcessedChunks = processed;
+            lastScanNanos = timeBudget.usedNanos();
             if (pending.isEmpty()) lastCycleTick = now;
         }
 
@@ -133,7 +137,13 @@ public final class ChunkFinderScanner {
         return List.copyOf(visible);
     }
 
+    public long lastScanNanos() { return lastScanNanos; }
+    public int lastProcessedChunks() { return lastProcessedChunks; }
+    public int pendingCount() { return pending.size(); }
+
     public void clear() {
+        lastScanNanos = 0L;
+        lastProcessedChunks = 0;
         results.clear();
         pending.clear();
         queued.clear();
