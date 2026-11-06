@@ -78,7 +78,7 @@ class SettingModelTest {
     @Test void failedGroupRegistrationDoesNotLeavePartialMembership() {
         SettingGroup group = new SettingGroup("group", "Group", "test");
         group.add(new meteordevelopment.meteorclient.settings.BoolSetting.Builder()
-                .name("Collision").build());
+                .name("collision").build());
 
         BooleanSetting rejected = new BooleanSetting("collision", "Collision", false);
         assertThrows(IllegalArgumentException.class, () -> rejected.group(group));
