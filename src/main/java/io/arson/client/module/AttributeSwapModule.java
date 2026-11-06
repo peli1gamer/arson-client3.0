@@ -65,7 +65,7 @@ public final class AttributeSwapModule extends Module {
         client.player.getInventory().setSelectedSlot(previousSlot); previousSlot = -1; activeSwap = "";
     }
     private int findMaceSlot(Player player) {
-        int explicit = configuredSlot(player, maceSlot, item -> item.is(Items.MACE));
+        int explicit = configuredSlot(player, maceSlot, item -> item.is(Items.MACE) && matchesMaceFilters(item));
         if (explicit >= 0) return explicit;
         for (int i = 0; i < 9; i++) { ItemStack stack = player.getInventory().getItem(i); if (stack.is(Items.MACE) && matchesMaceFilters(stack)) return i; }
         return -1;
