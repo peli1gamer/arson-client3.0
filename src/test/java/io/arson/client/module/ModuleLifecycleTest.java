@@ -32,4 +32,30 @@ class ModuleLifecycleTest {
         @Override protected void onDisable() { disableCount++; }
         boolean enabledWasObserved() { return enabledWasObserved; }
     }
+
+    @Test
+    void failedEnableRollsBackStateAndRunsCleanup() {
+        FailingModule module = new FailingModule();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> module.setEnabled(true));
+
+        assertFalse(module.enabled());
+        assertEquals(1, module.enableCount);
+        assertEquals(1, module.disableCount);
+    }
+
+    private static final class FailingModule extends Module {
+        int enableCount;
+        int disableCount;
+
+        private FailingModule() { super("failing", "Failing", Category.MISC); }
+
+        @Override protected void onEnable() {
+            enableCount++;
+            throw new IllegalStateException("expected test failure");
+        }
+
+        @Override protected void onDisable() { disableCount++; }
+    }
+
 }
