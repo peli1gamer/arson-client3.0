@@ -41,9 +41,13 @@ public final class SettingGroup extends meteordevelopment.meteorclient.settings.
                     throw new IllegalArgumentException("Duplicate setting ID in group " + id + ": " + arsonSetting.id());
                 }
             }
-            arsonSettings.add(arsonSetting);
         }
-        return super.add(setting);
+
+        // Keep the Arson compatibility list in sync with the Meteor registry.
+        // The base class can reject collisions with native Meteor settings.
+        T added = super.add(setting);
+        if (setting instanceof Setting<?> arsonSetting) arsonSettings.add(arsonSetting);
+        return added;
     }
 
     @Override public NbtCompound toTag() {
