@@ -99,6 +99,7 @@ public final class HudRenderer {
             int viewportWidth=client.getWindow().getScaledWidth();
             int viewportHeight=client.getWindow().getScaledHeight();
             int[] arraySize=estimateArrayListSize(client,arrayList);
+            layout.updateElementSize("array-list", arraySize[0], arraySize[1]);
             int arrayX=arrayList==null?6:arrayList.x();
             int arrayY=arrayList==null?6:arrayList.y();
             int signature=layoutSignature(hud,layout,arrayList);
@@ -186,6 +187,7 @@ public final class HudRenderer {
     private static int layoutSignature(HudModule hud,HudLayoutModule layout,ArrayListModule arrayList){
         int hash=Float.hashCode((float)hud.scale());
         hash=31*hash+Boolean.hashCode(layout.clamp());
+        hash=31*hash+layout.boundsSignature();
         for(String element:new String[]{"watermark","coordinates","fps","player-info","world-info"}){
             hash=31*hash+Boolean.hashCode(hud.elementVisible(element));
             hash=31*hash+Double.hashCode(hud.elementScale(element));
@@ -230,7 +232,8 @@ double rawH = Math.max(1, client.getWindow().getScaledHeight() - 12);
 double fitW = maxWidth == 0 ? elementScale : rawW / Math.max(1.0, maxWidth * hud.scale());
 double fitH = rows.length == 0 ? elementScale : rawH / Math.max(1.0, rows.length * line * hud.scale());
 elementScale = Math.min(elementScale, Math.max(0.05, Math.min(fitW, fitH)));
-double x = fallbackX, y = fallbackY;
+        if (layout != null) layout.updateElementSize(element, maxWidth * elementScale, rows.length * line * elementScale);
+        double x = fallbackX, y = fallbackY;
         if (layout != null) { double logicalViewportW = client.getWindow().getScaledWidth() / Math.max(0.001, hud.scale()), logicalViewportH = client.getWindow().getScaledHeight() / Math.max(0.001, hud.scale()); double[] resolved = layout.resolve(element, logicalViewportW, logicalViewportH, maxWidth * elementScale, rows.length * line * elementScale); x = resolved[0]; y = resolved[1]; }
         graphics.getMatrices().pushMatrix(); graphics.getMatrices().translate((float)x, (float)y); graphics.getMatrices().scale((float) elementScale, (float) elementScale); int padding = hud.padding(); String alignment = hud.elementAlignment(element); int left = alignedX(0, maxWidth, alignment);
         if (hud.showBackground() && hud.elementBackground(element)) graphics.fill(left - padding, -padding, left + maxWidth + padding, rows.length * line + padding - 1, hud.elementBackgroundColor());
