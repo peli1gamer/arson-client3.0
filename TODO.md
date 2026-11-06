@@ -11,6 +11,14 @@ This is the active backlog for Arson Client V3. Items are not claims that a bug 
 - [ ] Run the full workflow after each meaningful repair batch.
 - [ ] Update CURRENT_STATE.md after the branch head or CI status changes.
 
+## Confirmed Storage ESP findings (Anubis comparison pending)
+
+These are confirmed by tracing the current Arson source. They are not yet patched; compare the reference JAR before choosing the final behavior.
+
+- [ ] StorageScanner has a hard-coded 20-tick refresh while ContainerESP exposes a configurable 1–20 tick Scan Interval. The user-facing setting does not control the scanner's own cache refresh.
+- [ ] ContainerESP exposes Label Background, Label Padding, and Label Background Color, but StorageRenderStage only draws label text and never reads those three settings.
+- [ ] StorageScanner range-filters targets by their centre relative to the player, while StorageOverlay applies a second range check from the target's minimum corner relative to the camera. This mixes origins and reference points and can drop targets inconsistently near the range boundary.
+
 ## Priority 1 — Finish the reliability audit
 
 - [ ] Review WorldRenderBridge: decide whether each render stage should be isolated so one stage failure cannot skip later stages. Preserve useful error logging and ensure render state is restored correctly.
