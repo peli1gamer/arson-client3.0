@@ -75,5 +75,28 @@ class SettingModelTest {
         assertTrue(loadedSetting.get());
         assertFalse(loadedGroup.sectionExpanded);
     }
+    @Test void failedGroupRegistrationDoesNotLeavePartialMembership() {
+        SettingGroup group = new SettingGroup("group", "Group", "test");
+        group.add(new meteordevelopment.meteorclient.settings.BoolSetting.Builder()
+                .name("Collision").build());
+
+        BooleanSetting rejected = new BooleanSetting("collision", "Collision", false);
+        assertThrows(IllegalArgumentException.class, () -> rejected.group(group));
+        assertNull(rejected.group());
+        assertTrue(group.settings().isEmpty());
+    }
+
+    @Test void settingCannotBeSilentlyReparented() {
+        SettingGroup first = new SettingGroup("first", "First", "test");
+        SettingGroup second = new SettingGroup("second", "Second", "test");
+        BooleanSetting setting = new BooleanSetting("unique", "Unique", false);
+
+        setting.group(first);
+        assertThrows(IllegalStateException.class, () -> setting.group(second));
+        assertSame(first, setting.group());
+        assertTrue(first.settings().contains(setting));
+        assertTrue(second.settings().isEmpty());
+    }
+
     @Test void breadthAddsBenignCoverageAcrossRequestedCategories(){ModuleManager manager=new ModuleManager();manager.registerDefaults();assertNotNull(manager.get("combat-status"));assertNotNull(manager.get("player-status"));assertNotNull(manager.get("movement-status"));assertNotNull(manager.get("render-profile"));assertNotNull(manager.get("world-status"));assertNotNull(manager.get("storage-status"));assertNotNull(manager.get("utility-status"));assertTrue(manager.categoryCount(Module.Category.COMBAT)>=2);assertTrue(manager.categoryCount(Module.Category.PLAYER)>=2);assertTrue(manager.categoryCount(Module.Category.WORLD)>=2);}
 }
