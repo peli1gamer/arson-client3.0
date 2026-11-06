@@ -83,7 +83,7 @@ public final class ConfigManager {
                     module.setKeybind(isKey ? Keybind.fromKeys(value, modifiers) : Keybind.fromButton(value));
                 } else if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
-                for (meteordevelopment.meteorclient.settings.Setting<?> setting : module.settings) {
+                for (meteordevelopment.meteorclient.settings.Setting<?> setting : allSettings(module)) {
                     JsonElement value = settings.get(setting.getId());
                     if (value == null || !value.isJsonPrimitive()) continue;
                     applySettingValue(setting, value);
@@ -124,7 +124,7 @@ public final class ConfigManager {
                 JsonElement settingsRaw = data.get("settings");
                 if (settingsRaw != null && settingsRaw.isJsonObject()) {
                     JsonObject settings = settingsRaw.getAsJsonObject();
-                    for (meteordevelopment.meteorclient.settings.Setting<?> setting : module.settings) {
+                    for (meteordevelopment.meteorclient.settings.Setting<?> setting : allSettings(module)) {
                         JsonElement value = settings.get(setting.getId());
                         if (value != null && value.isJsonPrimitive()) validateSettingValue(setting, value);
                     }
@@ -174,6 +174,15 @@ public final class ConfigManager {
             moduleRoot.add("hud-layout", moduleData);
         }
     }
+    /** Flattens Meteor's setting groups for the JSON config adapter. */
+    private static List<meteordevelopment.meteorclient.settings.Setting<?>> allSettings(Module module) {
+        ArrayList<meteordevelopment.meteorclient.settings.Setting<?>> result = new ArrayList<>();
+        for (meteordevelopment.meteorclient.settings.SettingGroup group : module.settings) {
+            for (meteordevelopment.meteorclient.settings.Setting<?> setting : group) result.add(setting);
+        }
+        return result;
+    }
+
     private static void validateSettingValue(meteordevelopment.meteorclient.settings.Setting<?> setting, JsonElement value) {
         Object fallback = setting.getDefaultValue();
         if (fallback instanceof Boolean) value.getAsBoolean();
@@ -215,7 +224,7 @@ public final class ConfigManager {
         JsonObject root = new JsonObject(); root.addProperty("version", CONFIG_VERSION); JsonObject moduleRoot = new JsonObject(); root.add("modules", moduleRoot);
         for (Module module : modules.all()) {
             JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("toggleOnBindRelease", module.toggleOnBindRelease); data.addProperty("chatFeedback", module.chatFeedback); data.addProperty("keyCode", module.keyCode()); JsonObject bind = new JsonObject(); bind.addProperty("isKey", module.keybind().isKey()); bind.addProperty("value", module.keybind().getValue()); bind.addProperty("modifiers", module.keybind().getModifiers()); data.add("keybind", bind); JsonObject settings = new JsonObject();
-            for (meteordevelopment.meteorclient.settings.Setting<?> setting : module.settings) {
+            for (meteordevelopment.meteorclient.settings.Setting<?> setting : allSettings(module)) {
                 Object value = setting.get();
                 String id = setting.getId();
                 if (value instanceof Boolean bool) settings.addProperty(id, bool);
