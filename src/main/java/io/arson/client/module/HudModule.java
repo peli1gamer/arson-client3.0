@@ -12,6 +12,7 @@ public final class HudModule extends Module {
     private final BooleanSetting watermark = setting(new BooleanSetting("watermark", "Watermark", true));
     private final StringSetting watermarkText = setting(new StringSetting("watermark-text", "Watermark Text", "Arson V3", 32));
     private final BooleanSetting coordinates = setting(new BooleanSetting("coordinates", "Coordinates", true));
+    private final BooleanSetting netherCoordinates = setting(new BooleanSetting("nether-coordinates", "Nether Coordinates", true));
     private final BooleanSetting fps = setting(new BooleanSetting("fps", "FPS", true));
     private final BooleanSetting playerInfo = setting(new BooleanSetting("player-info", "Player Info Element", true));
     private final BooleanSetting worldInfo = setting(new BooleanSetting("world-info", "World Info Element", true));
@@ -65,6 +66,7 @@ public final class HudModule extends Module {
     public boolean showWatermark() { return watermark.enabled(); }
     public String watermarkText() { return watermarkText.get(); }
     public boolean showCoordinates() { return coordinates.enabled(); }
+    public boolean showNetherCoordinates() { return netherCoordinates.enabled(); }
     public boolean showFps() { return fps.enabled(); }
     public boolean showPlayerInfo() { return playerInfo.enabled(); }
     public boolean showWorldInfo() { return worldInfo.enabled(); }

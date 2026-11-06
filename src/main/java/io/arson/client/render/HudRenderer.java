@@ -119,7 +119,22 @@ public final class HudRenderer {
         }
         graphics.getMatrices().pushMatrix(); graphics.getMatrices().scale(globalScale, globalScale);
         if (hud.showWatermark()) drawElement(graphics, client, hud, layout, "watermark", hud.x(), hud.y(), new String[]{hud.watermarkText()});
-        if (hud.showCoordinates()) drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), new String[]{String.format(java.util.Locale.ROOT, "XYZ %d %d %d", client.player.getBlockPos().getX(), client.player.getBlockPos().getY(), client.player.getBlockPos().getZ())});
+        if (hud.showCoordinates()) {
+            var position = client.player.getBlockPos();
+            String current = String.format(java.util.Locale.ROOT, "XYZ %d %d %d", position.getX(), position.getY(), position.getZ());
+            String[] coordinateRows = new String[]{current};
+            if (hud.showNetherCoordinates()) {
+                String dimension = client.world.getRegistryKey().getValue().getPath();
+                if ("overworld".equals(dimension)) {
+                    HudCoordinates.Position nether = HudCoordinates.fromOverworld(position.getX(), position.getY(), position.getZ());
+                    coordinateRows = new String[]{current, String.format(java.util.Locale.ROOT, "Nether %d %d %d", nether.x(), nether.y(), nether.z())};
+                } else if ("the_nether".equals(dimension)) {
+                    HudCoordinates.Position overworld = HudCoordinates.fromNether(position.getX(), position.getY(), position.getZ());
+                    coordinateRows = new String[]{current, String.format(java.util.Locale.ROOT, "Overworld %d %d %d", overworld.x(), overworld.y(), overworld.z())};
+                }
+            }
+            drawElement(graphics, client, hud, layout, "coordinates", hud.coordinatesX(), hud.coordinatesY(), coordinateRows);
+        }
         if (hud.showFps()) drawElement(graphics, client, hud, layout, "fps", hud.fpsX(), hud.fpsY(), new String[]{"FPS " + client.getCurrentFps()});
         if (hud.showPlayerInfo() && playerInfo != null && playerInfo.enabled()) {
             java.util.ArrayList<String> rows = new java.util.ArrayList<>();
