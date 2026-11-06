@@ -36,4 +36,37 @@ class ConfigMigrationTest {
             Files.deleteIfExists(path);
         }
     }
+
+    @Test
+    void legacyHudLayoutMigrationCreatesMissingSettingsObject() throws Exception {
+        ModuleManager modules = new ModuleManager();
+        modules.registerDefaults();
+
+        JsonObject root = new JsonObject();
+        JsonObject moduleRoot = new JsonObject();
+        JsonObject layoutData = new JsonObject();
+        layoutData.addProperty("enabled", false);
+        layoutData.addProperty("settings", "malformed");
+        moduleRoot.add("hud-layout", layoutData);
+        root.add("modules", moduleRoot);
+
+        JsonObject legacy = new JsonObject();
+        JsonObject watermark = new JsonObject();
+        watermark.addProperty("x", 42);
+        watermark.addProperty("y", 18);
+        legacy.add("watermark", watermark);
+        root.add("hudLayout", legacy);
+
+        var path = Files.createTempFile("arson-v3-legacy-settings-", ".json");
+        try {
+            Files.writeString(path, root.toString());
+            assertTrue(ConfigManager.loadFromPath(path, modules));
+            var layout = (HudLayoutModule) modules.get("hud-layout");
+            assertEquals(42.0, layout.offsetX("watermark"));
+            assertEquals(18.0, layout.offsetY("watermark"));
+        } finally {
+            Files.deleteIfExists(path);
+        }
+    }
+
 }
