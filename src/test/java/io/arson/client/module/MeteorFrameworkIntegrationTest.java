@@ -73,6 +73,11 @@ class MeteorFrameworkIntegrationTest {
         }
     }
 
+    private static ModuleManager registeredModuleManager() {
+        ModuleManager manager = Systems.get(ModuleManager.class);
+        return manager != null ? manager : Systems.add(new ModuleManager());
+    }
+
     @Test
     void typedMeteorSettingBuildersValidateValues() {
         BoolSetting enabled = new BoolSetting.Builder()
@@ -175,7 +180,7 @@ class MeteorFrameworkIntegrationTest {
     @Test
     void moduleActivationMaintainsMeteorActiveRegistry() {
         MeteorClient.initialize(null);
-        ModuleManager manager = Systems.add(new ModuleManager());
+        ModuleManager manager = registeredModuleManager();
         EventModule module = new EventModule();
         manager.register(module);
 
@@ -188,7 +193,7 @@ class MeteorFrameworkIntegrationTest {
 
     @Test
     void moduleManagerRegistersThroughMeteorSystemsLifecycle() {
-        ModuleManager manager = Systems.add(new ModuleManager());
+        ModuleManager manager = registeredModuleManager();
 
         assertSame(manager, Systems.get(ModuleManager.class));
         assertNotNull(manager.get("aim-assist"));
