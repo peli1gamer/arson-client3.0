@@ -12,8 +12,6 @@ import java.util.List;
 
 /** Cached ore discovery with allocation-light scanning and chunk-aware reuse. */
 public final class BlockScanner {
-    private static final int CACHE_REFRESH_TICKS = 40;
-
     private Object cachedLevel;
     private long cachedTick = Long.MIN_VALUE;
     private int cachedChunkX = Integer.MIN_VALUE;
@@ -32,7 +30,7 @@ public final class BlockScanner {
         boolean worldChanged = cachedLevel != client.level;
         boolean movedChunk = cachedChunkX != chunkX || cachedChunkZ != chunkZ;
         boolean configChanged = cachedConfigHash != configHash;
-        boolean refreshDue = gameTime - cachedTick >= CACHE_REFRESH_TICKS || gameTime < cachedTick;
+        boolean refreshDue = isRefreshDue(gameTime, cachedTick, module.scanInterval());
 
         if (!worldChanged && !movedChunk && !configChanged && !refreshDue) {
             return cachedTargets;
@@ -109,7 +107,21 @@ public final class BlockScanner {
         hash = 31 * hash + Boolean.hashCode(module.showLapis());
         hash = 31 * hash + Boolean.hashCode(module.showQuartz());
         hash = 31 * hash + Boolean.hashCode(module.showAncientDebris());
+        hash = 31 * hash + module.diamondStyle().hashCode();
+        hash = 31 * hash + module.emeraldStyle().hashCode();
+        hash = 31 * hash + module.goldStyle().hashCode();
+        hash = 31 * hash + module.ironStyle().hashCode();
+        hash = 31 * hash + module.copperStyle().hashCode();
+        hash = 31 * hash + module.coalStyle().hashCode();
+        hash = 31 * hash + module.redstoneStyle().hashCode();
+        hash = 31 * hash + module.lapisStyle().hashCode();
+        hash = 31 * hash + module.quartzStyle().hashCode();
+        hash = 31 * hash + module.ancientDebrisStyle().hashCode();
         return hash;
+    }
+
+    static boolean isRefreshDue(long gameTime, long cachedTick, int interval) {
+        return cachedTick == Long.MIN_VALUE || gameTime < cachedTick || gameTime - cachedTick >= Math.max(1, interval);
     }
 
     private static RenderStyleMatch match(Block block, BlockESPModule module) {
