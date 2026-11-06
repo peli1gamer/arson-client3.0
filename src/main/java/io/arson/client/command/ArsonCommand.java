@@ -21,7 +21,7 @@ public final class ArsonCommand {
             .then(ClientCommandManager.literal("list").executes(ctx->{feedback(ctx,"Arson: "+ArsonClient.getInstance().modules().all().size()+" modules, "+ArsonClient.getInstance().modules().enabledCount()+" enabled.");return 1;}))
             .then(ClientCommandManager.literal("enabled").executes(ctx->{feedback(ctx,"Enabled: "+ArsonClient.getInstance().modules().all().stream().filter(Module::enabled).map(Module::id).toList());return 1;}))
             .then(ClientCommandManager.literal("favorites").executes(ctx->{feedback(ctx,"Favorites: "+ArsonClient.getInstance().modules().all().stream().filter(Module::favorite).map(Module::id).toList());return 1;}))
-            .then(moduleCommands()).then(categoryCommands()).then(summaryCommand()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
+            .then(moduleCommands()).then(categoryCommands()).then(resetCategoryCommand()).then(summaryCommand()).then(hudCommands()).then(clickGuiCommands()).then(configCommands()).then(profileCommands())
             .then(enableCommand()).then(disableCommand()).then(toggleCommand()).then(infoCommand()).then(settingsCommand()).then(resetCommand())
             .then(ClientCommandManager.literal("save").executes(ctx->{ArsonClient.getInstance().saveConfig();feedback(ctx,"Arson config saved.");return 1;}))
         ));
