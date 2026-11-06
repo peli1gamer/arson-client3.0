@@ -25,16 +25,19 @@ public final class AutoTotemModule extends Module {
         boolean emergency = client.player.getHealth() <= healthThreshold.get();
         if (!always.enabled() && !emergency) return;
 
-        int source = findTotem(client);
-        if (source < 0) return;
+        int inventoryIndex = findTotem(client);
+        int sourceMenuSlot = menuSlotForInventoryIndex(inventoryIndex);
+        if (sourceMenuSlot < 0) return;
 
-        // Inventory click slot 40 is the player's offhand slot in the player container.
-        client.gameMode.handleInventoryMouseClick(client.player.inventoryMenu.containerId, source, 40, ClickType.SWAP, client.player);
+        // SWAP's slot argument is a menu slot, not a raw PlayerInventory index.
+        client.gameMode.handleInventoryMouseClick(client.player.inventoryMenu.containerId, sourceMenuSlot, 40, ClickType.SWAP, client.player);
     }
 
     private int findTotem(Minecraft client) {
         if (includeHotbar.enabled()) {
+            int selectedSlot = client.player.getInventory().getSelectedSlot();
             for (int i = 0; i < 9; i++) {
+                if (preserveHeld.enabled() && i == selectedSlot) continue;
                 if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return i;
             }
         }
@@ -43,5 +46,10 @@ public final class AutoTotemModule extends Module {
             if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return i;
         }
         return -1;
+    }
+
+    static int menuSlotForInventoryIndex(int inventoryIndex) {
+        if (inventoryIndex < 0 || inventoryIndex >= 36) return -1;
+        return inventoryIndex < 9 ? inventoryIndex + 36 : inventoryIndex;
     }
 }
