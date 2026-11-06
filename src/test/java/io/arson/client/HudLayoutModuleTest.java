@@ -83,6 +83,15 @@ class HudLayoutModuleTest {
     }
 
     @Test
+    void editorCanReadMeasuredBoundsWithFallbackBeforeFirstRender() {
+        HudLayoutModule layout = new HudLayoutModule();
+
+        assertEquals(new NoOverlapLayout.Size(190, 35), layout.measuredSize("watermark", 190, 35));
+        layout.updateElementSize("player-info", 140, 96);
+        assertEquals(new NoOverlapLayout.Size(140, 96), layout.measuredSize("player-info", 190, 35));
+    }
+
+    @Test
     void measuredBoundsSignatureChangesWhenRenderedSizeChanges() {
         HudLayoutModule layout = new HudLayoutModule();
         int before = layout.boundsSignature();

@@ -54,6 +54,12 @@ public final class HudLayoutModule extends Module {
         return !next.equals(previous);
     }
 
+    /** Returns the last measured bounds, or a safe fallback before the first HUD render. */
+    public NoOverlapLayout.Size measuredSize(String element, double fallbackWidth, double fallbackHeight) {
+        return measuredSizes.getOrDefault(element,
+                new NoOverlapLayout.Size(safeDimension(fallbackWidth), safeDimension(fallbackHeight)));
+    }
+
     /** Stable signature used to schedule overlap repair after measured bounds change. */
     public int boundsSignature() {
         int hash = 1;

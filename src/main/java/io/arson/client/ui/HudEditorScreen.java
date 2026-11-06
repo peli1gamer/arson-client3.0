@@ -5,6 +5,7 @@ import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
+import io.arson.client.ui.NoOverlapLayout;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
 import io.arson.client.settings.DoubleSetting;
@@ -196,8 +197,8 @@ public final class HudEditorScreen extends Screen {
         double logicalHeight = height / globalScale;
         double elementScale = hud.elementScale(element);
         if (layout != null) {
-            double[] resolved = layout.resolve(element, logicalWidth, logicalHeight,
-                    190 * elementScale, 35 * elementScale);
+            NoOverlapLayout.Size size = layout.measuredSize(element, 190 * elementScale, 35 * elementScale);
+            double[] resolved = layout.resolve(element, logicalWidth, logicalHeight, size.width(), size.height());
             return new double[]{resolved[0] * globalScale, resolved[1] * globalScale};
         }
         double[] fallback = switch (element) {
@@ -210,8 +211,15 @@ public final class HudEditorScreen extends Screen {
         return new double[]{fallback[0] * globalScale, fallback[1] * globalScale};
     }
 
-    private double elementScale(String element) {
-        return "array-list".equals(element) ? arrayList.scale() : hud.scale() * hud.elementScale(element);
+    private double[] elementSize(String element) {
+        if ("array-list".equals(element)) return new double[]{220 * arrayList.scale(), 300 * arrayList.scale()};
+        double globalScale = Math.max(0.001, hud.scale());
+        double elementScale = hud.elementScale(element);
+        NoOverlapLayout.Size size = layout == null
+                ? new NoOverlapLayout.Size(Math.max(1, (int) Math.ceil(190 * elementScale)),
+                    Math.max(1, (int) Math.ceil(35 * elementScale)))
+                : layout.measuredSize(element, 190 * elementScale, 35 * elementScale);
+        return new double[]{size.width() * globalScale, size.height() * globalScale};
     }
 
     private void setPosition(String element, double x, double y) {
@@ -224,18 +232,17 @@ public final class HudEditorScreen extends Screen {
         double logicalHeight = height / globalScale;
         double elementScale = hud.elementScale(element);
         if (layout != null) {
+            NoOverlapLayout.Size size = layout.measuredSize(element, 190 * elementScale, 35 * elementScale);
             layout.setPositionPreservingAnchor(element, x / globalScale, y / globalScale,
-                    logicalWidth, logicalHeight, 190 * elementScale, 35 * elementScale);
+                    logicalWidth, logicalHeight, size.width(), size.height());
         } else hud.setEditorPosition(element, x / globalScale, y / globalScale);
     }
 
     private boolean hit(String element, double x, double y) {
         if (!visible(element)) return false;
         double[] p = position(element);
-        double scale = elementScale(element);
-        double boxWidth = "array-list".equals(element) ? 220 * scale : 190 * scale;
-        double boxHeight = "array-list".equals(element) ? 300 * scale : 35 * scale;
-        return x >= p[0] - 8 && x <= p[0] + boxWidth && y >= p[1] - 8 && y <= p[1] + boxHeight;
+        double[] size = elementSize(element);
+        return x >= p[0] - 8 && x <= p[0] + size[0] && y >= p[1] - 8 && y <= p[1] + size[1];
     }
 
     private Snapshot snapshot(String element) {
@@ -287,8 +294,9 @@ public final class HudEditorScreen extends Screen {
         if (layout != null) {
             layout.setAnchor(element, value.anchor);
             double globalScale = Math.max(0.001, hud.scale());
+            NoOverlapLayout.Size size = layout.measuredSize(element, 190 * value.scale, 35 * value.scale);
             layout.setPositionPreservingAnchor(element, value.x / globalScale, value.y / globalScale,
-                    width / globalScale, height / globalScale, 190 * value.scale, 35 * value.scale);
+                    width / globalScale, height / globalScale, size.width(), size.height());
         } else hud.setEditorPosition(element, value.x / hud.scale(), value.y / hud.scale());
         for (Setting<?> setting : hud.settings()) {
             if (setting instanceof DoubleSetting d && d.id().equals(element + "-scale")) d.set(value.scale);
@@ -306,9 +314,10 @@ public final class HudEditorScreen extends Screen {
             Snapshot current = snapshot(element);
             HudLayoutModule.Anchor next = anchors[(layout.anchor(element).ordinal() + 1) % anchors.length];
             double globalScale = Math.max(0.001, hud.scale());
-            layout.setAnchorPreservingPosition(element, next, current.x / globalScale, current.y / globalScale,
-                    width / globalScale, height / globalScale,
+            NoOverlapLayout.Size size = layout.measuredSize(element,
                     190 * hud.elementScale(element), 35 * hud.elementScale(element));
+            layout.setAnchorPreservingPosition(element, next, current.x / globalScale, current.y / globalScale,
+                    width / globalScale, height / globalScale, size.width(), size.height());
         }
     }
 
@@ -412,9 +421,9 @@ public final class HudEditorScreen extends Screen {
         for (String element : ELEMENTS) {
             if (!visible(element) && !selection.contains(element)) continue;
             double[] p = position(element);
-            double scale = elementScale(element);
-            int boxW = (int) Math.ceil(("array-list".equals(element) ? 220 : 190) * scale);
-            int boxH = (int) Math.ceil(("array-list".equals(element) ? 300 : 35) * scale);
+            double[] size = elementSize(element);
+            int boxW = (int) Math.ceil(size[0]);
+            int boxH = (int) Math.ceil(size[1]);
             int x = (int) Math.round(p[0]), y = (int) Math.round(p[1]);
             boolean selected = selection.contains(element);
             int color = selected ? 0xFF55A7FF : 0x887B8796;
