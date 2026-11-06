@@ -7,7 +7,8 @@ _Last verified: 2026-11-06_
 - Repository: peli1gamer/arson-client3.0
 - Working branch: audit/fix-test-cycle
 - Documentation files are committed on audit/fix-test-cycle; check that branch for the latest documentation revision.
-- Code state validated by CI at: 67aac40672aa5501ec52b157d4cc016bbcbe8d17
+- Previously validated code baseline: 67aac40672aa5501ec52b157d4cc016bbcbe8d17
+- Current Storage ESP changes are committed after that baseline; see the latest workflow run before treating them as verified.
 - The audit/fix work is on this branch. The main branch has not been changed by this work.
 - No pull request or merge is implied by this document.
 
@@ -15,7 +16,7 @@ _Last verified: 2026-11-06_
 
 **CI PASSED**
 
-The latest code-changing commit completed the GitHub Actions workflow successfully. The documentation commits were added afterward and their own workflow runs were queued/in progress at the time this file was updated:
+Previously validated baseline completed the GitHub Actions workflow successfully. The Storage ESP repair commits and regression tests were added afterward; their latest workflow run is currently queued/in progress, so those changes are not yet marked CI-verified:
 
 - Workflow run: [42181804484](https://github.com/peli1gamer/arson-client3.0/actions/runs/42181804484)
 - Java 21 setup: passed
@@ -79,8 +80,11 @@ This artifact corresponds to the validated code commit above; it is not a publis
 14. A module tick exception is logged without preventing later modules from ticking.
 15. BlockScanner refresh timing uses the configured scan interval.
 16. BlockScanner cache invalidation includes the configured render styles.
+17. StorageScanner now uses Container ESP's configured scan interval instead of its independent hard-coded 20-tick refresh.
+18. StorageOverlay range filtering uses the target centre and the same player reference point as scanning and labels.
+19. Storage ESP label background, background color, and padding settings now affect world labels.
 
-Regression tests were added for AutoTotem slot mapping, HoverTotem slot behavior, malformed config migration, module lifecycle rollback, and BlockScanner refresh timing.
+Regression tests were added for AutoTotem slot mapping, HoverTotem slot behavior, malformed config migration, module lifecycle rollback, BlockScanner refresh timing, StorageScanner refresh timing, and StorageOverlay target-centre range filtering.
 
 ## Known status / limitations
 
@@ -89,7 +93,9 @@ Regression tests were added for AutoTotem slot mapping, HoverTotem slot behavior
 - The full source tree has not yet completed a systematic line-by-line audit.
 - The items in TODO.md are review tasks and unverified candidates unless explicitly described as confirmed.
 - The root-level /arson save response path still needs a direct behavior check; the config subcommand paths were the ones corrected in this batch.
-- World-render stage exception isolation and StorageScanner refresh behavior remain audit items.
+- World-render stage exception isolation remains an audit item.
+- Storage ESP Arson-side repairs are committed: configurable scanner refresh interval, consistent player-centred target range checks, functional label background/padding/color, and focused scanner/overlay regression tests. The current CI run must pass before this batch is called verified.
+- The uploaded Anubis Client 1.0 JAR has not yet been inspected. Reference comparison is pending; do not describe the current Storage ESP behavior as Anubis-matched.
 
 ## Updating this file
 
