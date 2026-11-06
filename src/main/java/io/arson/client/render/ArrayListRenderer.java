@@ -41,10 +41,7 @@ public final class ArrayListRenderer {
             if (!module.animation()) {
                 current = target;
             } else {
-                float speed = 7.0f * module.animationSpeed();
-                float step = Math.min(1.0f, deltaSeconds * speed);
-                current += (target - current) * step;
-                if (Math.abs(target - current) < 0.01f) current = target;
+                current = advanceAnimation(current, target, deltaSeconds, 7.0f * module.animationSpeed());
             }
             ANIMATION.put(candidate.id(), current);
         }
@@ -91,6 +88,25 @@ public final class ArrayListRenderer {
         graphics.getMatrices().popMatrix();
 
         cleanupAnimationState(all);
+    }
+
+    /**
+     * Advances a HUD row with exponential smoothing, matching the frame-rate-independent
+     * animation approach used by Anubis while retaining Arson's configurable speed.
+     */
+    static float advanceAnimation(float current, float target, float deltaSeconds, float speed) {
+        if (!Float.isFinite(target)) target = 0.0f;
+        target = Math.max(0.0f, Math.min(1.0f, target));
+        if (!Float.isFinite(current)) current = target;
+        current = Math.max(0.0f, Math.min(1.0f, current));
+        if (!Float.isFinite(deltaSeconds) || !Float.isFinite(speed)) return current;
+
+        float delta = Math.max(0.0f, Math.min(0.1f, deltaSeconds));
+        float rate = Math.max(0.0f, speed);
+        float blend = 1.0f - (float) Math.exp(-rate * delta);
+        float next = current + (target - current) * blend;
+        if (Math.abs(target - next) < 0.01f) next = target;
+        return Math.max(0.0f, Math.min(1.0f, next));
     }
 
     private static void cleanupAnimationState(List<Module> rendered) {
