@@ -120,7 +120,7 @@ public final class StorageRenderStage implements WorldRenderBridge.WorldRenderSt
                 int width = font.width(text);
                 PoseStack.Pose pose = matrices.last();
                 if (module.labelBackground()) {
-                    drawLabelBackground(consumers, pose, width, font.lineHeight(),
+                    drawLabelBackground(consumers, pose, width, font.lineHeight,
                             module.labelPadding(), fadeColor(module.labelBackgroundColor(), fade));
                 }
                 font.drawInBatch(Component.literal(text), -width / 2.0f, 0,
