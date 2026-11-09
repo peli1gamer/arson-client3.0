@@ -2,6 +2,9 @@ package io.arson.client.api;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.HudLayoutModule;
+import io.arson.client.ui.NoOverlapLayout;
+import net.minecraft.client.MinecraftClient;
 import io.arson.client.module.ClickGuiPreferencesModule;
 import io.arson.client.module.Module;
 import java.util.List;
@@ -27,11 +30,30 @@ public final class ArsonApi {
     }
 
     public static boolean setHudElementPosition(String element, double x, double y) {
-        if (ArsonClient.getInstance() == null || element == null || element.isBlank()) return false;
+        if (ArsonClient.getInstance() == null || element == null || element.isBlank()
+                || !Double.isFinite(x) || !Double.isFinite(y)) return false;
         Module module = ArsonClient.getInstance().modules().get("hud");
-        if (!(module instanceof io.arson.client.module.HudModule hud)) return false;
-        try { hud.setEditorPosition(element, x, y); save(); return true; }
-        catch (IllegalArgumentException ignored) { return false; }
+        if (!(module instanceof HudModule hud)) return false;
+        Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
+        if (!(layoutModule instanceof HudLayoutModule layout)) return false;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.getWindow() == null) return false;
+        try {
+            double step = hud.gridSnap() ? hud.gridSize() : 1.0;
+            double snappedX = Math.round(Math.max(0.0, x) / step) * step;
+            double snappedY = Math.round(Math.max(0.0, y) / step) * step;
+            double globalScale = Math.max(0.001, hud.scale());
+            double logicalWidth = client.getWindow().getScaledWidth() / globalScale;
+            double logicalHeight = client.getWindow().getScaledHeight() / globalScale;
+            NoOverlapLayout.Size size = layout.measuredSize(element,
+                    190.0 * hud.elementScale(element), 35.0 * hud.elementScale(element));
+            layout.setPositionPreservingAnchor(element, snappedX, snappedY,
+                    logicalWidth, logicalHeight, size.width(), size.height());
+            save();
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
     public static int resetAllModules() {
@@ -63,8 +85,28 @@ public final class ArsonApi {
         if (ArsonClient.getInstance() == null || preset == null || preset.isBlank()) return false;
         Module module = ArsonClient.getInstance().modules().get("hud");
         if (!(module instanceof HudModule hud)) return false;
-        try { hud.applyPreset(preset); save(); return true; }
-        catch (IllegalArgumentException ignored) { return false; }
+        try {
+            hud.applyPreset(preset);
+            Module layoutModule = ArsonClient.getInstance().modules().get("hud-layout");
+            if (layoutModule instanceof HudLayoutModule layout) {
+                switch (preset.trim().toLowerCase(Locale.ROOT)) {
+                    case "minimal" -> {
+                        layout.resetElement("watermark");
+                        layout.resetElement("fps");
+                    }
+                    case "compact", "full" -> {
+                        for (String element : List.of("watermark", "coordinates", "fps", "player-info", "world-info")) {
+                            layout.resetElement(element);
+                        }
+                    }
+                    default -> { /* HudModule validates preset names before this point. */ }
+                }
+            }
+            save();
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
     public static boolean setHudRowFormat(HudModule.RowFormat format) {
         if (ArsonClient.getInstance() == null || format == null) return false;
