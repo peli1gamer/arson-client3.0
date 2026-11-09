@@ -6,6 +6,7 @@ import io.arson.client.ui.NoOverlapLayout;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.Set;
 
 class HudLayoutModuleTest {
     @Test
@@ -106,6 +107,28 @@ class HudLayoutModuleTest {
         assertTrue(layout.updateElementSize("player-info", 140, 96));
         assertNotEquals(before, layout.boundsSignature());
         assertFalse(layout.updateElementSize("player-info", 140, 96));
+    }
+
+    @Test
+    void inactiveChildPanelsDoNotReserveSpaceOrTriggerUnwantedReflow() {
+        HudLayoutModule layout = new HudLayoutModule();
+        HudModule hud = new HudModule();
+        layout.setOffset("watermark", 6, 6);
+        layout.setOffset("player-info", 6, 6);
+
+        layout.repairNoOverlap(640, 360, 1.0, 100, 80, null, hud, Set.of("watermark"));
+
+        assertEquals(6, layout.offsetX("watermark"));
+        assertEquals(6, layout.offsetY("watermark"));
+        assertEquals(6, layout.offsetX("player-info"));
+        assertEquals(6, layout.offsetY("player-info"));
+
+        layout.repairNoOverlap(640, 360, 1.0, 100, 80, null, hud, Set.of("watermark", "player-info"));
+        double[] watermark = layout.resolve("watermark", 640, 360, 190, 35);
+        double[] playerInfo = layout.resolve("player-info", 640, 360, 190, 35);
+        NoOverlapLayout.Rect first = new NoOverlapLayout.Rect((int) watermark[0], (int) watermark[1], 190, 35);
+        NoOverlapLayout.Rect second = new NoOverlapLayout.Rect((int) playerInfo[0], (int) playerInfo[1], 190, 35);
+        assertFalse(first.intersects(second));
     }
 
     @Test
