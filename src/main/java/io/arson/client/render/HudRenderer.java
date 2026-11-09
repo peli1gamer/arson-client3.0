@@ -253,20 +253,7 @@ public final class HudRenderer {
     }
 
     private static int[] estimateArrayListSize(MinecraftClient client, ArrayListModule module) {
-        if(module==null || !module.enabled()) return new int[]{1,1};
-        int maxWidth=1;
-        int count=0;
-        for(var candidate:ArsonClient.getInstance().modules().all()){
-            if(candidate.id().equals("array-list")) continue;
-            if(candidate.enabled()){
-                count++;
-                String label=candidate.name()+(module.showCategory()?" ["+candidate.category().displayName()+"]":"");
-                maxWidth=Math.max(maxWidth,client.textRenderer.getWidth(label));
-            }
-        }
-        count=Math.min(module.maxModules(),Math.max(1,count));
-        return new int[]{Math.max(1,(int)Math.ceil((maxWidth+module.padding()*2)*module.scale())),
-                Math.max(1,(int)Math.ceil((count*module.spacing()+module.padding()*2)*module.scale()))};
+        return ArrayListRenderer.estimateBounds(client, module);
     }
 
     private static void renderNotifications(DrawContext graphics, MinecraftClient client) {

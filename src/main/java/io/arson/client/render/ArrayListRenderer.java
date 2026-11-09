@@ -30,12 +30,8 @@ public final class ArrayListRenderer {
         float deltaSeconds = Math.min(0.1f, Math.max(0.0f, (now - lastFrameNanos) / 1_000_000_000.0f));
         lastFrameNanos = now;
 
-        List<Module> all = new ArrayList<>();
         for (Module candidate : ArsonClient.getInstance().modules().all()) {
-            if (!candidate.id().equals("array-list")) all.add(candidate);
-        }
-
-        for (Module candidate : all) {
+            if (candidate.id().equals("array-list")) continue;
             float target = candidate.enabled() ? 1.0f : 0.0f;
             float current = ANIMATION.getOrDefault(candidate.id(), target);
             if (!module.animation()) {
@@ -46,20 +42,13 @@ public final class ArrayListRenderer {
             ANIMATION.put(candidate.id(), current);
         }
 
-        all.removeIf(candidate -> ANIMATION.getOrDefault(candidate.id(), 0.0f) <= 0.01f);
-        all.sort(Comparator
-                .comparingInt((Module value) -> client.textRenderer.getWidth(label(value, module)))
-                .reversed()
-                .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
-        if (all.size() > module.maxModules()) all = all.subList(0, module.maxModules());
-        int viewportW=client.getWindow().getScaledWidth(), viewportH=client.getWindow().getScaledHeight();
-        int maxVisible=Math.max(1,(int)Math.floor(Math.max(1,viewportH-12)/(double)Math.max(1,module.spacing())));
-        if(all.size()>maxVisible) all=all.subList(0,maxVisible);
-        int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.textRenderer.getWidth(label(candidate,module)));
-        double renderScale=module.scale();
-        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/maxWidth);
-        if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
-        renderScale=Math.max(0.05,renderScale);
+        int viewportW = client.getWindow().getScaledWidth();
+        int viewportH = client.getWindow().getScaledHeight();
+        List<Module> all = visibleModules(client, module);
+        int maxWidth = 1;
+        for (Module candidate : all) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(label(candidate, module)));
+        double renderScale = fitScale(module.scale(), maxWidth, all.size(), viewportW, viewportH,
+                module.spacing(), module.padding());
 
         graphics.getMatrices().pushMatrix();
         graphics.getMatrices().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
@@ -88,6 +77,56 @@ public final class ArrayListRenderer {
         graphics.getMatrices().popMatrix();
 
         cleanupAnimationState(all);
+    }
+
+    /** Measures the exact rows and fitted scale used by the renderer for HUD collision layout. */
+    static int[] estimateBounds(MinecraftClient client, ArrayListModule module) {
+        if (client == null || module == null || !module.enabled()) return new int[]{1, 1};
+        int viewportW = client.getWindow().getScaledWidth();
+        int viewportH = client.getWindow().getScaledHeight();
+        List<Module> visible = visibleModules(client, module);
+        int maxWidth = 1;
+        for (Module candidate : visible) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(label(candidate, module)));
+        double scale = fitScale(module.scale(), maxWidth, visible.size(), viewportW, viewportH,
+                module.spacing(), module.padding());
+        return new int[]{
+                Math.max(1, (int) Math.ceil((maxWidth + module.padding() * 2.0) * scale)),
+                Math.max(1, (int) Math.ceil((visible.size() * module.spacing() + module.padding() * 2.0) * scale))
+        };
+    }
+
+    private static List<Module> visibleModules(MinecraftClient client, ArrayListModule module) {
+        List<Module> visible = new ArrayList<>();
+        for (Module candidate : ArsonClient.getInstance().modules().all()) {
+            if (!candidate.id().equals("array-list")
+                    && ANIMATION.getOrDefault(candidate.id(), candidate.enabled() ? 1.0f : 0.0f) > 0.01f) {
+                visible.add(candidate);
+            }
+        }
+        visible.sort(Comparator
+                .comparingInt((Module value) -> client.textRenderer.getWidth(label(value, module)))
+                .reversed()
+                .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+        if (visible.size() > module.maxModules()) visible = new ArrayList<>(visible.subList(0, module.maxModules()));
+        int viewportH = client.getWindow().getScaledHeight();
+        int maxVisible = Math.max(1, (int) Math.floor(Math.max(1, viewportH - 12)
+                / (double) Math.max(1, module.spacing())));
+        if (visible.size() > maxVisible) visible = new ArrayList<>(visible.subList(0, maxVisible));
+        return visible;
+    }
+
+    static float fitScale(double configuredScale, int maxWidth, int rowCount,
+                          int viewportWidth, int viewportHeight, int spacing, int padding) {
+        double scale = Math.max(0.05, configuredScale);
+        if (maxWidth > 0) {
+            scale = Math.min(scale, (Math.max(1, viewportWidth - 12.0))
+                    / Math.max(1.0, maxWidth + padding * 2.0));
+        }
+        if (rowCount > 0) {
+            scale = Math.min(scale, (Math.max(1, viewportHeight - 12.0))
+                    / Math.max(1.0, rowCount * spacing + padding * 2.0));
+        }
+        return (float) Math.max(0.05, scale);
     }
 
     /**
