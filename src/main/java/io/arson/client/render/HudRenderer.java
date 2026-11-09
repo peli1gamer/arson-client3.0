@@ -127,7 +127,7 @@ public final class HudRenderer {
                 lastLayoutWidth=viewportWidth;lastLayoutHeight=viewportHeight;lastLayoutScale=globalScale;
                 lastArrayWidth=arraySize[0];lastArrayHeight=arraySize[1];
                 lastArrayX=arrayList==null?6:arrayList.x();lastArrayY=arrayList==null?6:arrayList.y();
-                lastLayoutSignature=layoutSignature(hud,layout,arrayList);
+                lastLayoutSignature=signature;
             }
         }
         graphics.getMatrices().pushMatrix(); graphics.getMatrices().scale(globalScale, globalScale);
