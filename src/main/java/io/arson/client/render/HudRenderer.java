@@ -109,14 +109,20 @@ public final class HudRenderer {
             layout.updateElementSize("array-list", arraySize[0], arraySize[1]);
             int arrayX=arrayList==null?6:arrayList.x();
             int arrayY=arrayList==null?6:arrayList.y();
-            int signature=layoutSignature(hud,layout,arrayList);
+            java.util.Set<String> activeHudElements = new java.util.HashSet<>();
+            for (String element : new String[]{"watermark", "coordinates", "fps", "player-info", "world-info"}) {
+                if (hud.elementVisible(element)) activeHudElements.add(element);
+            }
+            if (playerInfo == null || !playerInfo.enabled()) activeHudElements.remove("player-info");
+            if (worldInfo == null || !worldInfo.enabled()) activeHudElements.remove("world-info");
+            int signature=31 * layoutSignature(hud,layout,arrayList) + activeHudElements.hashCode();
             boolean needsRepair=viewportWidth!=lastLayoutWidth||viewportHeight!=lastLayoutHeight
                     ||Float.compare(globalScale,lastLayoutScale)!=0||arraySize[0]!=lastArrayWidth
                     ||arraySize[1]!=lastArrayHeight||arrayX!=lastArrayX||arrayY!=lastArrayY
                     ||signature!=lastLayoutSignature;
             if(needsRepair){
                 layout.setArrayListPreferredPosition(arrayX,arrayY);
-                if(layout.repairNoOverlap(viewportWidth,viewportHeight,globalScale,arraySize[0],arraySize[1],arrayList,hud))
+                if(layout.repairNoOverlap(viewportWidth,viewportHeight,globalScale,arraySize[0],arraySize[1],arrayList,hud,activeHudElements))
                     ConfigManager.save(client,ArsonClient.getInstance().modules());
                 lastLayoutWidth=viewportWidth;lastLayoutHeight=viewportHeight;lastLayoutScale=globalScale;
                 lastArrayWidth=arraySize[0];lastArrayHeight=arraySize[1];
