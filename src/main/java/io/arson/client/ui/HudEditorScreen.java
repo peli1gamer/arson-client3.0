@@ -5,6 +5,8 @@ import io.arson.client.config.ConfigManager;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.module.HudLayoutModule;
 import io.arson.client.module.HudModule;
+import io.arson.client.module.PlayerInfoModule;
+import io.arson.client.module.WorldInfoModule;
 import io.arson.client.ui.NoOverlapLayout;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.ColorSetting;
@@ -122,11 +124,23 @@ public final class HudEditorScreen extends Screen {
     }
 
     private void repairLayout() {
-        if (layout == null) return;
+        if (layout == null || hud == null) return;
         if (arrayList != null) layout.setArrayListPreferredPosition(arrayList.x(), arrayList.y());
+
+        // Match the renderer's active set so the editor never moves visible panels
+        // around space reserved by a disabled Player Info or World Info module.
+        java.util.Set<String> activeElements = new java.util.HashSet<>();
+        for (String element : new String[]{"watermark", "coordinates", "fps", "player-info", "world-info"}) {
+            if (hud.elementVisible(element)) activeElements.add(element);
+        }
+        PlayerInfoModule playerInfo = (PlayerInfoModule) ArsonClient.getInstance().modules().get("player-info");
+        WorldInfoModule worldInfo = (WorldInfoModule) ArsonClient.getInstance().modules().get("world-info");
+        if (playerInfo == null || !playerInfo.enabled()) activeElements.remove("player-info");
+        if (worldInfo == null || !worldInfo.enabled()) activeElements.remove("world-info");
+
         if (layout.repairNoOverlap(width, height, hud.scale(),
                 Math.max(90, Math.min(width / 2, 220)),
-                Math.max(24, Math.min(height / 2, 320)), arrayList, hud)) save();
+                Math.max(24, Math.min(height / 2, 320)), arrayList, hud, activeElements)) save();
     }
 
     private boolean visible(String element) {
