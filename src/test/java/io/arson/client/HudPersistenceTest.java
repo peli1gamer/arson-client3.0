@@ -24,6 +24,22 @@ class HudPersistenceTest {
     }
 
     @Test
+    void perElementBackgroundWorksWithoutGlobalBackground() {
+        HudModule hud = new HudModule();
+        var local = (io.arson.client.settings.BooleanSetting) hud.settings().stream()
+                .filter(setting -> setting.id().equals("fps-background")).findFirst().orElseThrow();
+        var global = (io.arson.client.settings.BooleanSetting) hud.settings().stream()
+                .filter(setting -> setting.id().equals("background")).findFirst().orElseThrow();
+
+        assertFalse(hud.elementBackgroundVisible("fps"));
+        local.set(true);
+        assertTrue(hud.elementBackgroundVisible("fps"));
+        local.set(false);
+        global.set(true);
+        assertTrue(hud.elementBackgroundVisible("fps"));
+    }
+
+    @Test
     void rowFormattingAndAlignmentArePersistentSettings() {
         HudModule hud = new HudModule();
         assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());

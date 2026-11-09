@@ -93,6 +93,8 @@ public final class HudModule extends Module {
     public int elementColor(String element) { return switch (element) { case "watermark" -> watermarkColor.get(); case "coordinates" -> coordinatesColor.get(); case "fps" -> fpsColor.get(); case "player-info" -> playerInfoColor.get(); case "world-info" -> worldInfoColor.get(); default -> textColor.get(); }; }
     public double elementScale(String element) { return switch (element) { case "watermark" -> watermarkScale.get(); case "coordinates" -> coordinatesScale.get(); case "fps" -> fpsScale.get(); case "player-info" -> playerInfoScale.get(); case "world-info" -> worldInfoScale.get(); default -> 1.0; }; }
     public boolean elementBackground(String element) { return switch (element) { case "watermark" -> watermarkBackground.enabled(); case "coordinates" -> coordinatesBackground.enabled(); case "fps" -> fpsBackground.enabled(); case "player-info" -> playerInfoBackground.enabled(); case "world-info" -> worldInfoBackground.enabled(); default -> false; }; }
+    /** Global background enables every panel; per-element toggles also work independently. */
+    public boolean elementBackgroundVisible(String element) { return showBackground() || elementBackground(element); }
     public int elementBackgroundColor() { return elementBackgroundColor.get(); }
     public int padding() { return (int) Math.round(padding.get()); }
     public int lineSpacing() { return (int) Math.round(lineSpacing.get()); }

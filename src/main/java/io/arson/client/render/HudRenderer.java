@@ -280,7 +280,8 @@ public final class HudRenderer {
         int maxWidth = 0;
         for (String row : rows) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(row));
         int line = hud.rowFormat() == HudModule.RowFormat.DENSE ? Math.max(8, hud.lineSpacing() - 2) : hud.lineSpacing();
-        int padding = hud.showBackground() && hud.elementBackground(element) ? hud.padding() : 0;
+        boolean drawBackground = hud.elementBackgroundVisible(element);
+        int padding = drawBackground ? hud.padding() : 0;
         double boundsWidth = maxWidth + 2.0 * padding;
         double boundsHeight = rows.length * line + 2.0 * padding;
         double rawW = Math.max(1, client.getWindow().getScaledWidth() - 12);
@@ -306,7 +307,7 @@ public final class HudRenderer {
         graphics.getMatrices().scale((float) elementScale, (float) elementScale);
         String alignment = hud.elementAlignment(element);
         int left = alignedX(0, maxWidth, alignment);
-        if (padding > 0) graphics.fill(left - padding, -padding,
+        if (drawBackground) graphics.fill(left - padding, -padding,
                 left + maxWidth + padding, rows.length * line + padding - 1, hud.elementBackgroundColor());
         for (int i = 0; i < rows.length; i++) { int rowWidth = client.textRenderer.getWidth(rows[i]); int rowX = alignedX(0, rowWidth, alignment); graphics.drawText(client.textRenderer, rows[i], rowX, i * line, hud.elementColor(element), hud.showShadow()); }
         graphics.getMatrices().popMatrix();
