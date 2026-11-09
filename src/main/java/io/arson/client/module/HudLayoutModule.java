@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.minecraft.client.MinecraftClient;
 
 /** Persistent, resize-aware HUD anchor constraints. Positions are stored as anchor-relative offsets. */
@@ -146,6 +147,17 @@ public final class HudLayoutModule extends Module {
 
     /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
     public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList,HudModule hud) {
+        return repairNoOverlap(viewportWidth, viewportHeight, globalScale, arrayListWidth, arrayListHeight,
+                arrayList, hud, null);
+    }
+
+    /**
+     * Repairs only the HUD elements that are actually rendered. The HUD module's own
+     * visibility toggles are necessary but not sufficient when a child info module is disabled.
+     */
+    public boolean repairNoOverlap(int viewportWidth, int viewportHeight, double globalScale,
+                                   int arrayListWidth, int arrayListHeight, ArrayListModule arrayList,
+                                   HudModule hud, Set<String> activeElements) {
         if(hud==null) return false;
         double scale=Math.max(0.5,globalScale);
         int logicalW=Math.max(1,(int)Math.floor(viewportWidth/scale));
@@ -169,7 +181,7 @@ public final class HudLayoutModule extends Module {
                 sizes.put(element,measured);
                 continue;
             }
-            if(!hud.elementVisible(element)) continue;
+            if (!(activeElements == null ? hud.elementVisible(element) : activeElements.contains(element))) continue;
             double elementScale=hud.elementScale(element);
             NoOverlapLayout.Size measured = measuredSizes.getOrDefault(element,
                     new NoOverlapLayout.Size(safeDimension(190 * elementScale), safeDimension(35 * elementScale)));
