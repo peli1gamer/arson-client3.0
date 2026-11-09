@@ -47,8 +47,9 @@ public final class ArrayListRenderer {
         List<Module> all = visibleModules(client, module);
         int maxWidth = 1;
         for (Module candidate : all) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(label(candidate, module)));
+        int visiblePadding = module.background() ? module.padding() : 0;
         double renderScale = fitScale(module.scale(), maxWidth, all.size(), viewportW, viewportH,
-                module.spacing(), module.padding());
+                module.spacing(), visiblePadding);
 
         graphics.getMatrices().pushMatrix();
         graphics.getMatrices().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
@@ -85,13 +86,15 @@ public final class ArrayListRenderer {
         int viewportW = client.getWindow().getScaledWidth();
         int viewportH = client.getWindow().getScaledHeight();
         List<Module> visible = visibleModules(client, module);
+        if (visible.isEmpty()) return new int[]{1, 1};
         int maxWidth = 1;
         for (Module candidate : visible) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(label(candidate, module)));
+        int visiblePadding = module.background() ? module.padding() : 0;
         double scale = fitScale(module.scale(), maxWidth, visible.size(), viewportW, viewportH,
-                module.spacing(), module.padding());
+                module.spacing(), visiblePadding);
         return new int[]{
-                Math.max(1, (int) Math.ceil((maxWidth + module.padding() * 2.0) * scale)),
-                Math.max(1, (int) Math.ceil((visible.size() * module.spacing() + module.padding() * 2.0) * scale))
+                Math.max(1, (int) Math.ceil((maxWidth + visiblePadding * 2.0) * scale)),
+                Math.max(1, (int) Math.ceil((visible.size() * module.spacing() + visiblePadding * 2.0) * scale))
         };
     }
 
