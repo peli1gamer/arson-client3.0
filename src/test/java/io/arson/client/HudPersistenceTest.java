@@ -40,6 +40,23 @@ class HudPersistenceTest {
     }
 
     @Test
+    void globalBackgroundColorIsUsedWhenGlobalBackgroundIsEnabled() {
+        HudModule hud = new HudModule();
+        var globalBackground = (io.arson.client.settings.BooleanSetting) hud.settings().stream()
+                .filter(setting -> setting.id().equals("background")).findFirst().orElseThrow();
+        var globalColor = (io.arson.client.settings.ColorSetting) hud.settings().stream()
+                .filter(setting -> setting.id().equals("background-color")).findFirst().orElseThrow();
+        var elementColor = (io.arson.client.settings.ColorSetting) hud.settings().stream()
+                .filter(setting -> setting.id().equals("element-background-color")).findFirst().orElseThrow();
+
+        globalColor.set(0xFF112233);
+        elementColor.set(0xFF445566);
+        assertEquals(0xFF445566, hud.elementBackgroundColor());
+        globalBackground.set(true);
+        assertEquals(0xFF112233, hud.elementBackgroundColor());
+    }
+
+    @Test
     void rowFormattingAndAlignmentArePersistentSettings() {
         HudModule hud = new HudModule();
         assertEquals(HudModule.RowFormat.STACKED, hud.rowFormat());
