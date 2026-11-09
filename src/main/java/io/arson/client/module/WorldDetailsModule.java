@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live world dimensions useful to information HUDs and addons. */
 public final class WorldDetailsModule extends Module {
@@ -15,19 +15,19 @@ public final class WorldDetailsModule extends Module {
                 "Tracks live world time, game time, sea level, render distance, and local level identity for HUDs; it never changes world state.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null) {
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null) {
             dayTime = gameTime = 0;
             seaLevel = 0;
             viewDistance = 0;
             levelName = "unknown";
             return;
         }
-        dayTime = client.level.getDayTime();
-        gameTime = client.level.getGameTime();
-        seaLevel = client.level.getSeaLevel();
-        viewDistance = client.options.renderDistance().get();
-        levelName = client.level.dimension().identifier().toString();
+        dayTime = client.world.getTimeOfDay();
+        gameTime = client.world.getTime();
+        seaLevel = client.world.getSeaLevel();
+        viewDistance = client.options.getViewDistance().getValue();
+        levelName = client.world.getRegistryKey().getValue().toString();
     }
 
     public long dayTime() { return dayTime; }

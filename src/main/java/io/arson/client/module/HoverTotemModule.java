@@ -3,11 +3,11 @@ package io.arson.client.module;
 import io.arson.client.accessor.HandledScreenAccessor;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.Items;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.item.Items;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.screen.slot.SlotActionType;
 
 /** Equips a hovered totem from the player's inventory into the offhand. */
 public final class HoverTotemModule extends Module {
@@ -19,23 +19,35 @@ public final class HoverTotemModule extends Module {
     private final BooleanSetting requireHover = setting(new BooleanSetting("require-hover", "Require Hover", true));
     private final BooleanSetting onlyPlayerInventory = setting(new BooleanSetting("player-inventory-only", "Player Inventory Only", true));
     public HoverTotemModule() { super("hover-totem", "Hover Totem", Category.COMBAT); }
-    @Override protected void onTick(Minecraft client) {
-        if (client.player == null || client.gameMode == null) return;
-        if (!(client.screen instanceof InventoryScreen screen)) {
-            if (autoOpenInventory.enabled() && !client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING) && hasTotem(client)) client.setScreen(new InventoryScreen(client.player));
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.player == null || client.interactionManager == null) return;
+        if (!(client.currentScreen instanceof InventoryScreen screen)) {
+            if (autoOpenInventory.enabled() && !client.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING) && hasTotem(client)) client.setScreen(new InventoryScreen(client.player));
             return;
         }
         Slot hovered = null;
         if (screen instanceof HandledScreenAccessor accessor) hovered = accessor.arson$getHoveredSlot();
-        if (hovered == null || !hovered.hasItem()) return;
-        if (onlyPlayerInventory.enabled() && hovered.getContainerSlot() > 35) return;
-        if (!hovered.getItem().is(Items.TOTEM_OF_UNDYING)) return;
+        if (!requireHover.enabled()) {
+            if (hovered == null || !hovered.hasStack() || !hovered.getStack().isOf(Items.TOTEM_OF_UNDYING)) {
+                hovered = null;
+                for (Slot slot : screen.getScreenHandler().slots) {
+                    if (slot.getIndex() >= 0 && slot.getIndex() <= 35
+                            && slot.hasStack() && slot.getStack().isOf(Items.TOTEM_OF_UNDYING)) {
+                        hovered = slot;
+                        break;
+                    }
+                }
+            }
+        }
+        if (hovered == null || !hovered.hasStack()) return;
+        if (onlyPlayerInventory.enabled() && hovered.getIndex() > 35) return;
+        if (!hovered.getStack().isOf(Items.TOTEM_OF_UNDYING)) return;
         int hotbarIndex = hotbarSlot.get().intValue() - 1;
         if (autoSwitch.enabled()) client.player.getInventory().setSelectedSlot(hotbarIndex);
-        int syncId = screen.getMenu().containerId;
-        int source = hovered.getContainerSlot();
-        if (replaceOffhand.enabled() && !client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING)) { client.gameMode.handleInventoryMouseClick(syncId, source, 40, ClickType.SWAP, client.player); return; }
-        if (hotbarTotem.enabled() && !client.player.getInventory().getItem(hotbarIndex).is(Items.TOTEM_OF_UNDYING)) client.gameMode.handleInventoryMouseClick(syncId, source, hotbarIndex, ClickType.SWAP, client.player);
+        int syncId = screen.getScreenHandler().syncId;
+        int source = hovered.getIndex();
+        if (replaceOffhand.enabled() && !client.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING)) { client.interactionManager.clickSlot(syncId, source, 40, SlotActionType.SWAP, client.player); return; }
+        if (hotbarTotem.enabled() && !client.player.getInventory().getStack(hotbarIndex).isOf(Items.TOTEM_OF_UNDYING)) client.interactionManager.clickSlot(syncId, source, hotbarIndex, SlotActionType.SWAP, client.player);
     }
-    private boolean hasTotem(Minecraft client) { for (int i = 0; i < 36; i++) if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) return true; return false; }
+    private boolean hasTotem(MinecraftClient client) { for (int i = 0; i < 36; i++) if (client.player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) return true; return false; }
 }

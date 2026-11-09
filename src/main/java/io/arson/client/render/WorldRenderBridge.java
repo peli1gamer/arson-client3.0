@@ -4,13 +4,16 @@ import io.arson.client.context.FeatureContext;
 import io.arson.client.platform.FeatureContextAdapter;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Single integration point between Arson's render pipeline and Fabric's world renderer. */
 public final class WorldRenderBridge {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Arson/WorldRender");
     private final List<WorldRenderStage> stages = new ArrayList<>();
     private final FeatureContext featureContext;
     private final FeatureContextAdapter contextAdapter;
@@ -20,7 +23,7 @@ public final class WorldRenderBridge {
 
     public WorldRenderBridge() { this(new FeatureContext(), null); }
     public WorldRenderBridge(FeatureContext featureContext, FeatureContextAdapter contextAdapter) {
-        this(featureContext, contextAdapter, () -> Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true));
+        this(featureContext, contextAdapter, () -> MinecraftClient.getInstance().getRenderTickCounter().getTickProgress(true));
     }
     WorldRenderBridge(FeatureContext featureContext, FeatureContextAdapter contextAdapter, Supplier<Float> partialTickSource) {
         this.featureContext = featureContext;
@@ -32,8 +35,21 @@ public final class WorldRenderBridge {
         if (registered) return;
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             frame++;
-            if (contextAdapter != null) contextAdapter.render(featureContext, frame, partialTick());
-            for (WorldRenderStage stage : stages) stage.render(context);
+            if (contextAdapter != null) {
+                try {
+                    contextAdapter.render(featureContext, frame, partialTick());
+                } catch (RuntimeException exception) {
+                    LOGGER.error("Feature context render adapter failed; continuing with world stages.", exception);
+                }
+            }
+            for (WorldRenderStage stage : List.copyOf(stages)) {
+                try {
+                    stage.render(context);
+                } catch (RuntimeException exception) {
+                    LOGGER.error("World render stage {} failed; continuing with remaining stages.",
+                            stage.getClass().getSimpleName(), exception);
+                }
+            }
         });
         registered = true;
     }

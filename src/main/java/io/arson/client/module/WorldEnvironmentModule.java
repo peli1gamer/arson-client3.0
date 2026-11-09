@@ -1,8 +1,8 @@
 package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.level.LightLayer;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.world.LightType;
 
 /** Tracks local dimension, biome, weather, difficulty, chunk, and light information for HUDs. */
 public final class WorldEnvironmentModule extends Module {
@@ -24,8 +24,8 @@ public final class WorldEnvironmentModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
-        if (client.level == null || client.player == null) {
+    protected void onTick(MinecraftClient client) {
+        if (client.world == null || client.player == null) {
             dimension = "unknown";
             biome = "unknown";
             weatherState = "unknown";
@@ -34,17 +34,17 @@ public final class WorldEnvironmentModule extends Module {
             blockLight = 0;
             return;
         }
-        var pos = client.player.blockPosition();
-        dimension = client.level.dimension().toString();
-        var holder = client.level.getBiome(pos);
-        biome = holder.unwrapKey()
-                .map(key -> key.identifier().toString())
+        var pos = client.player.getBlockPos();
+        dimension = client.world.getRegistryKey().toString();
+        var holder = client.world.getBiome(pos);
+        biome = holder.getKey()
+                .map(key -> key.getValue().toString())
                 .orElse("unknown");
-        weatherState = client.level.isThundering() ? "Thunder" : client.level.isRaining() ? "Rain" : "Clear";
-        difficultyName = client.level.getDifficulty().toString();
+        weatherState = client.world.isThundering() ? "Thunder" : client.world.isRaining() ? "Rain" : "Clear";
+        difficultyName = client.world.getDifficulty().toString();
         chunkX = pos.getX() >> 4;
         chunkZ = pos.getZ() >> 4;
-        blockLight = client.level.getBrightness(LightLayer.BLOCK, pos);
+        blockLight = client.world.getLightLevel(LightType.BLOCK, pos);
     }
 
     public String dimension() { return dimension; }

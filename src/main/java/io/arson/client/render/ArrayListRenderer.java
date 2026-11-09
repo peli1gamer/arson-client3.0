@@ -3,16 +3,15 @@ package io.arson.client.render;
 import io.arson.client.ArsonClient;
 import io.arson.client.module.ArrayListModule;
 import io.arson.client.module.Module;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderTickCounter;
 
 /** HUD renderer for the enabled-module array list. */
 public final class ArrayListRenderer {
@@ -21,9 +20,9 @@ public final class ArrayListRenderer {
 
     private ArrayListRenderer() {}
 
-    public static void render(GuiGraphics graphics, DeltaTracker tickCounter) {
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.level == null) return;
+    public static void render(DrawContext graphics, RenderTickCounter tickCounter) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null) return;
         ArrayListModule module = (ArrayListModule) ArsonClient.getInstance().modules().get("array-list");
         if (module == null || !module.enabled()) return;
 
@@ -31,43 +30,30 @@ public final class ArrayListRenderer {
         float deltaSeconds = Math.min(0.1f, Math.max(0.0f, (now - lastFrameNanos) / 1_000_000_000.0f));
         lastFrameNanos = now;
 
-        List<Module> all = new ArrayList<>();
         for (Module candidate : ArsonClient.getInstance().modules().all()) {
-            if (!candidate.id().equals("array-list")) all.add(candidate);
-        }
-
-        for (Module candidate : all) {
+            if (candidate.id().equals("array-list")) continue;
             float target = candidate.enabled() ? 1.0f : 0.0f;
             float current = ANIMATION.getOrDefault(candidate.id(), target);
             if (!module.animation()) {
                 current = target;
             } else {
-                float speed = 7.0f * module.animationSpeed();
-                float step = Math.min(1.0f, deltaSeconds * speed);
-                current += (target - current) * step;
-                if (Math.abs(target - current) < 0.01f) current = target;
+                current = advanceAnimation(current, target, deltaSeconds, 7.0f * module.animationSpeed());
             }
             ANIMATION.put(candidate.id(), current);
         }
 
-        all.removeIf(candidate -> ANIMATION.getOrDefault(candidate.id(), 0.0f) <= 0.01f);
-        all.sort(Comparator
-                .comparingInt((Module value) -> client.font.width(label(value, module)))
-                .reversed()
-                .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
-        if (all.size() > module.maxModules()) all = all.subList(0, module.maxModules());
-        int viewportW=client.getWindow().getGuiScaledWidth(), viewportH=client.getWindow().getGuiScaledHeight();
-        int maxVisible=Math.max(1,(int)Math.floor(Math.max(1,viewportH-12)/(double)Math.max(1,module.spacing())));
-        if(all.size()>maxVisible) all=all.subList(0,maxVisible);
-        int maxWidth=1; for(Module candidate:all) maxWidth=Math.max(maxWidth,client.font.width(label(candidate,module)));
-        double renderScale=module.scale();
-        if(maxWidth>0) renderScale=Math.min(renderScale,(viewportW-12.0)/maxWidth);
-        if(!all.isEmpty()) renderScale=Math.min(renderScale,(viewportH-12.0)/(all.size()*module.spacing()+module.padding()*2.0));
-        renderScale=Math.max(0.05,renderScale);
+        int viewportW = client.getWindow().getScaledWidth();
+        int viewportH = client.getWindow().getScaledHeight();
+        List<Module> all = visibleModules(client, module);
+        int maxWidth = 1;
+        for (Module candidate : all) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(label(candidate, module)));
+        int visiblePadding = module.background() ? module.padding() : 0;
+        double renderScale = fitScale(module.scale(), maxWidth, all.size(), viewportW, viewportH,
+                module.spacing(), visiblePadding);
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
-        graphics.pose().scale((float)renderScale, (float)renderScale);
+        graphics.getMatrices().pushMatrix();
+        graphics.getMatrices().translate(module.rightAlign() ? viewportW - module.x() : module.x(), module.y());
+        graphics.getMatrices().scale((float)renderScale, (float)renderScale);
 
         int line = module.spacing();
         int padding = module.padding();
@@ -75,7 +61,7 @@ public final class ArrayListRenderer {
             Module candidate = all.get(i);
             float progress = ANIMATION.getOrDefault(candidate.id(), 0.0f);
             String text = label(candidate, module);
-            int width = client.font.width(text);
+            int width = client.textRenderer.getWidth(text);
             int baseX = module.rightAlign() ? -width : 0;
             int slide = Math.round((1.0f - progress) * 12.0f);
             int x = module.rightAlign() ? baseX + slide : baseX - slide;
@@ -87,11 +73,82 @@ public final class ArrayListRenderer {
             }
 
             int color = module.categoryColors() ? module.colorFor(candidate.category()) : module.textColor();
-            graphics.drawString(client.font, text, x, top, applyAlpha(color, progress), module.shadow());
+            graphics.drawText(client.textRenderer, text, x, top, applyAlpha(color, progress), module.shadow());
         }
-        graphics.pose().popMatrix();
+        graphics.getMatrices().popMatrix();
 
         cleanupAnimationState(all);
+    }
+
+    /** Measures the exact rows and fitted scale used by the renderer for HUD collision layout. */
+    static int[] estimateBounds(MinecraftClient client, ArrayListModule module) {
+        if (client == null || module == null || !module.enabled()) return new int[]{1, 1};
+        int viewportW = client.getWindow().getScaledWidth();
+        int viewportH = client.getWindow().getScaledHeight();
+        List<Module> visible = visibleModules(client, module);
+        if (visible.isEmpty()) return new int[]{1, 1};
+        int maxWidth = 1;
+        for (Module candidate : visible) maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(label(candidate, module)));
+        int visiblePadding = module.background() ? module.padding() : 0;
+        double scale = fitScale(module.scale(), maxWidth, visible.size(), viewportW, viewportH,
+                module.spacing(), visiblePadding);
+        return new int[]{
+                Math.max(1, (int) Math.ceil((maxWidth + visiblePadding * 2.0) * scale)),
+                Math.max(1, (int) Math.ceil((visible.size() * module.spacing() + visiblePadding * 2.0) * scale))
+        };
+    }
+
+    private static List<Module> visibleModules(MinecraftClient client, ArrayListModule module) {
+        List<Module> visible = new ArrayList<>();
+        for (Module candidate : ArsonClient.getInstance().modules().all()) {
+            if (!candidate.id().equals("array-list")
+                    && ANIMATION.getOrDefault(candidate.id(), candidate.enabled() ? 1.0f : 0.0f) > 0.01f) {
+                visible.add(candidate);
+            }
+        }
+        visible.sort(Comparator
+                .comparingInt((Module value) -> client.textRenderer.getWidth(label(value, module)))
+                .reversed()
+                .thenComparing(Module::name, String.CASE_INSENSITIVE_ORDER));
+        if (visible.size() > module.maxModules()) visible = new ArrayList<>(visible.subList(0, module.maxModules()));
+        int viewportH = client.getWindow().getScaledHeight();
+        int maxVisible = Math.max(1, (int) Math.floor(Math.max(1, viewportH - 12)
+                / (double) Math.max(1, module.spacing())));
+        if (visible.size() > maxVisible) visible = new ArrayList<>(visible.subList(0, maxVisible));
+        return visible;
+    }
+
+    static float fitScale(double configuredScale, int maxWidth, int rowCount,
+                          int viewportWidth, int viewportHeight, int spacing, int padding) {
+        double scale = Math.max(0.05, configuredScale);
+        if (maxWidth > 0) {
+            scale = Math.min(scale, (Math.max(1, viewportWidth - 12.0))
+                    / Math.max(1.0, maxWidth + padding * 2.0));
+        }
+        if (rowCount > 0) {
+            scale = Math.min(scale, (Math.max(1, viewportHeight - 12.0))
+                    / Math.max(1.0, rowCount * spacing + padding * 2.0));
+        }
+        return (float) Math.max(0.05, scale);
+    }
+
+    /**
+     * Advances a HUD row with exponential smoothing, matching the frame-rate-independent
+     * animation approach used by Anubis while retaining Arson's configurable speed.
+     */
+    static float advanceAnimation(float current, float target, float deltaSeconds, float speed) {
+        if (!Float.isFinite(target)) target = 0.0f;
+        target = Math.max(0.0f, Math.min(1.0f, target));
+        if (!Float.isFinite(current)) current = target;
+        current = Math.max(0.0f, Math.min(1.0f, current));
+        if (!Float.isFinite(deltaSeconds) || !Float.isFinite(speed)) return current;
+
+        float delta = Math.max(0.0f, Math.min(0.1f, deltaSeconds));
+        float rate = Math.max(0.0f, speed);
+        float blend = 1.0f - (float) Math.exp(-rate * delta);
+        float next = current + (target - current) * blend;
+        if (Math.abs(target - next) < 0.01f) next = target;
+        return Math.max(0.0f, Math.min(1.0f, next));
     }
 
     private static void cleanupAnimationState(List<Module> rendered) {

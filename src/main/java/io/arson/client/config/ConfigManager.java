@@ -5,14 +5,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.arson.client.module.Module;
 import io.arson.client.module.ModuleManager;
-import io.arson.client.settings.BooleanSetting;
-import io.arson.client.settings.ColorSetting;
-import io.arson.client.settings.DoubleSetting;
-import io.arson.client.settings.EnumSetting;
-import io.arson.client.settings.Setting;
-import io.arson.client.settings.StringSetting;
-import net.minecraft.client.Minecraft;
-
+import meteordevelopment.meteorclient.utils.misc.Keybind;
+import org.lwjgl.glfw.GLFW;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,27 +14,34 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.MinecraftClient;
 
 public final class ConfigManager {
     private static final String FILE_NAME = "arson-v3.json";
     private static final String PROFILE_DIRECTORY = "arson-v3-profiles";
-    private static final int CONFIG_VERSION = 4;
+    private static final int CONFIG_VERSION = 5;
     private ConfigManager() {}
-    public static void load(Minecraft client, ModuleManager modules) { loadFromPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static void save(Minecraft client, ModuleManager modules) { saveToPath(client.gameDirectory.toPath().resolve("config").resolve(FILE_NAME), modules); }
-    public static boolean saveProfile(Minecraft client, ModuleManager modules, String profileName) {
+    static Path resolveConfigPath(MinecraftClient client, java.io.File folder) {
+        Path directory = folder == null
+                ? client.runDirectory.toPath().resolve("config")
+                : folder.toPath();
+        return directory.resolve(FILE_NAME);
+    }
+    public static void load(MinecraftClient client, ModuleManager modules) { loadFromPath(resolveConfigPath(client, null), modules); }
+    public static void save(MinecraftClient client, ModuleManager modules) { saveToPath(resolveConfigPath(client, null), modules); }
+    public static boolean saveProfile(MinecraftClient client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
-        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+        Path directory = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         return saveToPath(directory.resolve(safeName + ".json"), modules);
     }
-    public static boolean loadProfile(Minecraft client, ModuleManager modules, String profileName) {
+    public static boolean loadProfile(MinecraftClient client, ModuleManager modules, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
-        Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
+        Path path = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         if (!loadFromPath(path, modules)) return false;
         save(client, modules); return true;
     }
-    public static List<String> listProfiles(Minecraft client) {
-        Path directory = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
+    public static List<String> listProfiles(MinecraftClient client) {
+        Path directory = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY);
         if (!Files.isDirectory(directory)) return List.of();
         ArrayList<String> result = new ArrayList<>();
         try (var stream = Files.list(directory)) {
@@ -50,9 +51,9 @@ public final class ConfigManager {
         } catch (IOException ignored) {}
         return List.copyOf(result);
     }
-    public static boolean deleteProfile(Minecraft client, String profileName) {
+    public static boolean deleteProfile(MinecraftClient client, String profileName) {
         String safeName = sanitizeProfileName(profileName); if (safeName.isEmpty()) return false;
-        Path path = client.gameDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
+        Path path = client.runDirectory.toPath().resolve("config").resolve(PROFILE_DIRECTORY).resolve(safeName + ".json");
         try { return Files.deleteIfExists(path); } catch (IOException ignored) { return false; }
     }
     static boolean loadFromPath(Path path, ModuleManager modules) {
@@ -64,26 +65,84 @@ public final class ConfigManager {
             if (readVersion(root) > CONFIG_VERSION) return false;
             JsonObject moduleRoot = root.has("modules") && root.get("modules").isJsonObject() ? root.getAsJsonObject("modules") : new JsonObject();
             migrateLegacyLayout(root, moduleRoot, modules);
+            if (!validateModuleData(moduleRoot, modules)) return false;
             for (Module module : modules.all()) {
                 if (!moduleRoot.has(module.id()) || !moduleRoot.get(module.id()).isJsonObject()) continue;
                 JsonObject data = moduleRoot.getAsJsonObject(module.id());
                 if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) module.setEnabled(data.get("enabled").getAsBoolean());
                 if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) module.setFavorite(data.get("favorite").getAsBoolean());
-                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
+                if (data.has("toggleOnBindRelease") && data.get("toggleOnBindRelease").isJsonPrimitive())
+                    module.toggleOnBindRelease = data.get("toggleOnBindRelease").getAsBoolean();
+                if (data.has("chatFeedback") && data.get("chatFeedback").isJsonPrimitive())
+                    module.chatFeedback = data.get("chatFeedback").getAsBoolean();
+                if (data.has("keybind") && data.get("keybind").isJsonObject()) {
+                    JsonObject bind = data.getAsJsonObject("keybind");
+                    boolean isKey = !bind.has("isKey") || bind.get("isKey").getAsBoolean();
+                    int value = bind.has("value") ? bind.get("value").getAsInt() : GLFW.GLFW_KEY_UNKNOWN;
+                    int modifiers = bind.has("modifiers") ? bind.get("modifiers").getAsInt() : 0;
+                    module.setKeybind(isKey ? Keybind.fromKeys(value, modifiers) : Keybind.fromButton(value));
+                } else if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) module.setKeyCode(data.get("keyCode").getAsInt());
                 JsonObject settings = data.has("settings") && data.get("settings").isJsonObject() ? data.getAsJsonObject("settings") : new JsonObject();
-                for (Setting<?> setting : module.settings()) {
-                    JsonElement value = settings.get(setting.id()); if (value == null || !value.isJsonPrimitive()) continue;
-                    try {
-                        if (setting instanceof BooleanSetting bool) bool.set(value.getAsBoolean());
-                        else if (setting instanceof DoubleSetting number) number.set(value.getAsDouble());
-                        else if (setting instanceof ColorSetting color) color.set(value.getAsInt());
-                        else if (setting instanceof StringSetting text) text.set(value.getAsString());
-                        else if (setting instanceof EnumSetting<?> select) setEnum(select, value.getAsString());
-                    } catch (RuntimeException ignored) {}
+                for (meteordevelopment.meteorclient.settings.Setting<?> setting : allSettings(module)) {
+                    JsonElement value = settings.get(setting.getId());
+                    if (value == null || !value.isJsonPrimitive()) continue;
+                    applySettingValue(setting, value);
+                }
+                JsonElement groupsRaw = data.get("settingGroups");
+                if (groupsRaw != null && groupsRaw.isJsonObject()) {
+                    JsonObject groups = groupsRaw.getAsJsonObject();
+                    for (var entry : groups.entrySet()) {
+                        meteordevelopment.meteorclient.settings.SettingGroup group = module.settings.getGroup(entry.getKey());
+                        if (group != null) group.sectionExpanded = entry.getValue().getAsBoolean();
+                    }
                 }
             }
             return true;
         } catch (Exception ignored) { return false; }
+    }
+
+    /** Validate every value that can fail conversion before mutating live module state. */
+    private static boolean validateModuleData(JsonObject moduleRoot, ModuleManager modules) {
+        try {
+            for (Module module : modules.all()) {
+                JsonElement raw = moduleRoot.get(module.id());
+                if (raw == null || !raw.isJsonObject()) continue;
+                JsonObject data = raw.getAsJsonObject();
+                if (data.has("enabled") && data.get("enabled").isJsonPrimitive()) data.get("enabled").getAsBoolean();
+                if (data.has("favorite") && data.get("favorite").isJsonPrimitive()) data.get("favorite").getAsBoolean();
+                if (data.has("toggleOnBindRelease") && data.get("toggleOnBindRelease").isJsonPrimitive())
+                    data.get("toggleOnBindRelease").getAsBoolean();
+                if (data.has("chatFeedback") && data.get("chatFeedback").isJsonPrimitive())
+                    data.get("chatFeedback").getAsBoolean();
+                if (data.has("keybind") && data.get("keybind").isJsonObject()) {
+                    JsonObject bind = data.getAsJsonObject("keybind");
+                    if (bind.has("isKey")) bind.get("isKey").getAsBoolean();
+                    if (bind.has("value")) bind.get("value").getAsInt();
+                    if (bind.has("modifiers")) bind.get("modifiers").getAsInt();
+                }
+                if (data.has("keyCode") && data.get("keyCode").isJsonPrimitive()) data.get("keyCode").getAsInt();
+                JsonElement settingsRaw = data.get("settings");
+                if (settingsRaw != null && settingsRaw.isJsonObject()) {
+                    JsonObject settings = settingsRaw.getAsJsonObject();
+                    for (meteordevelopment.meteorclient.settings.Setting<?> setting : allSettings(module)) {
+                        JsonElement value = settings.get(setting.getId());
+                        if (value != null && value.isJsonPrimitive()) validateSettingValue(setting, value);
+                    }
+                }
+                JsonElement groupsRaw = data.get("settingGroups");
+                if (groupsRaw != null) {
+                    if (!groupsRaw.isJsonObject()) return false;
+                    for (var entry : groupsRaw.getAsJsonObject().entrySet()) {
+                        JsonElement expanded = entry.getValue();
+                        if (!expanded.isJsonPrimitive()) return false;
+                        expanded.getAsBoolean();
+                    }
+                }
+            }
+            return true;
+        } catch (RuntimeException malformedValue) {
+            return false;
+        }
     }
 
     /** Migrates pre-v4 HUD layout objects into the persistent hud-layout module settings. */
@@ -102,29 +161,82 @@ public final class ConfigManager {
             JsonElement raw = elements.get(element);
             if (raw == null || !raw.isJsonObject()) continue;
             JsonObject value = raw.getAsJsonObject();
-            JsonObject settings = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout").getAsJsonObject("settings") : new JsonObject();
+            JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
+                    ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
+            JsonElement existingSettings = moduleData.get("settings");
+            JsonObject settings = existingSettings != null && existingSettings.isJsonObject()
+                    ? existingSettings.getAsJsonObject() : new JsonObject();
             if (settings.has(element + "-x") || settings.has(element + "-y") || settings.has(element + "-anchor")) continue;
             if (value.has("x") && value.get("x").isJsonPrimitive()) settings.addProperty(element + "-x", value.get("x").getAsDouble());
             if (value.has("y") && value.get("y").isJsonPrimitive()) settings.addProperty(element + "-y", value.get("y").getAsDouble());
             if (value.has("anchor") && value.get("anchor").isJsonPrimitive()) settings.addProperty(element + "-anchor", value.get("anchor").getAsString());
-            JsonObject moduleData = moduleRoot.has("hud-layout") && moduleRoot.get("hud-layout").isJsonObject()
-                    ? moduleRoot.getAsJsonObject("hud-layout") : new JsonObject();
             moduleData.add("settings", settings);
             moduleRoot.add("hud-layout", moduleData);
         }
     }
-    private static void setEnum(EnumSetting<?> setting, String value) { for (Enum<?> candidate : setting.values()) if (candidate.name().equalsIgnoreCase(value)) { setEnumUnchecked(setting, candidate); return; } }
-    @SuppressWarnings({"rawtypes", "unchecked"}) private static void setEnumUnchecked(EnumSetting setting, Enum value) { setting.set(value); }
+    /** Flattens Meteor's setting groups for the JSON config adapter. */
+    private static List<meteordevelopment.meteorclient.settings.Setting<?>> allSettings(Module module) {
+        ArrayList<meteordevelopment.meteorclient.settings.Setting<?>> result = new ArrayList<>();
+        for (meteordevelopment.meteorclient.settings.SettingGroup group : module.settings) {
+            for (meteordevelopment.meteorclient.settings.Setting<?> setting : group) result.add(setting);
+        }
+        return result;
+    }
+
+    private static void validateSettingValue(meteordevelopment.meteorclient.settings.Setting<?> setting, JsonElement value) {
+        Object fallback = setting.getDefaultValue();
+        if (fallback instanceof Boolean) value.getAsBoolean();
+        else if (fallback instanceof Integer || fallback instanceof Short || fallback instanceof Byte) value.getAsInt();
+        else if (fallback instanceof Long) value.getAsLong();
+        else if (fallback instanceof Float) value.getAsFloat();
+        else if (fallback instanceof Double) value.getAsDouble();
+        else if (fallback instanceof String || fallback instanceof Enum<?>) value.getAsString();
+    }
+
+    private static void applySettingValue(meteordevelopment.meteorclient.settings.Setting<?> setting, JsonElement value) {
+        Object fallback = setting.getDefaultValue();
+        if (fallback instanceof Boolean) setSettingUnchecked(setting, value.getAsBoolean());
+        else if (fallback instanceof Integer || fallback instanceof Short || fallback instanceof Byte) setSettingUnchecked(setting, value.getAsInt());
+        else if (fallback instanceof Long) setSettingUnchecked(setting, value.getAsLong());
+        else if (fallback instanceof Float) setSettingUnchecked(setting, value.getAsFloat());
+        else if (fallback instanceof Double) setSettingUnchecked(setting, value.getAsDouble());
+        else if (fallback instanceof String) setSettingUnchecked(setting, value.getAsString());
+        else if (fallback instanceof Enum<?> enumeration) {
+            String requested = value.getAsString();
+            for (Object candidate : enumeration.getDeclaringClass().getEnumConstants()) {
+                Enum<?> option = (Enum<?>) candidate;
+                if (option.name().equalsIgnoreCase(requested) || option.toString().equalsIgnoreCase(requested)) {
+                    setSettingUnchecked(setting, option);
+                    break;
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void setSettingUnchecked(meteordevelopment.meteorclient.settings.Setting setting, Object value) {
+        setting.set(value);
+    }
     private static int readVersion(JsonObject root) { try { JsonElement value = root.get("version"); return value != null && value.isJsonPrimitive() ? value.getAsInt() : 1; } catch (RuntimeException ignored) { return 1; } }
     static boolean saveToPath(Path path, ModuleManager modules) {
         Path directory = path.getParent(); if (directory == null) return false;
         Path tempPath = path.resolveSibling(path.getFileName() + ".tmp"), backupPath = path.resolveSibling(path.getFileName() + ".bak");
         JsonObject root = new JsonObject(); root.addProperty("version", CONFIG_VERSION); JsonObject moduleRoot = new JsonObject(); root.add("modules", moduleRoot);
         for (Module module : modules.all()) {
-            JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("keyCode", module.keyCode()); JsonObject settings = new JsonObject();
-            for (Setting<?> setting : module.settings()) { Object value = setting.get(); if (value instanceof Boolean bool) settings.addProperty(setting.id(), bool); else if (value instanceof Number number) settings.addProperty(setting.id(), number); else if (value instanceof String text) settings.addProperty(setting.id(), text); else if (value instanceof Enum<?> select) settings.addProperty(setting.id(), select.name()); }
-            data.add("settings", settings); moduleRoot.add(module.id(), data);
+            JsonObject data = new JsonObject(); data.addProperty("enabled", module.enabled()); data.addProperty("favorite", module.favorite()); data.addProperty("toggleOnBindRelease", module.toggleOnBindRelease); data.addProperty("chatFeedback", module.chatFeedback); data.addProperty("keyCode", module.keyCode()); JsonObject bind = new JsonObject(); bind.addProperty("isKey", module.keybind().isKey()); bind.addProperty("value", module.keybind().getValue()); bind.addProperty("modifiers", module.keybind().getModifiers()); data.add("keybind", bind); JsonObject settings = new JsonObject();
+            for (meteordevelopment.meteorclient.settings.Setting<?> setting : allSettings(module)) {
+                Object value = setting.get();
+                String id = setting.getId();
+                if (value instanceof Boolean bool) settings.addProperty(id, bool);
+                else if (value instanceof Number number) settings.addProperty(id, number);
+                else if (value instanceof String text) settings.addProperty(id, text);
+                else if (value instanceof Enum<?> select) settings.addProperty(id, select.name());
+            }
+            JsonObject groups = new JsonObject();
+            for (meteordevelopment.meteorclient.settings.SettingGroup group : module.settings) groups.addProperty(group.getId(), group.sectionExpanded);
+            data.add("settings", settings);
+            data.add("settingGroups", groups);
+            moduleRoot.add(module.id(), data);
         }
         try {
             Files.createDirectories(directory); Files.writeString(tempPath, root.toString(), StandardCharsets.UTF_8);

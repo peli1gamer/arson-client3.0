@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks the local player's horizontal facing direction for HUD presentation. */
 public final class PlayerDirectionModule extends Module {
@@ -13,9 +13,9 @@ public final class PlayerDirectionModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
+    protected void onTick(MinecraftClient client) {
         if (client.player == null) return;
-        yaw = client.player.getYRot();
+        yaw = client.player.getYaw();
         direction = cardinal(yaw);
     }
 

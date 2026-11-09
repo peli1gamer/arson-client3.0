@@ -1,15 +1,15 @@
 package io.arson.client.module;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 /** Tracks live render frame timing and window state for diagnostics. */
 public final class RenderFrameInfoModule extends Module {
  private int fps; private long frameTimeNanos; private boolean focused;
  public RenderFrameInfoModule(){super("render-frame-info","Render Frame Info",Category.RENDER,"Tracks live FPS, frame timing, and window focus for HUD and render diagnostics.");}
- @Override protected void onTick(Minecraft client){
-     fps=client.getFps();
+ @Override protected void onTick(MinecraftClient client){
+     fps=client.getCurrentFps();
      var window=client.getWindow();
      if(window==null){focused=false;frameTimeNanos=frameTimeNanosForFps(fps);return;}
-     focused=GLFW.glfwGetWindowAttrib(window.handle(), GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
+     focused=GLFW.glfwGetWindowAttrib(window.getHandle(), GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
      frameTimeNanos=frameTimeNanosForFps(fps);
  }
  static long frameTimeNanosForFps(int fps){return fps>0?1_000_000_000L/fps:0;}

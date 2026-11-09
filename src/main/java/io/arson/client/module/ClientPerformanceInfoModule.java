@@ -1,7 +1,7 @@
 package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Live client-side performance/runtime telemetry for HUD and API consumers. */
 public final class ClientPerformanceInfoModule extends Module {
@@ -18,8 +18,8 @@ public final class ClientPerformanceInfoModule extends Module {
     }
 
     @Override
-    protected void onTick(Minecraft client) {
-        fps = client.getFps();
+    protected void onTick(MinecraftClient client) {
+        fps = client.getCurrentFps();
         Runtime runtime = Runtime.getRuntime();
         usedMemoryMb = Math.max(0L, (runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L));
         maxMemoryMb = Math.max(0L, runtime.maxMemory() / (1024L * 1024L));

@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks local world clock/weather state for presentation integrations. */
 public final class WorldClockModule extends Module {
@@ -13,16 +13,16 @@ public final class WorldClockModule extends Module {
                 "Tracks local world time and weather for HUD and addon integrations; it never modifies the world.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null) {
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null) {
             dayTime = 0;
             raining = false;
             thundering = false;
             return;
         }
-        dayTime = Math.floorMod(client.level.getDayTime(), 24000L);
-        raining = client.level.isRaining();
-        thundering = client.level.isThundering();
+        dayTime = Math.floorMod(client.world.getTimeOfDay(), 24000L);
+        raining = client.world.isRaining();
+        thundering = client.world.isThundering();
     }
 
     public long dayTime() { return dayTime; }

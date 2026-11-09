@@ -1,6 +1,6 @@
 package io.arson.client.module;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 /** Tracks live world bounds and spawn information for HUD and addon presentation. */
 public final class WorldPositionInfoModule extends Module {
@@ -17,19 +17,19 @@ public final class WorldPositionInfoModule extends Module {
                 "Tracks live world build bounds, world border size, spawn position, and difficulty without changing world state.");
     }
 
-    @Override protected void onTick(Minecraft client) {
-        if (client.level == null) {
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.world == null) {
             minBuildHeight = maxBuildHeight = 0;
             borderDiameter = 0;
             spawnX = spawnY = spawnZ = 0;
             difficulty = "unknown";
             return;
         }
-        var level = client.level;
-        minBuildHeight = level.dimensionType().minY();
-        maxBuildHeight = minBuildHeight + level.dimensionType().height();
+        var level = client.world;
+        minBuildHeight = level.getDimension().minY();
+        maxBuildHeight = minBuildHeight + level.getDimension().height();
         borderDiameter = level.getWorldBorder().getSize();
-        var localSpawn = client.player == null ? net.minecraft.core.BlockPos.ZERO : client.player.blockPosition();
+        var localSpawn = client.player == null ? net.minecraft.util.math.BlockPos.ORIGIN : client.player.getBlockPos();
         spawnX = localSpawn.getX();
         spawnY = localSpawn.getY();
         spawnZ = localSpawn.getZ();

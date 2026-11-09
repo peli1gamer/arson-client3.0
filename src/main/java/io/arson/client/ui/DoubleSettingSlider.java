@@ -1,27 +1,27 @@
 package io.arson.client.ui;
 
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.gui.components.AbstractSliderButton;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Locale;
+import net.minecraft.client.gui.widget.SliderWidget;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.text.Text;
 
 /** Step-aware 1.21.11 slider with mouse drag plus keyboard fallback. */
-public final class DoubleSettingSlider extends AbstractSliderButton {
+public final class DoubleSettingSlider extends SliderWidget {
     private final DoubleSetting setting;
     private final Runnable changed;
 
     public DoubleSettingSlider(int x, int y, int width, int height, DoubleSetting setting, Runnable changed) {
-        super(x, y, width, height, Component.empty(), setting.normalized());
+        super(x, y, width, height, Text.empty(), setting.normalized());
         this.setting = setting;
         this.changed = changed;
         updateMessage();
     }
 
     @Override protected void updateMessage() {
-        setMessage(Component.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", setting.get())));
+        setMessage(Text.literal(setting.name() + ": " + String.format(Locale.ROOT, "%.2f", setting.get())));
     }
 
     @Override protected void applyValue() {
@@ -32,7 +32,7 @@ public final class DoubleSettingSlider extends AbstractSliderButton {
         changed.run();
     }
 
-    @Override public boolean keyPressed(KeyEvent event) {
+    @Override public boolean keyPressed(KeyInput event) {
         double next = setting.get();
         switch (event.key()) {
             case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_DOWN -> next -= setting.step();

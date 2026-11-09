@@ -12,7 +12,9 @@ public final class HudModule extends Module {
     private final BooleanSetting watermark = setting(new BooleanSetting("watermark", "Watermark", true));
     private final StringSetting watermarkText = setting(new StringSetting("watermark-text", "Watermark Text", "Arson V3", 32));
     private final BooleanSetting coordinates = setting(new BooleanSetting("coordinates", "Coordinates", true));
+    private final BooleanSetting netherCoordinates = setting(new BooleanSetting("nether-coordinates", "Nether Coordinates", true));
     private final BooleanSetting fps = setting(new BooleanSetting("fps", "FPS", true));
+    private final BooleanSetting ping = setting(new BooleanSetting("ping", "Ping", true));
     private final BooleanSetting playerInfo = setting(new BooleanSetting("player-info", "Player Info Element", true));
     private final BooleanSetting worldInfo = setting(new BooleanSetting("world-info", "World Info Element", true));
     private final BooleanSetting background = setting(new BooleanSetting("background", "Background", false));
@@ -65,7 +67,9 @@ public final class HudModule extends Module {
     public boolean showWatermark() { return watermark.enabled(); }
     public String watermarkText() { return watermarkText.get(); }
     public boolean showCoordinates() { return coordinates.enabled(); }
+    public boolean showNetherCoordinates() { return netherCoordinates.enabled(); }
     public boolean showFps() { return fps.enabled(); }
+    public boolean showPing() { return ping.enabled(); }
     public boolean showPlayerInfo() { return playerInfo.enabled(); }
     public boolean showWorldInfo() { return worldInfo.enabled(); }
     public boolean showBackground() { return background.enabled(); }
@@ -89,7 +93,9 @@ public final class HudModule extends Module {
     public int elementColor(String element) { return switch (element) { case "watermark" -> watermarkColor.get(); case "coordinates" -> coordinatesColor.get(); case "fps" -> fpsColor.get(); case "player-info" -> playerInfoColor.get(); case "world-info" -> worldInfoColor.get(); default -> textColor.get(); }; }
     public double elementScale(String element) { return switch (element) { case "watermark" -> watermarkScale.get(); case "coordinates" -> coordinatesScale.get(); case "fps" -> fpsScale.get(); case "player-info" -> playerInfoScale.get(); case "world-info" -> worldInfoScale.get(); default -> 1.0; }; }
     public boolean elementBackground(String element) { return switch (element) { case "watermark" -> watermarkBackground.enabled(); case "coordinates" -> coordinatesBackground.enabled(); case "fps" -> fpsBackground.enabled(); case "player-info" -> playerInfoBackground.enabled(); case "world-info" -> worldInfoBackground.enabled(); default -> false; }; }
-    public int elementBackgroundColor() { return elementBackgroundColor.get(); }
+    /** Global background enables every panel; per-element toggles also work independently. */
+    public boolean elementBackgroundVisible(String element) { return showBackground() || elementBackground(element); }
+    public int elementBackgroundColor() { return showBackground() ? backgroundColor.get() : elementBackgroundColor.get(); }
     public int padding() { return (int) Math.round(padding.get()); }
     public int lineSpacing() { return (int) Math.round(lineSpacing.get()); }
     public RowFormat rowFormat() { return rowFormat.get(); }

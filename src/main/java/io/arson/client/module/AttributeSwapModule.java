@@ -2,18 +2,18 @@ package io.arson.client.module;
 
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantment;
 import java.util.Set;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.entry.RegistryEntry;
 
 /** Unified combat weapon selector. It scans the hotbar and temporarily selects the configured weapon. */
 public final class AttributeSwapModule extends Module {
@@ -34,52 +34,52 @@ public final class AttributeSwapModule extends Module {
     private int previousSlot = -1;
     private String activeSwap = "";
     public AttributeSwapModule() { super("attribute-swap", "Attribute Swap", Category.COMBAT); }
-    @Override protected void onDisable() { restorePrevious(Minecraft.getInstance()); }
-    @Override protected void onTick(Minecraft client) {
-        if (client.player == null || client.level == null || client.screen != null) return;
+    @Override protected void onDisable() { restorePrevious(MinecraftClient.getInstance()); }
+    @Override protected void onTick(MinecraftClient client) {
+        if (client.player == null || client.world == null || client.currentScreen != null) return;
         LivingEntity target = findTarget(client);
-        boolean fallingMace = mace.enabled() && target != null && !client.player.onGround() && client.player.getDeltaMovement().y < 0.0 && client.player.fallDistance >= maceFallHeight.get() && findMaceSlot(client.player) >= 0;
+        boolean fallingMace = mace.enabled() && target != null && !client.player.isOnGround() && client.player.getVelocity().y < 0.0 && client.player.fallDistance >= maceFallHeight.get() && findMaceSlot(client.player) >= 0;
         if (fallingMace) { switchTo(client, "mace", maceSlot, true); return; }
-        if (client.options.keyAttack.isDown() && target != null) {
+        if (client.options.attackKey.isPressed() && target != null) {
             if (sword.enabled() && findWeaponSlot(client.player, "sword", swordSlot) >= 0) { switchTo(client, "sword", swordSlot, false); return; }
             if (axe.enabled() && findWeaponSlot(client.player, "axe", axeSlot) >= 0) { switchTo(client, "axe", axeSlot, false); return; }
             if (spear.enabled() && findWeaponSlot(client.player, "spear", spearSlot) >= 0) { switchTo(client, "spear", spearSlot, false); return; }
         }
-        if (!activeSwap.isEmpty() && (client.player.onGround() || !client.options.keyAttack.isDown())) restorePrevious(client);
+        if (!activeSwap.isEmpty() && (client.player.isOnGround() || !client.options.attackKey.isPressed())) restorePrevious(client);
     }
-    private LivingEntity findTarget(Minecraft client) {
+    private LivingEntity findTarget(MinecraftClient client) {
         double maxSq = range.get() * range.get();
         FriendsModule friends = clientModules(client, "friends", FriendsModule.class);
-        return client.level.getEntitiesOfClass(LivingEntity.class, client.player.getBoundingBox().inflate(range.get()), entity -> entity != client.player && entity.isAlive() && !entity.isRemoved() && client.player.distanceToSqr(entity) <= maxSq && !(entity instanceof Player player && friends != null && friends.isFriend(player)) && allowedEntity(entity)).stream().min(java.util.Comparator.comparingDouble(client.player::distanceToSqr)).orElse(null);
+        return client.world.getEntitiesByClass(LivingEntity.class, client.player.getBoundingBox().expand(range.get()), entity -> entity != client.player && entity.isAlive() && !entity.isRemoved() && client.player.squaredDistanceTo(entity) <= maxSq && !(entity instanceof PlayerEntity player && friends != null && friends.isFriend(player)) && allowedEntity(entity)).stream().min(java.util.Comparator.comparingDouble(client.player::squaredDistanceTo)).orElse(null);
     }
-    private boolean allowedEntity(LivingEntity entity) { return entity instanceof Player || entity instanceof Monster || entity instanceof Animal; }
-    private void switchTo(Minecraft client, String reason, DoubleSetting explicitSlot, boolean maceReason) {
+    private boolean allowedEntity(LivingEntity entity) { return entity instanceof PlayerEntity || entity instanceof HostileEntity || entity instanceof AnimalEntity; }
+    private void switchTo(MinecraftClient client, String reason, DoubleSetting explicitSlot, boolean maceReason) {
         int slot = maceReason ? findMaceSlot(client.player) : findWeaponSlot(client.player, reason, explicitSlot);
         if (slot < 0) return;
         if (client.player.getInventory().getSelectedSlot() == slot) { if (activeSwap.isEmpty()) activeSwap = reason; return; }
         if (activeSwap.isEmpty()) previousSlot = client.player.getInventory().getSelectedSlot();
         activeSwap = reason; client.player.getInventory().setSelectedSlot(slot);
     }
-    private void restorePrevious(Minecraft client) {
+    private void restorePrevious(MinecraftClient client) {
         if (!returnToPrevious.enabled() || previousSlot < 0 || client.player == null) { previousSlot = -1; activeSwap = ""; return; }
         client.player.getInventory().setSelectedSlot(previousSlot); previousSlot = -1; activeSwap = "";
     }
-    private int findMaceSlot(Player player) {
-        int explicit = configuredSlot(player, maceSlot, item -> item.is(Items.MACE));
+    private int findMaceSlot(PlayerEntity player) {
+        int explicit = configuredSlot(player, maceSlot, item -> item.isOf(Items.MACE));
         if (explicit >= 0) return explicit;
-        for (int i = 0; i < 9; i++) { ItemStack stack = player.getInventory().getItem(i); if (stack.is(Items.MACE) && matchesMaceFilters(stack)) return i; }
+        for (int i = 0; i < 9; i++) { ItemStack stack = player.getInventory().getStack(i); if (stack.isOf(Items.MACE) && matchesMaceFilters(stack)) return i; }
         return -1;
     }
-    private int findWeaponSlot(Player player, String type, DoubleSetting setting) {
+    private int findWeaponSlot(PlayerEntity player, String type, DoubleSetting setting) {
         int explicit = configuredSlot(player, setting, stack -> isWeapon(stack, type));
         if (explicit >= 0) return explicit;
-        for (int i = 0; i < 9; i++) if (isWeapon(player.getInventory().getItem(i), type)) return i;
+        for (int i = 0; i < 9; i++) if (isWeapon(player.getInventory().getStack(i), type)) return i;
         return -1;
     }
-    private int configuredSlot(Player player, DoubleSetting setting, java.util.function.Predicate<ItemStack> predicate) {
+    private int configuredSlot(PlayerEntity player, DoubleSetting setting, java.util.function.Predicate<ItemStack> predicate) {
         int configured = (int) Math.round(setting.get()) - 1;
         if (configured < 0 || configured > 8) return -1;
-        return predicate.test(player.getInventory().getItem(configured)) ? configured : -1;
+        return predicate.test(player.getInventory().getStack(configured)) ? configured : -1;
     }
     private boolean isWeapon(ItemStack stack, String type) {
         Item item = stack.getItem();
@@ -93,18 +93,18 @@ public final class AttributeSwapModule extends Module {
     private boolean matchesMaceFilters(ItemStack stack) {
         boolean any = maceBreach.enabled() || maceWindBurst.enabled() || maceDensity.enabled();
         if (!any) return true;
-        var enchantments = stack.get(DataComponents.ENCHANTMENTS);
+        var enchantments = stack.get(DataComponentTypes.ENCHANTMENTS);
         if (enchantments == null) return false;
-        Set<Holder<Enchantment>> holders = enchantments.keySet();
-        for (Holder<Enchantment> holder : holders) {
-            String path = holder.unwrapKey().map(key -> key.identifier().getPath()).orElse("");
+        Set<RegistryEntry<Enchantment>> holders = enchantments.getEnchantments();
+        for (RegistryEntry<Enchantment> holder : holders) {
+            String path = holder.getKey().map(key -> key.getValue().getPath()).orElse("");
             if (maceBreach.enabled() && path.equals("breach")) return true;
             if (maceWindBurst.enabled() && path.equals("wind_burst")) return true;
             if (maceDensity.enabled() && path.equals("density")) return true;
         }
         return false;
     }
-    @SuppressWarnings("unchecked") private static <T extends Module> T clientModules(Minecraft client, String id, Class<T> type) {
+    @SuppressWarnings("unchecked") private static <T extends Module> T clientModules(MinecraftClient client, String id, Class<T> type) {
         if (io.arson.client.ArsonClient.getInstance() == null) return null;
         Module module = io.arson.client.ArsonClient.getInstance().modules().get(id);
         return type.isInstance(module) ? (T) module : null;

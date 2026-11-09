@@ -2,34 +2,34 @@ package io.arson.client.render;
 
 import io.arson.client.ArsonClient;
 import io.arson.client.module.CombatInfoModule;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 
 /** Renders nearby combat target and weapon information without automating combat. */
 public final class CombatInfoRenderer {
     private CombatInfoRenderer() {}
 
-    public static void render(GuiGraphics graphics, DeltaTracker tickCounter) {
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.level == null) return;
+    public static void render(DrawContext graphics, RenderTickCounter tickCounter) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null) return;
 
         CombatInfoModule module = (CombatInfoModule) ArsonClient.getInstance().modules().get("combat-info");
         if (module == null || !module.enabled()) return;
 
         LivingEntity target = findTarget(client, module);
-        ItemStack held = client.player.getMainHandItem();
-        String weapon = held.isEmpty() ? "Hand" : held.getHoverName().getString();
-        String durability = module.showDurability() && held.isDamageableItem()
-                ? "Durability " + (held.getMaxDamage() - held.getDamageValue()) + "/" + held.getMaxDamage()
+        ItemStack held = client.player.getMainHandStack();
+        String weapon = held.isEmpty() ? "Hand" : held.getName().getString();
+        String durability = module.showDurability() && held.isDamageable()
+                ? "Durability " + (held.getMaxDamage() - held.getDamage()) + "/" + held.getMaxDamage()
                 : null;
         String cooldown = module.showAttackCooldown()
-                ? "Cooldown " + Math.round(client.player.getAttackStrengthScale(0.0f) * 100.0f) + "%"
+                ? "Cooldown " + Math.round(client.player.getAttackCooldownProgress(0.0f) * 100.0f) + "%"
                 : null;
 
         java.util.ArrayList<String> rows = new java.util.ArrayList<>();
@@ -48,10 +48,10 @@ public final class CombatInfoRenderer {
         float scale = (float) module.infoScale();
         int x = module.x();
         int y = module.y();
-        int line = client.font.lineHeight + module.rowGap();
+        int line = client.textRenderer.fontHeight + module.rowGap();
         int padding = module.padding();
         int width = 0;
-        for (String row : rows) width = Math.max(width, client.font.width(row));
+        for (String row : rows) width = Math.max(width, client.textRenderer.getWidth(row));
 
         int contentHeight = rows.size() * line;
         boolean drawHealthBar = target != null && module.healthBar();
@@ -60,9 +60,9 @@ public final class CombatInfoRenderer {
         int totalHeight = contentHeight + barGap + barHeight;
         int panelWidth = Math.max(width, 48);
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
-        graphics.pose().scale(scale, scale);
+        graphics.getMatrices().pushMatrix();
+        graphics.getMatrices().translate(x, y);
+        graphics.getMatrices().scale(scale, scale);
 
         if (module.background()) {
             graphics.fill(-padding, -padding, panelWidth + padding, totalHeight + padding,
@@ -71,7 +71,7 @@ public final class CombatInfoRenderer {
 
         for (int i = 0; i < rows.size(); i++) {
             int color = i == healthRow ? module.healthColor() : module.textColor();
-            graphics.drawString(client.font, rows.get(i), 0, i * line, color, true);
+            graphics.drawText(client.textRenderer, rows.get(i), 0, i * line, color, true);
         }
 
         if (drawHealthBar) {
@@ -84,18 +84,18 @@ public final class CombatInfoRenderer {
             int filled = Math.round(panelWidth * ratio);
             if (filled > 0) graphics.fill(0, barTop, filled, barTop + barHeight, module.healthColor());
         }
-        graphics.pose().popMatrix();
+        graphics.getMatrices().popMatrix();
     }
 
-    private static LivingEntity findTarget(Minecraft client, CombatInfoModule module) {
+    private static LivingEntity findTarget(MinecraftClient client, CombatInfoModule module) {
         double range = module.range();
         double maxDistance = range * range;
         LivingEntity best = null;
         double bestDistance = maxDistance;
-        for (LivingEntity entity : client.level.getEntitiesOfClass(LivingEntity.class,
-                client.player.getBoundingBox().inflate(range),
+        for (LivingEntity entity : client.world.getEntitiesByClass(LivingEntity.class,
+                client.player.getBoundingBox().expand(range),
                 entity -> entity != client.player && entity.isAlive() && !entity.isSpectator() && allowed(entity, module))) {
-            double distance = client.player.distanceToSqr(entity);
+            double distance = client.player.squaredDistanceTo(entity);
             if (distance < bestDistance) {
                 bestDistance = distance;
                 best = entity;
@@ -105,9 +105,9 @@ public final class CombatInfoRenderer {
     }
 
     private static boolean allowed(LivingEntity entity, CombatInfoModule module) {
-        if (entity instanceof Player) return module.showPlayers();
-        if (entity instanceof Animal) return module.showAnimals();
-        if (entity instanceof Mob) return module.showMobs();
+        if (entity instanceof PlayerEntity) return module.showPlayers();
+        if (entity instanceof AnimalEntity) return module.showAnimals();
+        if (entity instanceof MobEntity) return module.showMobs();
         return false;
     }
 

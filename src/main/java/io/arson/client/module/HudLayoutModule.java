@@ -3,12 +3,13 @@ package io.arson.client.module;
 import io.arson.client.settings.BooleanSetting;
 import io.arson.client.settings.DoubleSetting;
 import io.arson.client.settings.EnumSetting;
-import net.minecraft.client.Minecraft;
 import io.arson.client.ui.NoOverlapLayout;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import net.minecraft.client.MinecraftClient;
 
 /** Persistent, resize-aware HUD anchor constraints. Positions are stored as anchor-relative offsets. */
 public final class HudLayoutModule extends Module {
@@ -32,6 +33,9 @@ public final class HudLayoutModule extends Module {
     private final DoubleSetting worldInfoX = offset("world-info-x", "World Info X", 6);
     private final DoubleSetting worldInfoY = offset("world-info-y", "World Info Y", 94);
 
+    // Last measured logical bounds for text HUD elements; Array List bounds are screen-space.
+    private final Map<String, NoOverlapLayout.Size> measuredSizes = new LinkedHashMap<>();
+
     public HudLayoutModule() {
         super("hud-layout", "HUD Layout", Category.RENDER, "Keeps HUD element anchors and offsets persistent across viewport resizes.");
         clamp.description("Keep anchored HUD elements inside the visible scaled viewport.");
@@ -42,6 +46,39 @@ public final class HudLayoutModule extends Module {
     }
 
     public boolean clamp() { return clamp.enabled(); }
+
+    /** Records actual rendered bounds so overlap repair uses content size, not placeholders. */
+    public boolean updateElementSize(String element, double width, double height) {
+        if (element == null || !List.of("watermark", "coordinates", "fps", "player-info", "world-info", "array-list").contains(element)) return false;
+        NoOverlapLayout.Size next = new NoOverlapLayout.Size(safeDimension(width), safeDimension(height));
+        NoOverlapLayout.Size previous = measuredSizes.put(element, next);
+        return !next.equals(previous);
+    }
+
+    /** Returns the last measured bounds, or a safe fallback before the first HUD render. */
+    public NoOverlapLayout.Size measuredSize(String element, double fallbackWidth, double fallbackHeight) {
+        return measuredSizes.getOrDefault(element,
+                new NoOverlapLayout.Size(safeDimension(fallbackWidth), safeDimension(fallbackHeight)));
+    }
+
+    /** Stable signature used to schedule overlap repair after measured bounds change. */
+    public int boundsSignature() {
+        int hash = 1;
+        for (String element : List.of("watermark", "coordinates", "fps", "player-info", "world-info", "array-list")) {
+            NoOverlapLayout.Size size = measuredSizes.get(element);
+            if (size != null) {
+                hash = 31 * hash + element.hashCode();
+                hash = 31 * hash + size.width();
+                hash = 31 * hash + size.height();
+            }
+        }
+        return hash;
+    }
+
+    private static int safeDimension(double value) {
+        if (!Double.isFinite(value)) return 1;
+        return Math.max(1, Math.min(10000, (int) Math.ceil(value)));
+    }
     public Anchor anchor(String element) { return switch (element) {
         case "watermark" -> watermarkAnchor.get(); case "coordinates" -> coordinatesAnchor.get(); case "fps" -> fpsAnchor.get();
         case "player-info" -> playerInfoAnchor.get(); case "world-info" -> worldInfoAnchor.get(); default -> Anchor.TOP_LEFT;
@@ -110,6 +147,17 @@ public final class HudLayoutModule extends Module {
 
     /** Repairs legacy/off-screen/overlapping HUD positions while preserving each element's anchor. */
     public boolean repairNoOverlap(int viewportWidth,int viewportHeight,double globalScale,int arrayListWidth,int arrayListHeight,ArrayListModule arrayList,HudModule hud) {
+        return repairNoOverlap(viewportWidth, viewportHeight, globalScale, arrayListWidth, arrayListHeight,
+                arrayList, hud, null);
+    }
+
+    /**
+     * Repairs only the HUD elements that are actually rendered. The HUD module's own
+     * visibility toggles are necessary but not sufficient when a child info module is disabled.
+     */
+    public boolean repairNoOverlap(int viewportWidth, int viewportHeight, double globalScale,
+                                   int arrayListWidth, int arrayListHeight, ArrayListModule arrayList,
+                                   HudModule hud, Set<String> activeElements) {
         if(hud==null) return false;
         double scale=Math.max(0.5,globalScale);
         int logicalW=Math.max(1,(int)Math.floor(viewportWidth/scale));
@@ -121,20 +169,25 @@ public final class HudLayoutModule extends Module {
             if("array-list".equals(element)){
                 if(arrayList == null || !arrayList.enabled()) continue;
                 // Convert the Array List's edge anchor into its visible bounding rectangle.
+                NoOverlapLayout.Size measured = measuredSizes.getOrDefault(element,
+                        new NoOverlapLayout.Size(arrayListWidth, arrayListHeight));
+                int actualWidth = measured.width(), actualHeight = measured.height();
                 int padding=(int)Math.round(arrayList.padding()*arrayList.scale());
                 int preferredX=arrayList.rightAlign()
-                        ? viewportWidth-arrayList.x()-arrayListWidth+padding
+                        ? viewportWidth-arrayList.x()-actualWidth+padding
                         : arrayList.x()-padding;
                 int preferredY=arrayList.y()-padding;
-                preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,preferredX),Math.max(0,preferredY),arrayListWidth,arrayListHeight));
-                sizes.put(element,new NoOverlapLayout.Size(arrayListWidth,arrayListHeight));
+                preferred.put(element,new NoOverlapLayout.Rect(Math.max(0,preferredX),Math.max(0,preferredY),actualWidth,actualHeight));
+                sizes.put(element,measured);
                 continue;
             }
-            if(!hud.elementVisible(element)) continue;
+            if (!(activeElements == null ? hud.elementVisible(element) : activeElements.contains(element))) continue;
             double elementScale=hud.elementScale(element);
-            double[] p=resolve(element,logicalW,logicalH,190*elementScale,35*elementScale);
+            NoOverlapLayout.Size measured = measuredSizes.getOrDefault(element,
+                    new NoOverlapLayout.Size(safeDimension(190 * elementScale), safeDimension(35 * elementScale)));
+            double[] p=resolve(element,logicalW,logicalH,measured.width(),measured.height());
             int x=(int)Math.round(p[0]*scale),y=(int)Math.round(p[1]*scale);
-            int w=Math.max(1,(int)Math.ceil(190*elementScale*scale)),h=Math.max(1,(int)Math.ceil(35*elementScale*scale));
+            int w=Math.max(1,(int)Math.ceil(measured.width()*scale)),h=Math.max(1,(int)Math.ceil(measured.height()*scale));
             preferred.put(element,new NoOverlapLayout.Rect(x,y,w,h));
             sizes.put(element,new NoOverlapLayout.Size(w,h));
         }
@@ -144,9 +197,11 @@ public final class HudLayoutModule extends Module {
             NoOverlapLayout.Rect rect=placements.get(element).rect();
             if("array-list".equals(element)){
                 if(arrayList != null){
+                    NoOverlapLayout.Size measured = measuredSizes.getOrDefault(element,
+                            new NoOverlapLayout.Size(arrayListWidth, arrayListHeight));
                     int padding=(int)Math.round(arrayList.padding()*arrayList.scale());
                     int targetX=arrayList.rightAlign()
-                            ? viewportWidth-rect.x()-arrayListWidth+padding
+                            ? viewportWidth-rect.x()-measured.width()+padding
                             : rect.x()+padding;
                     int targetY=rect.y()+padding;
                     if(arrayList.x()!=targetX || arrayList.y()!=targetY){ arrayList.setEditorPosition(targetX,targetY); changed=true; }
@@ -154,10 +209,11 @@ public final class HudLayoutModule extends Module {
                 continue;
             }
             double x=rect.x()/scale,y=rect.y()/scale;
-            double elementScale=hud.elementScale(element);
-            double[] current=resolve(element,logicalW,logicalH,190*elementScale,35*elementScale);
+            NoOverlapLayout.Size measured = measuredSizes.getOrDefault(element,
+                    new NoOverlapLayout.Size(safeDimension(190 * hud.elementScale(element)), safeDimension(35 * hud.elementScale(element))));
+            double[] current=resolve(element,logicalW,logicalH,measured.width(),measured.height());
             if(Math.abs(current[0]-x)>0.5 || Math.abs(current[1]-y)>0.5){
-                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,190*elementScale,35*elementScale);
+                setPositionPreservingAnchor(element,x,y,logicalW,logicalH,measured.width(),measured.height());
                 changed=true;
             }
         }
@@ -167,5 +223,5 @@ public final class HudLayoutModule extends Module {
     private int arrayListPreferredX=6,arrayListPreferredY=6;
     public void setArrayListPreferredPosition(int x,int y){arrayListPreferredX=x;arrayListPreferredY=y;}
 
-    @Override protected void onTick(Minecraft client) { /* layout is declarative; no per-tick work is required */ }
+    @Override protected void onTick(MinecraftClient client) { /* layout is declarative; no per-tick work is required */ }
 }
