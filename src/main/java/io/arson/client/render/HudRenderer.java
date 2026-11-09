@@ -296,7 +296,9 @@ public final class HudRenderer {
             double logicalViewportW = client.getWindow().getScaledWidth() / Math.max(0.001, hud.scale());
             double logicalViewportH = client.getWindow().getScaledHeight() / Math.max(0.001, hud.scale());
             double[] resolved = layout.resolve(element, logicalViewportW, logicalViewportH, measuredWidth, measuredHeight);
-            x = resolved[0] + padding * elementScale;
+            String alignment = hud.elementAlignment(element);
+            int contentLeft = alignedX(0, maxWidth, alignment);
+            x = resolved[0] + (padding - contentLeft) * elementScale;
             y = resolved[1] + padding * elementScale;
         }
         graphics.getMatrices().pushMatrix();
